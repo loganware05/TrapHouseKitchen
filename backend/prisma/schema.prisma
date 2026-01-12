@@ -1,0 +1,307 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  CHEF
+  ADMIN
+}
+
+enum DishStatus {
+  AVAILABLE
+  UNAVAILABLE
+  SEASONAL
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  REFUNDED
+  PARTIALLY_REFUNDED
+  FAILED
+}
+
+enum PaymentMethod {
+  CARD
+  APPLE_PAY
+  CASH_APP_PAY
+  CASH
+}
+
+enum TransactionType {
+  CHARGE
+  REFUND
+  PARTIAL_REFUND
+}
+
+model User {
+  id                String              @id @default(uuid())
+  email             String?             @unique
+  password          String?
+  name              String
+  role              UserRole            @default(CUSTOMER)
+  isGuest           Boolean             @default(false)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  // Customer specific
+  allergenProfile   UserAllergen[]
+  dietaryPreferences DietaryPreference[]
+  orders            Order[]
+  dishRequests      DishRequest[]
+  votes             Vote[]
+  
+  @@index([email])
+}
+
+model Allergen {
+  id          String         @id @default(uuid())
+  name        String         @unique
+  description String?
+  severity    String         @default("MODERATE") // LOW, MODERATE, HIGH
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  
+  userAllergens   UserAllergen[]
+  dishAllergens   DishAllergen[]
+  ingredientAllergens IngredientAllergen[]
+}
+
+model UserAllergen {
+  id         String   @id @default(uuid())
+  userId     String
+  allergenId String
+  createdAt  DateTime @default(now())
+  
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  allergen  Allergen  @relation(fields: [allergenId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, allergenId])
+}
+
+model DietaryPreference {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String   // e.g., "Vegetarian", "Vegan", "Gluten-Free", "Keto"
+  description String?
+  createdAt   DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, name])
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  displayOrder Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  dishes Dish[]
+}
+
+model Dish {
+  id          String      @id @default(uuid())
+  name        String
+  description String
+  price       Float
+  imageUrl    String?
+  status      DishStatus  @default(AVAILABLE)
+  categoryId  String
+  prepTime    Int?        // in minutes
+  spiceLevel  Int?        // 0-5 scale
+  isVegan     Boolean     @default(false)
+  isVegetarian Boolean    @default(false)
+  isGlutenFree Boolean    @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  category    Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  ingredients DishIngredient[]
+  allergens   DishAllergen[]
+  orderItems  OrderItem[]
+  
+  @@index([categoryId])
+  @@index([status])
+}
+
+model Ingredient {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  isVegan     Boolean    @default(false)
+  isVegetarian Boolean   @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  dishes      DishIngredient[]
+  allergens   IngredientAllergen[]
+}
+
+model DishIngredient {
+  id           String  @id @default(uuid())
+  dishId       String
+  ingredientId String
+  quantity     String? // e.g., "2 cups", "100g"
+  isOptional   Boolean @default(false)
+  
+  dish       Dish       @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  
+  @@unique([dishId, ingredientId])
+}
+
+model DishAllergen {
+  id         String   @id @default(uuid())
+  dishId     String
+  allergenId String
+  createdAt  DateTime @default(now())
+  
+  dish     Dish     @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  allergen Allergen @relation(fields: [allergenId], references: [id], onDelete: Cascade)
+  
+  @@unique([dishId, allergenId])
+}
+
+model IngredientAllergen {
+  id           String   @id @default(uuid())
+  ingredientId String
+  allergenId   String
+  createdAt    DateTime @default(now())
+  
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  allergen   Allergen   @relation(fields: [allergenId], references: [id], onDelete: Cascade)
+  
+  @@unique([ingredientId, allergenId])
+}
+
+model Order {
+  id            String        @id @default(uuid())
+  userId        String
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(UNPAID)
+  totalPrice    Float
+  tipAmount     Float         @default(0)
+  finalAmount   Float
+  specialInstructions String?
+  prepTime      Int?          // Estimated preparation time in minutes
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  completedAt   DateTime?
+  
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items      OrderItem[]
+  payments   Payment[]
+  
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id              String  @id @default(uuid())
+  orderId         String
+  dishId          String
+  quantity        Int     @default(1)
+  priceAtOrder    Float
+  customizations  String? // JSON string for any customizations
+  
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  dish  Dish  @relation(fields: [dishId], references: [id], onDelete: Restrict)
+  
+  @@index([orderId])
+}
+
+model DishRequest {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  description String
+  upvotes     Int      @default(0)
+  downvotes   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes Vote[]
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Vote {
+  id            String      @id @default(uuid())
+  userId        String
+  dishRequestId String
+  isUpvote      Boolean     // true for upvote, false for downvote
+  createdAt     DateTime    @default(now())
+  
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dishRequest DishRequest @relation(fields: [dishRequestId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, dishRequestId])
+  @@index([dishRequestId])
+}
+
+model Payment {
+  id                    String        @id @default(uuid())
+  orderId               String
+  stripePaymentIntentId String?       @unique
+  amount                Float         // Subtotal (order total)
+  tipAmount             Float         @default(0)
+  totalAmount           Float         // amount + tipAmount
+  currency              String        @default("usd")
+  status                String        @default("pending") // pending, processing, succeeded, failed, canceled
+  paymentMethod         PaymentMethod
+  paymentMethodDetails  Json?         // Store card brand, last4, etc.
+  receiptUrl            String?
+  failureReason         String?
+  metadata              Json?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  
+  @@index([orderId])
+  @@index([stripePaymentIntentId])
+  @@index([status])
+}
+
+model Transaction {
+  id              String          @id @default(uuid())
+  paymentId       String
+  type            TransactionType
+  amount          Float
+  status          String          // succeeded, pending, failed
+  stripeChargeId  String?
+  stripeRefundId  String?
+  reason          String?
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+  
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  
+  @@index([paymentId])
+}
