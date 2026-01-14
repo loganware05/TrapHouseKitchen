@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { z } from 'zod';
-import { Dish, DishAllergen, Allergen } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 const orderItemSchema = z.object({
   dishId: z.string(),
@@ -13,11 +13,16 @@ const createOrderSchema = z.object({
   items: z.array(orderItemSchema),
 });
 
-type DishWithAllergens = Dish & {
-  allergens: (DishAllergen & {
-    allergen: Allergen;
-  })[];
-};
+// Use Prisma's type inference instead of importing generated types
+type DishWithAllergens = Prisma.DishGetPayload<{
+  include: {
+    allergens: {
+      include: {
+        allergen: true;
+      };
+    };
+  };
+}>;
 
 export const createOrder = async (req: Request, res: Response) => {
   try {
