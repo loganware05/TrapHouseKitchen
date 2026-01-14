@@ -3,18 +3,13 @@
   "version": "1.0.0",
   "description": "Restaurant web application for menu management and customer ordering",
   "private": true,
-  "workspaces": [
-    "backend",
-    "frontend"
-  ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "npm run dev --workspace=backend",
-    "dev:frontend": "npm run dev --workspace=frontend",
-    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
-    "build:backend": "npm run build --workspace=backend",
-    "build:frontend": "npm run build --workspace=frontend",
-    "postinstall": "npm run prisma:generate --workspace=backend --if-present"
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
