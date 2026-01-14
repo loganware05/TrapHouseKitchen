@@ -1,6 +1,7 @@
 export type UserRole = 'CUSTOMER' | 'CHEF' | 'ADMIN';
 export type DishStatus = 'AVAILABLE' | 'UNAVAILABLE' | 'SEASONAL';
 export type OrderStatus = 'PENDING' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';
+export type PaymentStatus = 'UNPAID' | 'PENDING' | 'PAID' | 'REFUNDED' | 'PARTIALLY_REFUNDED' | 'FAILED';
 
 export interface User {
   id: string;
@@ -117,8 +118,12 @@ export interface Order {
   id: string;
   userId: string;
   status: OrderStatus;
+  paymentStatus: PaymentStatus;
   totalPrice: number;
+  tipAmount: number;
+  finalAmount: number;
   specialInstructions?: string;
+  prepTime?: number;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
