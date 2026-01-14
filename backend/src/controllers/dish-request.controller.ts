@@ -8,14 +8,14 @@ const requestSchema = z.object({
 });
 
 const voteSchema = z.object({
-  value: z.number().int().min(-1).max(1), // 1 or -1
+  isUpvote: z.boolean(), // true for upvote, false for downvote
 });
 
 export const getRequests = async (req: Request, res: Response) => {
   try {
     const requests = await prisma.dishRequest.findMany({
       include: {
-        customer: {
+        user: {
           select: { name: true },
         },
       },
@@ -40,7 +40,7 @@ export const createRequest = async (req: Request, res: Response) => {
       data: {
         title,
         description,
-        customerId: userId,
+        userId: userId,
       },
     });
 
@@ -55,9 +55,7 @@ export const voteRequest = async (req: Request, res: Response) => {
     // @ts-ignore
     const userId = req.user?.id;
     const { id } = req.params;
-    const { value } = voteSchema.parse(req.body);
-
-    if (value === 0) return res.status(400).json({ message: 'Vote must be 1 or -1' });
+    const { isUpvote } = voteSchema.parse(req.body);
 
     // Check if user already voted
     const existingVote = await prisma.vote.findUnique({
@@ -70,35 +68,27 @@ export const voteRequest = async (req: Request, res: Response) => {
     });
 
     if (existingVote) {
-        if (existingVote.value === value) {
+        if (existingVote.isUpvote === isUpvote) {
             return res.status(400).json({ message: 'You have already voted this way' });
         }
         
-        // Change vote (e.g. up to down)
-        // Adjust counts
-        const upvoteChange = value === 1 ? 1 : -1;
-        const downvoteChange = value === -1 ? 1 : -1;
-
+        // Change vote (e.g. upvote to downvote or vice versa)
+        // If changing from upvote to downvote: upvotes -1, downvotes +1
+        // If changing from downvote to upvote: upvotes +1, downvotes -1
+        
         await prisma.$transaction([
             prisma.vote.update({
                 where: { id: existingVote.id },
-                data: { value },
+                data: { isUpvote },
             }),
             prisma.dishRequest.update({
                 where: { id },
                 data: {
-                    upvotes: { increment: value === 1 ? 1 : -1 }, // if switching to up, inc up. if switching to down, dec up (which is -1)
-                    downvotes: { increment: value === -1 ? 1 : -1 }
+                    upvotes: { increment: isUpvote ? 1 : -1 },
+                    downvotes: { increment: isUpvote ? -1 : 1 }
                 }
             })
         ]);
-        
-        // Wait, logic is complex. 
-        // If Old was 1 (Up), New is -1 (Down).
-        // Upvotes -1. Downvotes +1.
-        
-        // If Old was -1 (Down), New is 1 (Up).
-        // Upvotes +1. Downvotes -1.
         
         return res.json({ message: 'Vote updated' });
     }
@@ -109,14 +99,14 @@ export const voteRequest = async (req: Request, res: Response) => {
         data: {
           userId,
           dishRequestId: id,
-          value,
+          isUpvote,
         },
       }),
       prisma.dishRequest.update({
         where: { id },
         data: {
-          upvotes: { increment: value === 1 ? 1 : 0 },
-          downvotes: { increment: value === -1 ? 1 : 0 },
+          upvotes: { increment: isUpvote ? 1 : 0 },
+          downvotes: { increment: isUpvote ? 0 : 1 },
         },
       }),
     ]);

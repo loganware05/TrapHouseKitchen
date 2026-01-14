@@ -6,10 +6,15 @@ const dishSchema = z.object({
   name: z.string(),
   description: z.string(),
   price: z.number(),
-  category: z.string(),
+  categoryId: z.string(), // Changed from category to categoryId
   imageUrl: z.string().optional(),
-  allergens: z.array(z.string()).default([]),
-  isAvailable: z.boolean().default(true),
+  status: z.enum(['AVAILABLE', 'UNAVAILABLE', 'SEASONAL']).default('AVAILABLE'), // Changed from isAvailable
+  allergenIds: z.array(z.string()).optional(), // For creating allergen relations
+  isVegan: z.boolean().optional(),
+  isVegetarian: z.boolean().optional(),
+  isGlutenFree: z.boolean().optional(),
+  prepTime: z.number().optional(),
+  spiceLevel: z.number().optional(),
 });
 
 export const getDishes = async (req: Request, res: Response) => {
@@ -25,11 +30,26 @@ export const getDishes = async (req: Request, res: Response) => {
 
 export const createDish = async (req: Request, res: Response) => {
   try {
-    const data = dishSchema.parse(req.body);
+    const { allergenIds, ...data } = dishSchema.parse(req.body);
+    
     const dish = await prisma.dish.create({
       data: {
         ...data,
-        price: data.price, // Prisma handles Decimal from number usually, or pass string? Decimal needs string/number.
+        ...(allergenIds && allergenIds.length > 0 && {
+          allergens: {
+            create: allergenIds.map(allergenId => ({
+              allergenId,
+            })),
+          },
+        }),
+      },
+      include: {
+        category: true,
+        allergens: {
+          include: {
+            allergen: true,
+          },
+        },
       },
     });
     res.status(201).json(dish);
@@ -41,10 +61,37 @@ export const createDish = async (req: Request, res: Response) => {
 export const updateDish = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const data = dishSchema.partial().parse(req.body);
+    const { allergenIds, ...data } = dishSchema.partial().parse(req.body);
+    
+    const updateData: any = { ...data };
+    
+    // If allergenIds are provided, update the allergen relations
+    if (allergenIds) {
+      // Delete existing allergen relations and create new ones
+      await prisma.dishAllergen.deleteMany({
+        where: { dishId: id },
+      });
+      
+      if (allergenIds.length > 0) {
+        updateData.allergens = {
+          create: allergenIds.map(allergenId => ({
+            allergenId,
+          })),
+        };
+      }
+    }
+    
     const dish = await prisma.dish.update({
       where: { id },
-      data,
+      data: updateData,
+      include: {
+        category: true,
+        allergens: {
+          include: {
+            allergen: true,
+          },
+        },
+      },
     });
     res.json(dish);
   } catch (error) {
