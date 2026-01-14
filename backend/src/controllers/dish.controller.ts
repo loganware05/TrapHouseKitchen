@@ -30,11 +30,14 @@ export const getDishes = async (req: Request, res: Response) => {
 
 export const createDish = async (req: Request, res: Response) => {
   try {
-    const { allergenIds, categoryId, ...data } = dishSchema.parse(req.body);
+    const { allergenIds, categoryId, name, description, price, ...optionalData } = dishSchema.parse(req.body);
     
     const dish = await prisma.dish.create({
       data: {
-        ...data,
+        name,
+        description,
+        price,
+        ...optionalData,
         category: {
           connect: { id: categoryId },
         },
