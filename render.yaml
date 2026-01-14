@@ -40,7 +40,7 @@ services:
     name: traphousekitchen-web
     env: static
     region: virginia
-    buildCommand: cd frontend && rm -f package-lock.json && npm install --legacy-peer-deps && npx tsc && npx vite build
+    buildCommand: cd frontend && npm ci || npm install && npm run build
     staticPublishPath: frontend/dist
     pullRequestPreviewsEnabled: true
     envVars:
