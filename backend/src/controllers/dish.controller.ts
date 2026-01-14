@@ -30,11 +30,14 @@ export const getDishes = async (req: Request, res: Response) => {
 
 export const createDish = async (req: Request, res: Response) => {
   try {
-    const { allergenIds, ...data } = dishSchema.parse(req.body);
+    const { allergenIds, categoryId, ...data } = dishSchema.parse(req.body);
     
     const dish = await prisma.dish.create({
       data: {
         ...data,
+        category: {
+          connect: { id: categoryId },
+        },
         ...(allergenIds && allergenIds.length > 0 && {
           allergens: {
             create: allergenIds.map(allergenId => ({
@@ -61,12 +64,19 @@ export const createDish = async (req: Request, res: Response) => {
 export const updateDish = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { allergenIds, ...data } = dishSchema.partial().parse(req.body);
+    const { allergenIds, categoryId, ...data } = dishSchema.partial().parse(req.body);
     
     const updateData: any = { ...data };
     
+    // If categoryId is provided, update using connect syntax
+    if (categoryId) {
+      updateData.category = {
+        connect: { id: categoryId },
+      };
+    }
+    
     // If allergenIds are provided, update the allergen relations
-    if (allergenIds) {
+    if (allergenIds !== undefined) {
       // Delete existing allergen relations and create new ones
       await prisma.dishAllergen.deleteMany({
         where: { dishId: id },
