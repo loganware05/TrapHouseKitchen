@@ -40,7 +40,7 @@ services:
     name: traphousekitchen-web
     env: static
     region: virginia
-    buildCommand: cd frontend && npm ci || npm install && npm run build
+    buildCommand: mv package.json package.json.bak 2>/dev/null || true && cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     pullRequestPreviewsEnabled: true
     envVars:
@@ -48,8 +48,6 @@ services:
         sync: false
       - key: VITE_STRIPE_PUBLISHABLE_KEY
         sync: false
-      - key: NPM_CONFIG_WORKSPACES
-        value: false
     routes:
       - type: rewrite
         source: /*
