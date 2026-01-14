@@ -5,6 +5,7 @@ import { AppError } from './errorHandler';
 export interface AuthRequest extends Request {
   user?: {
     id: string;
+    name: string;
     email?: string;
     role: string;
   };
@@ -24,6 +25,7 @@ export const authenticate = async (
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
       id: string;
+      name: string;
       email?: string;
       role: string;
     };

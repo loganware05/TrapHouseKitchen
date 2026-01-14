@@ -92,10 +92,16 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       return;
     }
 
+    // Retrieve the PaymentIntent with expanded charges to get charge details
+    const expandedPaymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id, {
+      expand: ['charges.data.payment_method_details']
+    });
+
     // Extract payment method details
     const paymentMethodDetails: any = {};
-    if (paymentIntent.charges.data.length > 0) {
-      const charge = paymentIntent.charges.data[0];
+    const charges = expandedPaymentIntent.charges as Stripe.ApiList<Stripe.Charge>;
+    if (charges.data.length > 0) {
+      const charge = charges.data[0];
       if (charge.payment_method_details?.card) {
         paymentMethodDetails.card = {
           brand: charge.payment_method_details.card.brand,
@@ -112,7 +118,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       data: {
         status: 'succeeded',
         paymentMethodDetails,
-        receiptUrl: paymentIntent.charges.data[0]?.receipt_url || null,
+        receiptUrl: charges.data[0]?.receipt_url || null,
       },
     });
 
@@ -123,7 +129,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
         type: 'CHARGE',
         amount: fromStripeAmount(paymentIntent.amount),
         status: 'succeeded',
-        stripeChargeId: paymentIntent.charges.data[0]?.id || null,
+        stripeChargeId: charges.data[0]?.id || null,
       },
     });
 

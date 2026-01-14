@@ -19,14 +19,24 @@ export const createOrder = async (req: Request, res: Response) => {
     const { items } = createOrderSchema.parse(req.body);
 
     // 1. Fetch User Profile for Allergen Check
-    const userProfile = await prisma.customerProfile.findUnique({
-      where: { userId },
+    const userProfile = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        allergenProfile: true
+      }
     });
 
     // 2. Fetch Dishes to calculate total and check allergens
     const dishIds = items.map(i => i.dishId);
     const dishes = await prisma.dish.findMany({
       where: { id: { in: dishIds } },
+      include: {
+        allergens: {
+          include: {
+            allergen: true
+          }
+        }
+      }
     });
 
     const dishMap = new Map(dishes.map(d => [d.id, d]));
@@ -42,22 +52,23 @@ export const createOrder = async (req: Request, res: Response) => {
         return res.status(400).json({ message: `Dish not found: ${item.dishId}` });
       }
 
-      if (!dish.isAvailable) {
+      if (dish.status !== 'AVAILABLE') {
         return res.status(400).json({ message: `Dish is not available: ${dish.name}` });
       }
 
       // Allergen Check
-      if (userProfile && userProfile.allergens.length > 0) {
-        const hasConflict = dish.allergens.some(allergen => 
-          userProfile.allergens.includes(allergen)
+      if (userProfile && userProfile.allergenProfile.length > 0) {
+        const dishAllergenIds = dish.allergens.map(da => da.allergenId);
+        const userAllergenIds = userProfile.allergenProfile.map(ua => ua.allergenId);
+        const hasConflict = dishAllergenIds.some(allergenId => 
+          userAllergenIds.includes(allergenId)
         );
         if (hasConflict) {
           conflicts.push(dish.name);
         }
       }
 
-      // Calculate Price (Simple version)
-      // Prisma Decimal is tricky in JS, assuming Number for simplicity here but in prod use Decimal.js
+      // Calculate Price
       totalAmount += Number(dish.price) * item.quantity;
       
       orderItemsForDb.push({
@@ -74,13 +85,22 @@ export const createOrder = async (req: Request, res: Response) => {
       });
     }
 
-    // 4. Create Order
+    // 4. Create Order (Note: This simplified controller doesn't match the current schema's OrderItem structure)
+    // For a production fix, you should use the routes/orders.ts implementation instead
     const order = await prisma.order.create({
       data: {
-        customerId: userId,
-        items: orderItemsForDb,
-        totalAmount: totalAmount,
+        userId: userId,
+        totalPrice: totalAmount,
+        finalAmount: totalAmount,
         status: 'PENDING',
+        items: {
+          create: orderItemsForDb.map(item => ({
+            dishId: item.dishId,
+            quantity: item.quantity,
+            priceAtOrder: Number(item.price),
+            customizations: item.customization ? JSON.stringify(item.customization) : null
+          }))
+        }
       },
     });
 
@@ -97,7 +117,7 @@ export const getOrders = async (req: Request, res: Response) => {
     
     let whereClause = {};
     if (role === 'CUSTOMER') {
-      whereClause = { customerId: userId };
+      whereClause = { userId: userId };
     }
     // Chef sees all
 
@@ -105,7 +125,7 @@ export const getOrders = async (req: Request, res: Response) => {
       where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
-        customer: { select: { name: true, email: true } }
+        user: { select: { name: true, email: true } }
       }
     });
 
