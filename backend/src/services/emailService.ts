@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Only initialize Resend if API key is provided (optional for deployment)
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const FROM_EMAIL = process.env.FROM_EMAIL || 'TrapHouse Kitchen <orders@traphousekitchen.com>';
 const RESTAURANT_NAME = 'TrapHouse Kitchen';
