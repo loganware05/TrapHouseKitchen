@@ -40,7 +40,7 @@ services:
     name: traphousekitchen-web
     env: static
     region: oregon
-    buildCommand: cd frontend && npm install --ignore-scripts && npm run build
+    buildCommand: cd frontend && npm install --ignore-scripts && npx tsc && npx vite build
     staticPublishPath: frontend/dist
     pullRequestPreviewsEnabled: true
     envVars:
