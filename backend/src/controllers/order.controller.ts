@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { z } from 'zod';
+import { Dish, DishAllergen, Allergen } from '@prisma/client';
 
 const orderItemSchema = z.object({
   dishId: z.string(),
@@ -11,6 +12,12 @@ const orderItemSchema = z.object({
 const createOrderSchema = z.object({
   items: z.array(orderItemSchema),
 });
+
+type DishWithAllergens = Dish & {
+  allergens: (DishAllergen & {
+    allergen: Allergen;
+  })[];
+};
 
 export const createOrder = async (req: Request, res: Response) => {
   try {
@@ -39,7 +46,7 @@ export const createOrder = async (req: Request, res: Response) => {
       }
     });
 
-    const dishMap = new Map(dishes.map(d => [d.id, d]));
+    const dishMap = new Map<string, DishWithAllergens>(dishes.map(d => [d.id, d]));
     let totalAmount = 0;
     const conflicts: string[] = [];
 
@@ -47,7 +54,7 @@ export const createOrder = async (req: Request, res: Response) => {
     const orderItemsForDb = [];
 
     for (const item of items) {
-      const dish = dishMap.get(item.dishId);
+      const dish: DishWithAllergens | undefined = dishMap.get(item.dishId);
       if (!dish) {
         return res.status(400).json({ message: `Dish not found: ${item.dishId}` });
       }
