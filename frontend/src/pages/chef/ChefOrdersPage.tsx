@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Clock, Package, CheckCircle } from 'lucide-react';
+import { Clock, Package, CheckCircle, Archive, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { Order } from '../../types';
@@ -14,11 +15,13 @@ const statusColors = {
 
 export default function ChefOrdersPage() {
   const queryClient = useQueryClient();
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data: ordersData } = useQuery({
-    queryKey: ['allOrders'],
+    queryKey: ['allOrders', showArchived],
     queryFn: async () => {
-      const res = await api.get<{ data: { orders: Order[] } }>('/orders/all');
+      const params = showArchived ? '?includeArchived=true' : '';
+      const res = await api.get<{ data: { orders: Order[] } }>(`/orders/all${params}`);
       return res.data.data.orders;
     },
   });
@@ -36,6 +39,32 @@ export default function ChefOrdersPage() {
     },
   });
 
+  const archiveCompletedMutation = useMutation({
+    mutationFn: async () => {
+      await api.post('/orders/archive-completed');
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+      toast.success(data.data.message || 'Order history archived successfully');
+    },
+    onError: () => {
+      toast.error('Failed to archive orders');
+    },
+  });
+
+  const resetCounterMutation = useMutation({
+    mutationFn: async () => {
+      await api.post('/orders/reset-counter');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+      toast.success('Order counter reset to #1');
+    },
+    onError: () => {
+      toast.error('Failed to reset order counter');
+    },
+  });
+
   const activeOrders = ordersData?.filter(
     (order) => !['COMPLETED', 'CANCELLED'].includes(order.status)
   ) || [];
@@ -48,9 +77,42 @@ export default function ChefOrdersPage() {
     updateStatusMutation.mutate({ id: orderId, status: newStatus });
   };
 
+  const handleArchiveCompleted = () => {
+    if (confirm('Archive all completed and cancelled orders? This will hide them from the main view.')) {
+      archiveCompletedMutation.mutate();
+    }
+  };
+
+  const handleResetCounter = () => {
+    if (confirm('Reset order counter to #1? This will affect all new orders going forward.')) {
+      resetCounterMutation.mutate();
+    }
+  };
+
+  const currentMaxOrderNumber = ordersData && ordersData.length > 0
+    ? Math.max(...ordersData.map(o => o.orderNumber))
+    : 0;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Order Management</h1>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Order Management</h1>
+          <p className="text-gray-600 mt-1">
+            Current order counter: #{currentMaxOrderNumber}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={handleResetCounter}
+            disabled={resetCounterMutation.isPending}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Reset Counter
+          </button>
+        </div>
+      </div>
 
       {/* Active Orders */}
       <div className="mb-12">
@@ -62,7 +124,7 @@ export default function ChefOrdersPage() {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <p className="text-lg font-semibold text-gray-900">
-                      Order #{order.id.slice(0, 8)}
+                      Order #{order.orderNumber}
                     </p>
                     <p className="text-sm text-gray-600">
                       Customer: {order.user?.name}
@@ -154,14 +216,35 @@ export default function ChefOrdersPage() {
 
       {/* Completed Orders */}
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Order History</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-semibold text-gray-900">Order History</h2>
+          <div className="flex gap-3 items-center">
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              Show Archived
+            </label>
+            <button
+              onClick={handleArchiveCompleted}
+              disabled={archiveCompletedMutation.isPending || completedOrders.length === 0}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <Archive className="h-4 w-4" />
+              Archive All
+            </button>
+          </div>
+        </div>
         {completedOrders.length > 0 ? (
           <div className="space-y-4">
             {completedOrders.slice(0, 10).map((order) => (
               <div key={order.id} className="bg-white rounded-lg shadow-md p-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="font-semibold text-gray-900">Order #{order.id.slice(0, 8)}</p>
+                    <p className="font-semibold text-gray-900">Order #{order.orderNumber}</p>
                     <p className="text-sm text-gray-600">{order.user?.name}</p>
                     <p className="text-sm text-gray-500">
                       {new Date(order.createdAt).toLocaleDateString()}

@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, Menu, ShoppingCart, User, ChefHat, LogOut, FileText, MessageSquare } from 'lucide-react';
+import { Star, Menu, ShoppingCart, User, ChefHat, LogOut, FileText, MessageSquare } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { useEffect } from 'react';
@@ -22,11 +22,12 @@ export default function Layout() {
         { to: '/chef', icon: ChefHat, label: 'Dashboard' },
         { to: '/chef/menu', icon: Menu, label: 'Menu' },
         { to: '/chef/orders', icon: FileText, label: 'Orders' },
+        { to: '/chef/reviews', icon: Star, label: 'Reviews' },
         { to: '/chef/ingredients', icon: Menu, label: 'Ingredients' },
       ]
     : [
-        { to: '/', icon: Home, label: 'Home' },
         { to: '/menu', icon: Menu, label: 'Menu' },
+        { to: '/reviews', icon: Star, label: 'Reviews' },
         { to: '/dish-requests', icon: MessageSquare, label: 'Requests' },
         { to: '/orders', icon: FileText, label: 'Orders' },
       ];

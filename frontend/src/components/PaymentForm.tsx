@@ -10,14 +10,12 @@ import { Loader2 } from 'lucide-react';
 interface PaymentFormProps {
   orderId: string;
   totalAmount: number;
-  paymentMethod: 'card' | 'apple_pay' | 'cash_app_pay';
   onSuccess: () => void;
 }
 
 export default function PaymentForm({
   orderId,
   totalAmount,
-  paymentMethod,
   onSuccess,
 }: PaymentFormProps) {
   const stripe = useStripe();
@@ -76,19 +74,6 @@ export default function PaymentForm({
     }
   };
 
-  const getButtonText = () => {
-    if (isProcessing) {
-      return 'Processing...';
-    }
-    if (paymentMethod === 'apple_pay') {
-      return `Pay $${totalAmount.toFixed(2)} with Apple Pay`;
-    }
-    if (paymentMethod === 'cash_app_pay') {
-      return `Pay $${totalAmount.toFixed(2)} with Cash App`;
-    }
-    return `Pay $${totalAmount.toFixed(2)}`;
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Stripe Payment Element */}
@@ -96,6 +81,10 @@ export default function PaymentForm({
         <PaymentElement
           options={{
             layout: 'tabs',
+            wallets: {
+              applePay: 'auto',
+              googlePay: 'auto',
+            },
           }}
         />
       </div>
@@ -121,7 +110,7 @@ export default function PaymentForm({
         className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {isProcessing && <Loader2 className="animate-spin h-5 w-5 mr-2" />}
-        {getButtonText()}
+        {isProcessing ? 'Processing...' : `Pay $${totalAmount.toFixed(2)}`}
       </button>
 
       {/* Security Notice */}

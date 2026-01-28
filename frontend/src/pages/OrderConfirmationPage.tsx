@@ -91,7 +91,7 @@ export default function OrderConfirmationPage() {
           </p>
           <div className="inline-flex items-center space-x-2 bg-gray-100 px-6 py-3 rounded-lg">
             <span className="text-sm text-gray-600">Order Number:</span>
-            <span className="text-xl font-bold text-primary-600">#{order.id.slice(0, 8).toUpperCase()}</span>
+            <span className="text-xl font-bold text-primary-600">#{order.orderNumber}</span>
           </div>
         </div>
 
@@ -251,7 +251,7 @@ export default function OrderConfirmationPage() {
         {/* Email Confirmation Notice */}
         <div className="mt-6 text-center text-sm text-gray-500">
           <p>A confirmation email has been sent to your email address.</p>
-          <p className="mt-1">Save this order number for your records: <span className="font-mono font-bold text-gray-700">#{order.id.slice(0, 8).toUpperCase()}</span></p>
+          <p className="mt-1">Save this order number for your records: <span className="font-mono font-bold text-gray-700">#{order.orderNumber}</span></p>
         </div>
       </div>
     </div>

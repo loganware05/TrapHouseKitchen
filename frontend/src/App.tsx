@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import Layout from './components/Layout';
-import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import MenuPage from './pages/MenuPage';
@@ -14,11 +13,15 @@ import CheckoutPage from './pages/CheckoutPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
+import ReviewsPage from './pages/ReviewsPage';
+import ReviewFormPage from './pages/ReviewFormPage';
+import MyReviewsPage from './pages/MyReviewsPage';
 import ChefLoginPage from './pages/chef/ChefLoginPage';
 import ChefDashboard from './pages/chef/ChefDashboard';
 import ChefMenuPage from './pages/chef/ChefMenuPage';
 import ChefOrdersPage from './pages/chef/ChefOrdersPage';
 import ChefIngredientsPage from './pages/chef/ChefIngredientsPage';
+import ChefReviewsPage from './pages/chef/ChefReviewsPage';
 
 function App() {
   const { user } = useAuthStore();
@@ -43,17 +46,47 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
+          <Route index element={<MenuPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="menu" element={<MenuPage />} />
           <Route path="privacy" element={<PrivacyPolicyPage />} />
           <Route path="terms" element={<TermsOfServicePage />} />
           
+          {/* Reviews - Public */}
+          <Route path="reviews" element={<ReviewsPage />} />
+          
           {/* Chef Login - Public Route */}
           <Route path="chef/login" element={<ChefLoginPage />} />
           <Route path="menu/:id" element={<DishDetailPage />} />
-          <Route path="dish-requests" element={<DishRequestsPage />} />
+          
+          {/* Dish Requests - Protected */}
+          <Route
+            path="dish-requests"
+            element={
+              <ProtectedRoute>
+                <DishRequestsPage />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Review Routes - Protected */}
+          <Route
+            path="reviews/new"
+            element={
+              <ProtectedRoute>
+                <ReviewFormPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="reviews/my"
+            element={
+              <ProtectedRoute>
+                <MyReviewsPage />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Cart and Checkout - Customer Only */}
           <Route
@@ -127,6 +160,14 @@ function App() {
             element={
               <ProtectedRoute chefOnly>
                 <ChefIngredientsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="chef/reviews"
+            element={
+              <ProtectedRoute chefOnly>
+                <ChefReviewsPage />
               </ProtectedRoute>
             }
           />

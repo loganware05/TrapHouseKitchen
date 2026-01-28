@@ -116,6 +116,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  orderNumber: number;
   userId: string;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
@@ -124,6 +125,8 @@ export interface Order {
   finalAmount: number;
   specialInstructions?: string;
   prepTime?: number;
+  isArchived: boolean;
+  appliedCouponId?: string;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
@@ -177,3 +180,34 @@ export interface AuthResponse {
   token: string;
 }
 
+export interface Review {
+  id: string;
+  orderId: string;
+  userId: string;
+  rating: number;
+  comment: string;
+  dishNames: string[];
+  approved: boolean;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    name: string;
+  };
+  order?: {
+    id: string;
+    orderNumber: number;
+    createdAt: string;
+  };
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  userId: string;
+  discountAmount: number;
+  used: boolean;
+  usedOrderId?: string;
+  createdAt: string;
+  expiresAt?: string;
+}

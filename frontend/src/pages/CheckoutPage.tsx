@@ -15,14 +15,16 @@ export default function CheckoutPage() {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'apple_pay' | 'cash_app_pay' | 'cash'>('card');
   const [tipAmount, setTipAmount] = useState<number>(0);
   const [customTip, setCustomTip] = useState<string>('');
   const [orderId, setOrderId] = useState<string>('');
   const [prepTime, setPrepTime] = useState<number>(0);
+  const [couponCode, setCouponCode] = useState<string>('');
+  const [couponDiscount, setCouponDiscount] = useState<number>(0);
+  const [couponApplied, setCouponApplied] = useState(false);
 
   const subtotal = getTotalPrice();
-  const total = subtotal + tipAmount;
+  const total = Math.max(0, subtotal + tipAmount - couponDiscount);
 
   useEffect(() => {
     // Redirect if cart is empty or user not logged in
@@ -68,26 +70,46 @@ export default function CheckoutPage() {
     }
   };
 
-  const handlePaymentMethodChange = async (method: 'card' | 'apple_pay' | 'cash_app_pay' | 'cash') => {
-    setPaymentMethod(method);
-    
-    // If cash is selected, confirm order immediately
-    if (method === 'cash') {
-      await handleCashPayment();
-    } else if (orderId && !clientSecret) {
-      // Create payment intent for online payment methods
-      await createPaymentIntent(method);
+  const validateCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error('Please enter a coupon code');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.post('/coupons/validate', {
+        code: couponCode.toUpperCase(),
+      });
+
+      const { discountAmount } = response.data.data;
+      setCouponDiscount(discountAmount);
+      setCouponApplied(true);
+      toast.success(`Coupon applied! You saved $${discountAmount.toFixed(2)}`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Invalid coupon code');
+      setCouponDiscount(0);
+      setCouponApplied(false);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const createPaymentIntent = async (method: 'card' | 'apple_pay' | 'cash_app_pay') => {
+  const removeCoupon = () => {
+    setCouponCode('');
+    setCouponDiscount(0);
+    setCouponApplied(false);
+    toast.info('Coupon removed');
+  };
+
+  const createPaymentIntent = async () => {
     try {
       setLoading(true);
       
       const response = await api.post('/payment/create-payment-intent', {
         orderId,
-        paymentMethod: method,
         tipAmount,
+        ...(couponApplied && { couponCode: couponCode.toUpperCase() }),
       });
 
       const { clientSecret: secret, prepTime: time } = response.data.data;
@@ -102,38 +124,13 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleCashPayment = async () => {
-    try {
-      setLoading(true);
-      
-      const response = await api.post('/payment/confirm-cash-payment', {
-        orderId,
-      });
-
-      const { prepTime: time } = response.data.data;
-      setPrepTime(time);
-      
-      clearCart();
-      toast.success('Order confirmed! Pay when you pick up.');
-      navigate(`/orders/${orderId}`, {
-        state: { paymentSuccess: false, prepTime: time },
-      });
-      
-    } catch (error: any) {
-      console.error('Error confirming cash payment:', error);
-      toast.error(error.response?.data?.message || 'Failed to confirm order');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleTipSelect = (amount: number) => {
     setTipAmount(amount);
     setCustomTip('');
     
     // If payment intent already created, recreate it with new tip
-    if (clientSecret && paymentMethod !== 'cash') {
-      createPaymentIntent(paymentMethod as 'card' | 'apple_pay' | 'cash_app_pay');
+    if (clientSecret) {
+      createPaymentIntent();
     }
   };
 
@@ -144,9 +141,15 @@ export default function CheckoutPage() {
       setTipAmount(amount);
       
       // If payment intent already created, recreate it with new tip
-      if (clientSecret && paymentMethod !== 'cash') {
-        createPaymentIntent(paymentMethod as 'card' | 'apple_pay' | 'cash_app_pay');
+      if (clientSecret) {
+        createPaymentIntent();
       }
+    }
+  };
+
+  const handlePayNowClick = async () => {
+    if (orderId && !clientSecret) {
+      await createPaymentIntent();
     }
   };
 
@@ -202,6 +205,12 @@ export default function CheckoutPage() {
                 <span className="text-gray-600">Tip</span>
                 <span className="font-medium">${tipAmount.toFixed(2)}</span>
               </div>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Discount</span>
+                  <span className="font-medium">-${couponDiscount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-lg font-bold border-t pt-2">
                 <span>Total</span>
                 <span className="text-primary-600">${total.toFixed(2)}</span>
@@ -260,65 +269,66 @@ export default function CheckoutPage() {
               </div>
             </div>
           </div>
+
+          {/* Coupon Code */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Have a Discount Code?
+            </h3>
+            {!couponApplied ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="Enter code"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 uppercase"
+                />
+                <button
+                  onClick={validateCoupon}
+                  disabled={loading || !couponCode.trim()}
+                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+                >
+                  Apply
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex justify-between items-center">
+                <div>
+                  <p className="font-semibold text-green-800">{couponCode}</p>
+                  <p className="text-sm text-green-600">
+                    Saving ${couponDiscount.toFixed(2)}
+                  </p>
+                </div>
+                <button
+                  onClick={removeCoupon}
+                  className="text-sm text-red-600 hover:text-red-700"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Payment Methods */}
         <div className="space-y-6">
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Payment Method</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Payment</h2>
             
-            <div className="space-y-3 mb-6">
+            {/* Payment Button */}
+            {!clientSecret && (
               <button
-                onClick={() => handlePaymentMethodChange('card')}
-                className={`w-full p-4 border-2 rounded-lg text-left transition-colors ${
-                  paymentMethod === 'card'
-                    ? 'border-primary-600 bg-primary-50'
-                    : 'border-gray-300 hover:border-primary-300'
-                }`}
+                onClick={handlePayNowClick}
+                disabled={loading}
+                className="w-full py-4 px-6 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
               >
-                <div className="font-medium">Credit or Debit Card</div>
-                <div className="text-sm text-gray-500">Pay with Visa, Mastercard, Amex</div>
+                {loading ? 'Loading...' : 'Continue to Payment'}
               </button>
+            )}
 
-              <button
-                onClick={() => handlePaymentMethodChange('apple_pay')}
-                className={`w-full p-4 border-2 rounded-lg text-left transition-colors ${
-                  paymentMethod === 'apple_pay'
-                    ? 'border-primary-600 bg-primary-50'
-                    : 'border-gray-300 hover:border-primary-300'
-                }`}
-              >
-                <div className="font-medium">🍎 Apple Pay</div>
-                <div className="text-sm text-gray-500">Quick payment with Apple Pay</div>
-              </button>
-
-              <button
-                onClick={() => handlePaymentMethodChange('cash_app_pay')}
-                className={`w-full p-4 border-2 rounded-lg text-left transition-colors ${
-                  paymentMethod === 'cash_app_pay'
-                    ? 'border-primary-600 bg-primary-50'
-                    : 'border-gray-300 hover:border-primary-300'
-                }`}
-              >
-                <div className="font-medium">💵 Cash App Pay</div>
-                <div className="text-sm text-gray-500">Pay with Cash App</div>
-              </button>
-
-              <button
-                onClick={() => handlePaymentMethodChange('cash')}
-                className={`w-full p-4 border-2 rounded-lg text-left transition-colors ${
-                  paymentMethod === 'cash'
-                    ? 'border-primary-600 bg-primary-50'
-                    : 'border-gray-300 hover:border-primary-300'
-                }`}
-              >
-                <div className="font-medium">💵 Cash on Pickup</div>
-                <div className="text-sm text-gray-500">Pay when you collect your order</div>
-              </button>
-            </div>
-
-            {/* Payment Form */}
-            {paymentMethod !== 'cash' && clientSecret && (
+            {/* Stripe Payment Element */}
+            {clientSecret && (
               <Elements
                 stripe={stripePromise}
                 options={{
@@ -334,7 +344,6 @@ export default function CheckoutPage() {
                 <PaymentForm
                   orderId={orderId}
                   totalAmount={total}
-                  paymentMethod={paymentMethod}
                   onSuccess={handlePaymentSuccess}
                 />
               </Elements>

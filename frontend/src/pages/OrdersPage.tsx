@@ -49,7 +49,7 @@ export default function OrdersPage() {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <p className="text-sm text-gray-500">
-                      Order #{order.id.slice(0, 8)}
+                      Order #{order.orderNumber}
                     </p>
                     <p className="text-sm text-gray-500">
                       {new Date(order.createdAt).toLocaleDateString()} at{' '}
