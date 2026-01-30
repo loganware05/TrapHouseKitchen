@@ -168,7 +168,7 @@ export default function MenuPage() {
                 </p>
 
                 <div className="flex items-center gap-3 mb-3 text-sm text-gray-500">
-                  {dish.prepTime && (
+                  {dish.prepTime && dish.prepTime > 0 && (
                     <span className="flex items-center">
                       <Clock className="h-4 w-4 mr-1" />
                       {dish.prepTime} min

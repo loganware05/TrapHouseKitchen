@@ -3,16 +3,18 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { apiLimiter } from './middleware/rateLimiter';
-import authRoutes from './routes/auth';
-import userRoutes from './routes/users';
-import dishRoutes from './routes/dishes';
-import categoryRoutes from './routes/categories';
-import ingredientRoutes from './routes/ingredients';
-import allergenRoutes from './routes/allergens';
-import orderRoutes from './routes/orders';
-import dishRequestRoutes from './routes/dishRequests';
-import paymentRoutes from './routes/payment';
-import webhookRoutes from './routes/webhooks';
+import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
+import dishRoutes from './routes/dish.routes';
+import categoryRoutes from './routes/category.routes';
+import ingredientRoutes from './routes/ingredient.routes';
+import allergenRoutes from './routes/allergen.routes';
+import orderRoutes from './routes/order.routes';
+import dishRequestRoutes from './routes/dish-request.routes';
+import paymentRoutes from './routes/payment.routes';
+import webhookRoutes from './routes/webhook.routes';
+import reviewRoutes from './routes/review.routes';
+import couponRoutes from './routes/coupon.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -25,7 +27,9 @@ app.set('trust proxy', 1);
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL 
+    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
   credentials: true
 }));
 
@@ -54,6 +58,8 @@ app.use('/api/allergens', allergenRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/dish-requests', dishRequestRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/coupons', couponRoutes);
 
 // Error handling
 app.use(errorHandler);

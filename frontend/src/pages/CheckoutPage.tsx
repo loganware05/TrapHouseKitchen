@@ -59,12 +59,19 @@ export default function CheckoutPage() {
       });
 
       const createdOrder = response.data.data.order;
+      if (!createdOrder || !createdOrder.id) {
+        throw new Error('Order creation failed - no order ID returned');
+      }
       setOrderId(createdOrder.id);
+      toast.success('Order created successfully');
       
     } catch (error: any) {
       console.error('Error creating order:', error);
-      toast.error('Failed to create order');
-      navigate('/cart');
+      const errorMessage = error.response?.data?.message || 'Failed to create order. Please try again.';
+      toast.error(errorMessage);
+      setTimeout(() => {
+        navigate('/cart');
+      }, 2000);
     } finally {
       setLoading(false);
     }
@@ -148,7 +155,11 @@ export default function CheckoutPage() {
   };
 
   const handlePayNowClick = async () => {
-    if (orderId && !clientSecret) {
+    if (!orderId) {
+      toast.error('Please wait for order to be created');
+      return;
+    }
+    if (!clientSecret) {
       await createPaymentIntent();
     }
   };
@@ -320,10 +331,10 @@ export default function CheckoutPage() {
             {!clientSecret && (
               <button
                 onClick={handlePayNowClick}
-                disabled={loading}
+                disabled={loading || !orderId}
                 className="w-full py-4 px-6 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
               >
-                {loading ? 'Loading...' : 'Continue to Payment'}
+                {loading ? 'Loading...' : orderId ? 'Continue to Payment' : 'Creating Order...'}
               </button>
             )}
 

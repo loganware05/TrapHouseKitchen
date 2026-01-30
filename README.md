@@ -237,27 +237,49 @@ npm test
 ### Project Structure
 ```
 TrapHouseKitchen v2/
+├── README.md              # Main documentation
+├── render.yaml            # Render deployment config
+├── package.json           # Root workspace config
+│
+├── docs/                  # All documentation
+│   ├── deployment/        # Deployment guides
+│   ├── development/       # Development guides
+│   ├── features/          # Feature documentation
+│   └── archive/           # Historical docs
+│
+├── scripts/               # Deployment & setup scripts
+│   ├── deploy-ecr.sh
+│   ├── deploy-render.sh
+│   ├── setup.sh
+│   └── validate-setup.sh
+│
+├── docker/                # Containerization
+│   ├── Dockerfile
+│   ├── docker-compose.yml
+│   └── docker-compose.dev.yml
+│
 ├── backend/
 │   ├── src/
-│   │   ├── routes/         # API routes
-│   │   ├── middleware/     # Auth, error handling
-│   │   ├── lib/           # Utilities
-│   │   └── index.ts       # Entry point
+│   │   ├── routes/        # API routes (standardized .routes.ts)
+│   │   ├── controllers/   # Route controllers
+│   │   ├── middleware/    # Auth, error handling
+│   │   ├── services/      # Business logic
+│   │   ├── lib/          # Shared utilities
+│   │   └── index.ts      # Entry point
 │   ├── prisma/
-│   │   └── schema.prisma  # Database schema
+│   │   └── schema.prisma # Database schema
 │   └── package.json
-├── frontend/
-│   ├── src/
-│   │   ├── pages/         # Page components
-│   │   ├── components/    # Reusable components
-│   │   ├── stores/        # Zustand stores
-│   │   ├── types/         # TypeScript types
-│   │   └── lib/           # API client
-│   ├── public/            # Static assets
-│   └── package.json
-├── docker-compose.yml
-├── Dockerfile
-└── deploy-ecr.sh
+│
+└── frontend/
+    ├── src/
+    │   ├── pages/         # Page components
+    │   ├── components/    # Reusable components
+    │   ├── stores/        # Zustand stores
+    │   ├── types/         # TypeScript types
+    │   └── lib/          # API client
+    ├── public/            # Static assets
+    ├── index.html         # Entry point
+    └── package.json
 ```
 
 ### Key Scripts
@@ -267,6 +289,14 @@ TrapHouseKitchen v2/
 npm run dev              # Start both frontend and backend
 npm run dev:backend      # Start backend only
 npm run dev:frontend     # Start frontend only
+
+# Setup
+./scripts/setup.sh           # Automated setup
+./scripts/validate-setup.sh  # Validate configuration
+
+# Deployment
+./scripts/deploy-ecr.sh v1.0.0    # Deploy to AWS ECR
+./scripts/deploy-render.sh        # Deploy to Render
 
 # Database
 cd backend
@@ -278,6 +308,18 @@ npx prisma generate      # Generate Prisma client
 npm run build            # Build for production
 npm start                # Start production server
 ```
+
+## 📚 Documentation
+
+All documentation is organized in the `docs/` directory:
+
+- **Getting Started:** [docs/development/getting-started.md](docs/development/getting-started.md)
+- **Architecture:** [docs/development/architecture.md](docs/development/architecture.md)
+- **Testing Guide:** [docs/development/testing.md](docs/development/testing.md)
+- **Render Deployment:** [docs/deployment/render.md](docs/deployment/render.md)
+- **AWS Deployment:** [docs/deployment/aws.md](docs/deployment/aws.md)
+- **Environment Variables:** [docs/deployment/environment-variables.md](docs/deployment/environment-variables.md)
+- **Stripe Payments:** [docs/features/stripe-payments.md](docs/features/stripe-payments.md)
 
 ## 📝 License
 

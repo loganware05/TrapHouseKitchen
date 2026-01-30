@@ -44,11 +44,13 @@ export default function ChefOrdersPage() {
       await api.post('/orders/archive-completed');
     },
     onSuccess: (data: any) => {
+      // Invalidate all order queries to refresh the list
       queryClient.invalidateQueries({ queryKey: ['allOrders'] });
-      toast.success(data.data.message || 'Order history archived successfully');
+      toast.success(data.data?.message || data.message || 'Order history archived successfully');
     },
-    onError: () => {
-      toast.error('Failed to archive orders');
+    onError: (error: any) => {
+      console.error('Archive error:', error);
+      toast.error(error.response?.data?.message || 'Failed to archive orders');
     },
   });
 
@@ -56,12 +58,14 @@ export default function ChefOrdersPage() {
     mutationFn: async () => {
       await api.post('/orders/reset-counter');
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
+      // Invalidate all order queries to refresh the list
       queryClient.invalidateQueries({ queryKey: ['allOrders'] });
-      toast.success('Order counter reset to #1');
+      toast.success(data.data?.message || data.message || 'Order counter reset to #1');
     },
-    onError: () => {
-      toast.error('Failed to reset order counter');
+    onError: (error: any) => {
+      console.error('Reset counter error:', error);
+      toast.error(error.response?.data?.message || 'Failed to reset order counter');
     },
   });
 

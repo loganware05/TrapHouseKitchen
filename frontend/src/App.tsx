@@ -20,7 +20,7 @@ import ChefLoginPage from './pages/chef/ChefLoginPage';
 import ChefDashboard from './pages/chef/ChefDashboard';
 import ChefMenuPage from './pages/chef/ChefMenuPage';
 import ChefOrdersPage from './pages/chef/ChefOrdersPage';
-import ChefIngredientsPage from './pages/chef/ChefIngredientsPage';
+import ChefRequestsPage from './pages/chef/ChefRequestsPage';
 import ChefReviewsPage from './pages/chef/ChefReviewsPage';
 
 function App() {
@@ -156,10 +156,10 @@ function App() {
             }
           />
           <Route
-            path="chef/ingredients"
+            path="chef/requests"
             element={
               <ProtectedRoute chefOnly>
-                <ChefIngredientsPage />
+                <ChefRequestsPage />
               </ProtectedRoute>
             }
           />

@@ -1,0 +1,12 @@
+PLACEHOLDER - Download this file from Stripe Dashboard
+
+Instructions:
+1. Go to: https://dashboard.stripe.com/settings/payment_methods/apple_pay
+2. Add domain: traphousekitchen-web.onrender.com
+3. Download the verification file
+4. Replace this placeholder file with the downloaded content
+5. Commit and push to GitHub
+6. Redeploy frontend on Render
+
+This file must be accessible at:
+https://traphousekitchen-web.onrender.com/.well-known/apple-developer-merchantid-domain-association

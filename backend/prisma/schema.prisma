@@ -68,6 +68,8 @@ model User {
   orders            Order[]
   dishRequests      DishRequest[]
   votes             Vote[]
+  reviews           Review[]
+  coupons           Coupon[]
   
   @@index([email])
 }
@@ -197,6 +199,7 @@ model IngredientAllergen {
 
 model Order {
   id            String        @id @default(uuid())
+  orderNumber   Int           @default(autoincrement())
   userId        String
   status        OrderStatus   @default(PENDING)
   paymentStatus PaymentStatus @default(UNPAID)
@@ -205,6 +208,8 @@ model Order {
   finalAmount   Float
   specialInstructions String?
   prepTime      Int?          // Estimated preparation time in minutes
+  isArchived    Boolean       @default(false)
+  appliedCouponId String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   completedAt   DateTime?
@@ -212,11 +217,15 @@ model Order {
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   items      OrderItem[]
   payments   Payment[]
+  reviews    Review[]
+  appliedCoupon Coupon?   @relation("AppliedCoupon", fields: [appliedCouponId], references: [id])
   
+  @@unique([orderNumber])
   @@index([userId])
   @@index([status])
   @@index([paymentStatus])
   @@index([createdAt])
+  @@index([orderNumber])
 }
 
 model OrderItem {
@@ -304,4 +313,42 @@ model Transaction {
   payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   
   @@index([paymentId])
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  orderId     String
+  userId      String
+  rating      Int      // 1-5 stars
+  comment     String
+  dishNames   Json     // Array of dish names from the order
+  approved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([orderId]) // One review per order
+  @@index([userId])
+  @@index([approved])
+  @@index([createdAt])
+}
+
+model Coupon {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  userId          String
+  discountAmount  Float     @default(4.00)
+  used            Boolean   @default(false)
+  usedOrderId     String?
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime?
+  
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appliedToOrders Order[] @relation("AppliedCoupon")
+  
+  @@index([userId])
+  @@index([code])
+  @@index([used])
 }

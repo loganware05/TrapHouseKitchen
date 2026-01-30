@@ -23,7 +23,7 @@ export default function Layout() {
         { to: '/chef/menu', icon: Menu, label: 'Menu' },
         { to: '/chef/orders', icon: FileText, label: 'Orders' },
         { to: '/chef/reviews', icon: Star, label: 'Reviews' },
-        { to: '/chef/ingredients', icon: Menu, label: 'Ingredients' },
+        { to: '/chef/requests', icon: MessageSquare, label: 'Requests' },
       ]
     : [
         { to: '/menu', icon: Menu, label: 'Menu' },

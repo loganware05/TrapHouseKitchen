@@ -137,7 +137,7 @@ export default function DishDetailPage() {
           </div>
 
           <div className="flex items-center gap-4 mb-6 text-gray-600">
-            {dish.prepTime && (
+            {dish.prepTime && dish.prepTime > 0 && (
               <span className="flex items-center">
                 <Clock className="h-5 w-5 mr-2" />
                 {dish.prepTime} min

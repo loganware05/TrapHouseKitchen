@@ -97,8 +97,9 @@ export default function ChefMenuPage() {
       queryClient.invalidateQueries({ queryKey: ['dishes'] });
       toast.success('Dish deleted successfully!');
     },
-    onError: () => {
-      toast.error('Failed to delete dish');
+    onError: (error: any) => {
+      console.error('Delete dish error:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete dish');
     },
   });
 
