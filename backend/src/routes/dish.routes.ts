@@ -270,7 +270,7 @@ router.put(
   }
 );
 
-// Delete dish (chef only)
+// Delete dish (chef only) - Uses soft delete
 router.delete(
   '/:id',
   authenticate,
@@ -282,31 +282,39 @@ router.delete(
       // Check if dish exists
       const dish = await prisma.dish.findUnique({
         where: { id },
-        include: {
-          orderItems: {
-            take: 1, // Just check if any exist
-          },
-        },
       });
 
       if (!dish) {
         throw new AppError('Dish not found', 404);
       }
 
-      // Check if dish is used in any orders
-      if (dish.orderItems.length > 0) {
-        throw new AppError(
-          'Cannot delete dish that has been ordered. Set status to UNAVAILABLE instead.',
-          400
-        );
-      }
-
-      // Delete dish (safe since no orders reference it)
-      await prisma.dish.delete({
+      // Soft delete: Set status to UNAVAILABLE instead of deleting
+      // This preserves order history and data integrity
+      const updatedDish = await prisma.dish.update({
         where: { id },
+        data: {
+          status: 'UNAVAILABLE',
+        },
+        include: {
+          category: true,
+          ingredients: {
+            include: {
+              ingredient: true,
+            },
+          },
+          allergens: {
+            include: {
+              allergen: true,
+            },
+          },
+        },
       });
 
-      res.status(204).send();
+      res.json({
+        status: 'success',
+        data: { dish: updatedDish },
+        message: 'Dish removed from menu (set to unavailable)',
+      });
     } catch (error) {
       next(error);
     }

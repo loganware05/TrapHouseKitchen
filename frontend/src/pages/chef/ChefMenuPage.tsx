@@ -91,15 +91,16 @@ export default function ChefMenuPage() {
 
   const deleteDishMutation = useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/dishes/${id}`);
+      const response = await api.delete(`/dishes/${id}`);
+      return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['dishes'] });
-      toast.success('Dish deleted successfully!');
+      toast.success(data?.message || 'Dish removed from menu (set to unavailable)');
     },
     onError: (error: any) => {
       console.error('Delete dish error:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete dish');
+      toast.error(error.response?.data?.message || 'Failed to remove dish');
     },
   });
 
@@ -324,11 +325,12 @@ export default function ChefMenuPage() {
                 </button>
                 <button
                   onClick={() => {
-                    if (confirm('Are you sure you want to delete this dish?')) {
+                    if (confirm('Remove this dish from the menu? It will be set to unavailable but order history will be preserved.')) {
                       deleteDishMutation.mutate(dish.id);
                     }
                   }}
                   className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  title="Remove dish from menu"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
