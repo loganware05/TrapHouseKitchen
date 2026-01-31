@@ -68,6 +68,19 @@ export default function DishDetailPage() {
   const isSafe = conflictingAllergens.length === 0;
 
   const handleAddToCart = () => {
+    // Check if user is logged in
+    if (!user) {
+      toast.error('Please log in to add items to your cart');
+      navigate('/login');
+      return;
+    }
+
+    // Check if user is a customer (not chef/admin)
+    if (user.role !== 'CUSTOMER') {
+      toast.error('Only customers can add items to cart');
+      return;
+    }
+
     if (!isSafe) {
       toast.error(
         `Warning: This dish contains ${conflictingAllergens.map((a) => a.name).join(', ')} which you're allergic to!`,

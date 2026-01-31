@@ -53,12 +53,12 @@ export default function CheckoutPage() {
         items: items.map(item => ({
           dishId: item.dish.id,
           quantity: item.quantity,
-          customizations: item.customizations,
+          customizations: item.customizations || null,
         })),
         specialInstructions: '',
       });
 
-      const createdOrder = response.data.data.order;
+      const createdOrder = response.data?.data?.order;
       if (!createdOrder || !createdOrder.id) {
         throw new Error('Order creation failed - no order ID returned');
       }
@@ -67,7 +67,7 @@ export default function CheckoutPage() {
       
     } catch (error: any) {
       console.error('Error creating order:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create order. Please try again.';
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create order. Please try again.';
       toast.error(errorMessage);
       setTimeout(() => {
         navigate('/cart');

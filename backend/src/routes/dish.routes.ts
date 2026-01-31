@@ -277,8 +277,33 @@ router.delete(
   authorize('CHEF', 'ADMIN'),
   async (req: AuthRequest, res: Response, next) => {
     try {
+      const { id } = req.params;
+
+      // Check if dish exists
+      const dish = await prisma.dish.findUnique({
+        where: { id },
+        include: {
+          orderItems: {
+            take: 1, // Just check if any exist
+          },
+        },
+      });
+
+      if (!dish) {
+        throw new AppError('Dish not found', 404);
+      }
+
+      // Check if dish is used in any orders
+      if (dish.orderItems.length > 0) {
+        throw new AppError(
+          'Cannot delete dish that has been ordered. Set status to UNAVAILABLE instead.',
+          400
+        );
+      }
+
+      // Delete dish (safe since no orders reference it)
       await prisma.dish.delete({
-        where: { id: req.params.id },
+        where: { id },
       });
 
       res.status(204).send();

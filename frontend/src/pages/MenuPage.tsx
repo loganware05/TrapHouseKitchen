@@ -63,6 +63,18 @@ export default function MenuPage() {
   };
 
   const handleAddToCart = (dish: Dish) => {
+    // Check if user is logged in
+    if (!user) {
+      toast.error('Please log in to add items to your cart');
+      return;
+    }
+
+    // Check if user is a customer (not chef/admin)
+    if (user.role !== 'CUSTOMER') {
+      toast.error('Only customers can add items to cart');
+      return;
+    }
+
     const { safe, allergens } = checkDishAllergens(dish);
     
     if (!safe) {

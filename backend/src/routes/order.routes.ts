@@ -181,13 +181,14 @@ router.post(
         };
       });
 
-      // Create order
+      // Create order with items
       const order = await prisma.order.create({
         data: {
           userId: req.user!.id,
           totalPrice,
           finalAmount: totalPrice, // Initially same as totalPrice, will be updated with tips at checkout
-          specialInstructions,
+          tipAmount: 0, // Will be updated at checkout
+          specialInstructions: specialInstructions || null,
           items: {
             create: orderItems,
           },
@@ -244,7 +245,15 @@ router.post(
         status: 'success',
         data: { order },
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error creating order:', error);
+      // If it's a Prisma error, provide more details
+      if (error.code === 'P2002') {
+        return next(new AppError('Order number conflict. Please try again.', 409));
+      }
+      if (error.code === 'P2003') {
+        return next(new AppError('Invalid reference in order data.', 400));
+      }
       next(error);
     }
   }
