@@ -39,7 +39,7 @@ export default function TermsOfServicePage() {
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li><strong>Order Placement:</strong> All orders are subject to acceptance by TrapHouse Kitchen</li>
               <li><strong>Pricing:</strong> All prices are in USD and include applicable taxes</li>
-              <li><strong>Payment:</strong> Payment is processed through Stripe. We accept credit cards, Apple Pay, Cash App Pay, and cash on pickup</li>
+              <li><strong>Payment:</strong> Payment is processed through Stripe. We accept credit cards, Apple Pay, Cash App Pay, and other digital payment methods.</li>
               <li><strong>Order Modifications:</strong> Orders cannot be modified or cancelled once confirmed</li>
               <li><strong>Refunds:</strong> Refunds are issued at our discretion for valid reasons (incorrect orders, quality issues, etc.)</li>
             </ul>
@@ -53,7 +53,6 @@ export default function TermsOfServicePage() {
               <li>You must pick up your order within 30 minutes of the ready notification</li>
               <li>Orders not picked up within 1 hour may be discarded without refund</li>
               <li>Please bring your order number when picking up</li>
-              <li>For cash on pickup orders, exact change is appreciated</li>
             </ul>
           </section>
 
