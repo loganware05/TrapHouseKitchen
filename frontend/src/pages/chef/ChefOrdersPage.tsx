@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Clock, Package, CheckCircle, Archive, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,18 +17,22 @@ export default function ChefOrdersPage() {
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
 
-  const { data: ordersData, isLoading, error } = useQuery({
+  const { data: ordersData, isLoading, error } = useQuery<Order[]>({
     queryKey: ['allOrders', showArchived],
     queryFn: async () => {
       const params = showArchived ? '?includeArchived=true' : '';
       const res = await api.get<{ data: { orders: Order[] } }>(`/orders/all${params}`);
       return res.data.data.orders;
     },
-    onError: (err: any) => {
-      console.error('Error fetching orders:', err);
-      toast.error('Failed to load orders. Please try again.');
-    },
   });
+
+  // Handle errors with useEffect
+  useEffect(() => {
+    if (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Failed to load orders. Please try again.');
+    }
+  }, [error]);
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -98,7 +102,7 @@ export default function ChefOrdersPage() {
   };
 
   const currentMaxOrderNumber = ordersData && ordersData.length > 0
-    ? Math.max(...ordersData.map(o => o.orderNumber))
+    ? Math.max(...ordersData.map((o: Order) => o.orderNumber))
     : 0;
 
   // Loading state
@@ -175,13 +179,13 @@ export default function ChefOrdersPage() {
                       {new Date(order.createdAt).toLocaleString()}
                     </p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[order.status]}`}>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[order.status as keyof typeof statusColors]}`}>
                     {order.status}
                   </span>
                 </div>
 
                 <div className="space-y-2 mb-4">
-                  {order.items.map((item) => (
+                  {order.items.map((item: any) => (
                     <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium text-gray-900">{item.dish.name}</p>
@@ -288,7 +292,7 @@ export default function ChefOrdersPage() {
         </div>
         {completedOrders.length > 0 ? (
           <div className="space-y-4">
-            {completedOrders.slice(0, 10).map((order) => (
+            {completedOrders.slice(0, 10).map((order: Order) => (
               <div key={order.id} className="bg-white rounded-lg shadow-md p-4">
                 <div className="flex justify-between items-center">
                   <div>
@@ -299,7 +303,7 @@ export default function ChefOrdersPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[order.status]}`}>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[order.status as keyof typeof statusColors]}`}>
                       {order.status}
                     </span>
                     <p className="mt-2 text-lg font-bold text-gray-900">
