@@ -17,12 +17,16 @@ export default function ChefOrdersPage() {
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
 
-  const { data: ordersData } = useQuery({
+  const { data: ordersData, isLoading, error } = useQuery({
     queryKey: ['allOrders', showArchived],
     queryFn: async () => {
       const params = showArchived ? '?includeArchived=true' : '';
       const res = await api.get<{ data: { orders: Order[] } }>(`/orders/all${params}`);
       return res.data.data.orders;
+    },
+    onError: (err: any) => {
+      console.error('Error fetching orders:', err);
+      toast.error('Failed to load orders. Please try again.');
     },
   });
 
@@ -96,6 +100,40 @@ export default function ChefOrdersPage() {
   const currentMaxOrderNumber = ordersData && ordersData.length > 0
     ? Math.max(...ordersData.map(o => o.orderNumber))
     : 0;
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4 animate-spin" />
+            <p className="text-lg text-gray-600">Loading orders...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-red-900 mb-2">Error Loading Orders</h2>
+          <p className="text-red-700 mb-4">
+            {error instanceof Error ? error.message : 'Failed to load orders. Please try again.'}
+          </p>
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['allOrders'] })}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
@@ -213,7 +251,13 @@ export default function ChefOrdersPage() {
         ) : (
           <div className="text-center py-12 bg-white rounded-lg shadow-md">
             <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-xl text-gray-600">No active orders</p>
+            <p className="text-xl text-gray-600 mb-2">No active orders</p>
+            <p className="text-sm text-gray-500">
+              Orders will appear here once customers complete payment.
+            </p>
+            <p className="text-xs text-gray-400 mt-2">
+              (Showing orders with payment status: PAID or PENDING)
+            </p>
           </div>
         )}
       </div>

@@ -61,6 +61,26 @@ export default function DishDetailPage() {
     );
   }
 
+  // Handle unavailable dishes
+  if (dish.status !== 'AVAILABLE') {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8 md:ml-64 mb-20 md:mb-8">
+        <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">{dish.name}</h1>
+          <p className="text-lg text-gray-600 mb-6">
+            This dish is currently {dish.status === 'UNAVAILABLE' ? 'unavailable' : 'seasonal'}.
+          </p>
+          <button
+            onClick={() => navigate('/menu')}
+            className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            Back to Menu
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const dishAllergenIds = dish.allergens?.map((da) => da.allergenId) || [];
   const conflictingAllergens = dish.allergens?.filter((da) =>
     userAllergens.includes(da.allergenId)

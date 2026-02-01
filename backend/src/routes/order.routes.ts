@@ -48,7 +48,8 @@ router.get('/all', authenticate, authorize('CHEF', 'ADMIN'), async (req: AuthReq
 
     const orders = await prisma.order.findMany({
       where: {
-        paymentStatus: 'PAID', // Chef should only see orders that have been paid for
+        // Show orders that are paid or pending payment (not unpaid/abandoned)
+        paymentStatus: { in: ['PAID', 'PENDING'] },
         ...(status && { status: status as any }),
         ...(includeArchived !== 'true' && { isArchived: false }),
       },

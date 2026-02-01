@@ -31,6 +31,9 @@ export default function MenuPage() {
     },
   });
 
+  // Filter to only show available dishes (client-side backup filter)
+  const availableDishes = dishesData?.filter(dish => dish.status === 'AVAILABLE') || [];
+
   const { data: userProfile } = useQuery({
     queryKey: ['userProfile'],
     queryFn: async () => {
@@ -133,7 +136,7 @@ export default function MenuPage() {
 
       {/* Dishes Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {dishesData?.map((dish) => {
+        {availableDishes.map((dish) => {
           const { safe, allergens } = checkDishAllergens(dish);
           
           return (

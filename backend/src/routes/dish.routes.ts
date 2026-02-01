@@ -13,8 +13,9 @@ router.get('/', async (req, res, next) => {
 
     const dishes = await prisma.dish.findMany({
       where: {
+        // Default to AVAILABLE for customers, but allow status override for chefs/admins
+        status: status ? (status as any) : 'AVAILABLE',
         ...(categoryId && { categoryId: categoryId as string }),
-        ...(status && { status: status as any }),
       },
       include: {
         category: true,

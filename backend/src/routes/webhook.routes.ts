@@ -35,6 +35,8 @@ router.post(
 
     // Handle the event
     try {
+      console.log(`📨 Webhook event received: ${event.type} (ID: ${event.id})`);
+      
       switch (event.type) {
         case 'payment_intent.succeeded':
           await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
@@ -53,21 +55,27 @@ router.post(
           break;
 
         default:
-          console.log(`Unhandled event type: ${event.type}`);
+          console.log(`⚠️  Unhandled event type: ${event.type}`);
       }
 
       // Return 200 to acknowledge receipt of the event
-      res.json({ received: true });
+      console.log(`✅ Webhook event processed successfully: ${event.type}`);
+      res.json({ received: true, eventType: event.type });
     } catch (error) {
-      console.error('Error processing webhook:', error);
-      res.status(500).json({ error: 'Webhook processing failed' });
+      console.error('❌ Error processing webhook:', error);
+      console.error('   Event type:', event.type);
+      console.error('   Event ID:', event.id);
+      console.error('   Error details:', error instanceof Error ? error.stack : String(error));
+      res.status(500).json({ error: 'Webhook processing failed', eventType: event.type });
     }
   }
 );
 
 // Handle successful payment
 async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
-  console.log('💰 Payment succeeded:', paymentIntent.id);
+  console.log('💰 Payment webhook received - PaymentIntent succeeded:', paymentIntent.id);
+  console.log('   Amount:', paymentIntent.amount, paymentIntent.currency);
+  console.log('   Metadata:', JSON.stringify(paymentIntent.metadata));
 
   try {
     // Find the payment record
@@ -141,7 +149,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     });
 
     // Update order status
-    await prisma.order.update({
+    const updatedOrder = await prisma.order.update({
       where: { id: payment.orderId },
       data: {
         status: 'PENDING', // Set to PENDING so chef can start preparing
@@ -150,18 +158,23 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     });
 
     console.log('✅ Payment processed successfully for order:', payment.orderId);
+    console.log('   Order paymentStatus updated to:', updatedOrder.paymentStatus);
+    console.log('   Order status:', updatedOrder.status);
 
     // TODO: Send notification to chef
     // TODO: Send confirmation email to customer
   } catch (error) {
-    console.error('Error handling payment success:', error);
+    console.error('❌ Error handling payment success:', error);
+    console.error('   PaymentIntent ID:', paymentIntent.id);
+    console.error('   Error details:', error instanceof Error ? error.message : String(error));
     throw error;
   }
 }
 
 // Handle failed payment
 async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
-  console.log('❌ Payment failed:', paymentIntent.id);
+  console.log('❌ Payment webhook received - PaymentIntent failed:', paymentIntent.id);
+  console.log('   Failure reason:', paymentIntent.last_payment_error?.message || 'Unknown');
 
   try {
     const payment = await prisma.payment.findUnique({
@@ -197,7 +210,9 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
 
     // TODO: Send notification to customer about failed payment
   } catch (error) {
-    console.error('Error handling payment failure:', error);
+    console.error('❌ Error handling payment failure:', error);
+    console.error('   PaymentIntent ID:', paymentIntent.id);
+    console.error('   Error details:', error instanceof Error ? error.message : String(error));
     throw error;
   }
 }
