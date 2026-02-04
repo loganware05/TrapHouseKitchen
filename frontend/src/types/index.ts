@@ -183,10 +183,13 @@ export interface AuthResponse {
 export interface Review {
   id: string;
   orderId: string;
+  dishId?: string;
+  orderItemId?: string;
   userId: string;
   rating: number;
   comment: string;
-  dishNames: string[];
+  dishName?: string; // Single dish name (new)
+  dishNames?: string[]; // Array of dish names (legacy, kept for backward compatibility)
   approved: boolean;
   createdAt: string;
   updatedAt: string;
@@ -198,6 +201,10 @@ export interface Review {
     id: string;
     orderNumber: number;
     createdAt: string;
+  };
+  dish?: {
+    id: string;
+    name: string;
   };
 }
 

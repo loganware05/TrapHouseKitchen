@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { Star, Send } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Star, Send, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { Order } from '../types';
@@ -9,10 +9,20 @@ import { Order } from '../types';
 export default function ReviewFormPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   const [selectedOrderId, setSelectedOrderId] = useState<string>('');
+  const [selectedDishId, setSelectedDishId] = useState<string>('');
   const [rating, setRating] = useState<number>(0);
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [comment, setComment] = useState<string>('');
+
+  // Pre-select order from URL params
+  useEffect(() => {
+    const orderIdFromUrl = searchParams.get('orderId');
+    if (orderIdFromUrl) {
+      setSelectedOrderId(orderIdFromUrl);
+    }
+  }, [searchParams]);
 
   const { data: eligibleOrders, isLoading } = useQuery({
     queryKey: ['eligibleOrders'],
@@ -23,14 +33,18 @@ export default function ReviewFormPage() {
   });
 
   const createReviewMutation = useMutation({
-    mutationFn: async (data: { orderId: string; rating: number; comment: string }) => {
+    mutationFn: async (data: { orderId: string; dishId: string; rating: number; comment: string }) => {
       await api.post('/reviews', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['eligibleOrders'] });
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
       toast.success('Review submitted! Once approved by our chef, you\'ll receive a $4 discount code.');
-      navigate('/reviews/my');
+      // Reset form but stay on page to review another dish
+      setSelectedDishId('');
+      setRating(0);
+      setComment('');
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to submit review');
@@ -42,6 +56,11 @@ export default function ReviewFormPage() {
 
     if (!selectedOrderId) {
       toast.error('Please select an order to review');
+      return;
+    }
+
+    if (!selectedDishId) {
+      toast.error('Please select a dish to review');
       return;
     }
 
@@ -62,12 +81,14 @@ export default function ReviewFormPage() {
 
     createReviewMutation.mutate({
       orderId: selectedOrderId,
+      dishId: selectedDishId,
       rating,
       comment: comment.trim(),
     });
   };
 
   const selectedOrder = eligibleOrders?.find(o => o.id === selectedOrderId);
+  const selectedDish = selectedOrder?.items.find(item => item.dishId === selectedDishId);
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
@@ -92,7 +113,10 @@ export default function ReviewFormPage() {
                 <button
                   key={order.id}
                   type="button"
-                  onClick={() => setSelectedOrderId(order.id)}
+                  onClick={() => {
+                    setSelectedOrderId(order.id);
+                    setSelectedDishId(''); // Reset dish selection when order changes
+                  }}
                   className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
                     selectedOrderId === order.id
                       ? 'border-primary-600 bg-primary-50'
@@ -108,17 +132,47 @@ export default function ReviewFormPage() {
                     </span>
                   </div>
                   <div className="text-sm text-gray-600">
-                    {order.items.map((item, idx) => (
-                      <span key={item.id}>
-                        {item.quantity}x {item.dish.name}
-                        {idx < order.items.length - 1 ? ', ' : ''}
-                      </span>
-                    ))}
+                    {order.items.length} dish{order.items.length !== 1 ? 'es' : ''} available to review
                   </div>
                 </button>
               ))}
             </div>
           </div>
+
+          {/* Select Dish (shown after order is selected) */}
+          {selectedOrder && selectedOrder.items.length > 0 && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Select Dish to Review <span className="text-red-500">*</span>
+              </label>
+              <div className="space-y-2">
+                {selectedOrder.items.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSelectedDishId(item.dishId)}
+                    className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
+                      selectedDishId === item.dishId
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-gray-200 hover:border-primary-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">{item.dish.name}</p>
+                        <p className="text-sm text-gray-500">
+                          Quantity: {item.quantity}
+                        </p>
+                      </div>
+                      {selectedDishId === item.dishId && (
+                        <CheckCircle className="h-5 w-5 text-primary-600" />
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Rating */}
           <div className="bg-white rounded-lg shadow-md p-6">
@@ -175,12 +229,11 @@ export default function ReviewFormPage() {
             </div>
           </div>
 
-          {/* Selected Order Summary */}
-          {selectedOrder && (
+          {/* Selected Dish Summary */}
+          {selectedOrder && selectedDish && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800">
-                <strong>Reviewing:</strong> Order #{selectedOrder.orderNumber} -{' '}
-                {selectedOrder.items.map(item => item.dish.name).join(', ')}
+                <strong>Reviewing:</strong> {selectedDish.dish.name} from Order #{selectedOrder.orderNumber}
               </p>
             </div>
           )}
@@ -188,7 +241,7 @@ export default function ReviewFormPage() {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={createReviewMutation.isPending || !selectedOrderId || rating === 0 || comment.trim().length < 10}
+            disabled={createReviewMutation.isPending || !selectedOrderId || !selectedDishId || rating === 0 || comment.trim().length < 10}
             className="w-full py-4 px-6 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {createReviewMutation.isPending ? (

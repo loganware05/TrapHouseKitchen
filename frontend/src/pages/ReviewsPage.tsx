@@ -117,16 +117,23 @@ export default function ReviewsPage() {
 
               <p className="text-gray-800 mb-3">{review.comment}</p>
 
-              {review.dishNames && review.dishNames.length > 0 && (
+              {/* Show dish name (single dish per review) */}
+              {(review.dishName || (review.dishNames && review.dishNames.length > 0)) && (
                 <div className="flex flex-wrap gap-2">
-                  {review.dishNames.map((dishName, idx) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1 bg-primary-50 text-primary-700 text-sm rounded-full"
-                    >
-                      {dishName}
+                  {review.dishName ? (
+                    <span className="px-3 py-1 bg-primary-50 text-primary-700 text-sm rounded-full">
+                      {review.dishName}
                     </span>
-                  ))}
+                  ) : (
+                    review.dishNames?.map((dishName, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-primary-50 text-primary-700 text-sm rounded-full"
+                      >
+                        {dishName}
+                      </span>
+                    ))
+                  )}
                 </div>
               )}
             </div>

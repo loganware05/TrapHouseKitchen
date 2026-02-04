@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { Package, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Package, Clock, CheckCircle, XCircle, Star } from 'lucide-react';
 import api from '../lib/api';
 import { Order } from '../types';
 
@@ -20,6 +21,8 @@ const statusIcons = {
 };
 
 export default function OrdersPage() {
+  const navigate = useNavigate();
+  
   const { data: ordersData, isLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
@@ -27,6 +30,23 @@ export default function OrdersPage() {
       return res.data.data.orders;
     },
   });
+
+  // Get eligible orders for review to check which orders can be reviewed
+  const { data: eligibleOrdersData } = useQuery({
+    queryKey: ['eligibleOrders'],
+    queryFn: async () => {
+      const res = await api.get<{ data: { orders: Order[] } }>('/reviews/eligible-orders');
+      return res.data.data.orders;
+    },
+  });
+
+  const canReviewOrder = (orderId: string) => {
+    return eligibleOrdersData?.some(order => order.id === orderId) || false;
+  };
+
+  const handleWriteReview = (orderId: string) => {
+    navigate(`/reviews/new?orderId=${orderId}`);
+  };
 
   if (isLoading) {
     return (
@@ -91,12 +111,33 @@ export default function OrdersPage() {
                 )}
 
                 <div className="border-t pt-4">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center mb-4">
                     <span className="text-lg font-semibold text-gray-900">Total:</span>
                     <span className="text-2xl font-bold text-primary-600">
                       ${order.totalPrice.toFixed(2)}
                     </span>
                   </div>
+                  
+                  {/* Write Review Button for Completed/Paid Orders */}
+                  {order.status === 'COMPLETED' && order.paymentStatus === 'PAID' && canReviewOrder(order.id) && (
+                    <button
+                      onClick={() => handleWriteReview(order.id)}
+                      className="w-full mt-4 py-3 px-4 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Star className="h-5 w-5" />
+                      Write Review
+                    </button>
+                  )}
+                  
+                  {/* Show message if order is completed but all dishes reviewed */}
+                  {order.status === 'COMPLETED' && order.paymentStatus === 'PAID' && !canReviewOrder(order.id) && (
+                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm text-green-800 flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        All dishes from this order have been reviewed
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             );

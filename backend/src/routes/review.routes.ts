@@ -27,6 +27,7 @@ router.post(
   authenticate,
   [
     body('orderId').notEmpty().withMessage('Order ID is required'),
+    body('dishId').notEmpty().withMessage('Dish ID is required'),
     body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
     body('comment').isString().isLength({ min: 10, max: 500 }).withMessage('Comment must be between 10 and 500 characters'),
   ],

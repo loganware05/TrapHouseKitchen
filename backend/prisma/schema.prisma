@@ -142,6 +142,7 @@ model Dish {
   ingredients DishIngredient[]
   allergens   DishAllergen[]
   orderItems  OrderItem[]
+  reviews     Review[]
   
   @@index([categoryId])
   @@index([status])
@@ -318,19 +319,24 @@ model Transaction {
 model Review {
   id          String   @id @default(uuid())
   orderId     String
+  orderItemId String?  // Link to specific OrderItem
+  dishId      String   // Specific dish being reviewed
   userId      String
   rating      Int      // 1-5 stars
   comment     String
-  dishNames   Json     // Array of dish names from the order
+  dishName    String   // Single dish name
+  dishNames   Json?    // Kept for backward compatibility (array of dish names)
   approved    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  dish  Dish  @relation(fields: [dishId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  @@unique([orderId]) // One review per order
+  @@unique([orderId, dishId]) // One review per dish per order
   @@index([userId])
+  @@index([dishId])
   @@index([approved])
   @@index([createdAt])
 }

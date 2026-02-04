@@ -33,7 +33,13 @@ export const getAllReviews = async (req: AuthRequest, res: Response, next: any) 
             createdAt: true,
           },
         },
-      },
+        dish: {
+          select: {
+            id: true,
+            name: true,
+          },
+        } as any,
+      } as any,
       orderBy,
     });
 
@@ -59,7 +65,13 @@ export const getMyReviews = async (req: AuthRequest, res: Response, next: any) =
             createdAt: true,
           },
         },
-      },
+        dish: {
+          select: {
+            id: true,
+            name: true,
+          },
+        } as any,
+      } as any,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -92,7 +104,13 @@ export const getPendingReviews = async (req: AuthRequest, res: Response, next: a
             createdAt: true,
           },
         },
-      },
+        dish: {
+          select: {
+            id: true,
+            name: true,
+          },
+        } as any,
+      } as any,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -105,12 +123,13 @@ export const getPendingReviews = async (req: AuthRequest, res: Response, next: a
   }
 };
 
-// Get eligible orders for review
+// Get eligible orders for review (returns orders with dishes that can be reviewed)
 export const getEligibleOrders = async (req: AuthRequest, res: Response, next: any) => {
   try {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+    // Get orders that are completed, paid, and within 30 days
     const orders = await prisma.order.findMany({
       where: {
         userId: req.user!.id,
@@ -119,34 +138,53 @@ export const getEligibleOrders = async (req: AuthRequest, res: Response, next: a
         completedAt: {
           gte: thirtyDaysAgo,
         },
-        reviews: {
-          none: {}, // No existing review
-        },
       },
       include: {
         items: {
           include: {
             dish: {
               select: {
+                id: true,
                 name: true,
               },
             },
           },
         },
+        reviews: {
+          select: {
+            dishId: true,
+          } as any,
+        },
       },
       orderBy: { completedAt: 'desc' },
     });
 
+    // Filter out dishes that already have reviews
+    const ordersWithEligibleDishes = orders.map(order => {
+      const reviewedDishIds = new Set(
+        order.reviews.map((r: any) => r.dishId).filter(Boolean)
+      );
+      const eligibleItems = order.items.filter((item: any) => 
+        !reviewedDishIds.has(item.dishId)
+      );
+      
+      return {
+        ...order,
+        items: eligibleItems,
+        hasEligibleDishes: eligibleItems.length > 0,
+      };
+    }).filter((order: any) => order.hasEligibleDishes);
+
     res.json({
       status: 'success',
-      data: { orders },
+      data: { orders: ordersWithEligibleDishes },
     });
   } catch (error) {
     next(error);
   }
 };
 
-// Create review
+// Create review (per-dish)
 export const createReview = async (req: AuthRequest, res: Response, next: any) => {
   try {
     const errors = validationResult(req);
@@ -154,7 +192,11 @@ export const createReview = async (req: AuthRequest, res: Response, next: any) =
       throw new AppError('Validation failed', 400);
     }
 
-    const { orderId, rating, comment } = req.body;
+    const { orderId, dishId, rating, comment } = req.body;
+
+    if (!dishId) {
+      throw new AppError('Dish ID is required', 400);
+    }
 
     // Verify order exists and belongs to user
     const order = await prisma.order.findUnique({
@@ -164,14 +206,19 @@ export const createReview = async (req: AuthRequest, res: Response, next: any) =
           include: {
             dish: {
               select: {
+                id: true,
                 name: true,
               },
             },
           },
         },
-        reviews: true,
-      },
-    });
+        reviews: {
+          where: {
+            dishId: dishId,
+          } as any,
+        },
+      } as any,
+    }) as any;
 
     if (!order) {
       throw new AppError('Order not found', 404);
@@ -193,24 +240,30 @@ export const createReview = async (req: AuthRequest, res: Response, next: any) =
       throw new AppError('Can only review orders completed within the last 30 days', 400);
     }
 
-    // Check if review already exists
-    if (order.reviews.length > 0) {
-      throw new AppError('You have already reviewed this order', 400);
+    // Verify dish exists in order
+    const orderItem = order.items.find((item: any) => item.dishId === dishId);
+    if (!orderItem) {
+      throw new AppError('Dish not found in this order', 400);
     }
 
-    // Extract dish names
-    const dishNames = order.items.map(item => item.dish.name);
+    // Check if dish already has a review for this order
+    const existingDishReview = order.reviews.find((r: any) => r.dishId === dishId);
+    if (existingDishReview) {
+      throw new AppError('You have already reviewed this dish from this order', 400);
+    }
 
-    // Create review
+    // Create review for specific dish
     const review = await prisma.review.create({
       data: {
         orderId,
+        dishId,
+        orderItemId: orderItem.id,
         userId: req.user!.id,
         rating,
         comment,
-        dishNames,
+        dishName: orderItem.dish.name,
         approved: false, // Requires chef approval
-      },
+      } as any,
       include: {
         order: {
           select: {
@@ -218,7 +271,13 @@ export const createReview = async (req: AuthRequest, res: Response, next: any) =
             orderNumber: true,
           },
         },
-      },
+        dish: {
+          select: {
+            id: true,
+            name: true,
+          },
+        } as any,
+      } as any,
     });
 
     res.status(201).json({
@@ -269,7 +328,13 @@ export const updateReview = async (req: AuthRequest, res: Response, next: any) =
             orderNumber: true,
           },
         },
-      },
+        dish: {
+          select: {
+            id: true,
+            name: true,
+          },
+        } as any,
+      } as any,
     });
 
     res.json({
