@@ -25,15 +25,16 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next: any)
                 category: true,
               },
             },
-            // Include reviews for this specific order item
-            reviews: {
-              where: { userId: req.user!.id },
-              select: {
-                id: true,
-                approved: true,
-                createdAt: true,
-              },
-            },
+          },
+        },
+        // Include order-level reviews (match to items by dishId)
+        reviews: {
+          where: { userId: req.user!.id },
+          select: {
+            id: true,
+            approved: true,
+            createdAt: true,
+            dishId: true,
           },
         },
       },
@@ -42,9 +43,20 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next: any)
       },
     });
 
+    // Map order reviews to each item by dishId for per-dish status display
+    const ordersWithItemReviews = orders.map(order => ({
+      ...order,
+      items: order.items.map(item => ({
+        ...item,
+        reviews: order.reviews
+          .filter(r => r.dishId === item.dishId)
+          .map(({ id, approved, createdAt }) => ({ id, approved, createdAt })),
+      })),
+    }));
+
     res.json({
       status: 'success',
-      data: { orders },
+      data: { orders: ordersWithItemReviews },
     });
   } catch (error) {
     next(error);
