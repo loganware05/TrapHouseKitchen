@@ -126,17 +126,19 @@ export const getPendingReviews = async (req: AuthRequest, res: Response, next: a
 // Get eligible orders for review (returns orders with dishes that can be reviewed)
 export const getEligibleOrders = async (req: AuthRequest, res: Response, next: any) => {
   try {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Use configurable review window (default 30 days)
+    const reviewWindowDays = parseInt(process.env.REVIEW_WINDOW_DAYS || '30', 10);
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - reviewWindowDays);
 
-    // Get orders that are completed, paid, and within 30 days
+    // Get orders that are completed, paid, and within review window
     const orders = await prisma.order.findMany({
       where: {
         userId: req.user!.id,
         status: 'COMPLETED',
         paymentStatus: 'PAID',
         completedAt: {
-          gte: thirtyDaysAgo,
+          gte: cutoffDate,
         },
       },
       include: {
@@ -232,12 +234,13 @@ export const createReview = async (req: AuthRequest, res: Response, next: any) =
       throw new AppError('Can only review completed and paid orders', 400);
     }
 
-    // Check if order was completed within last 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Check if order was completed within review window
+    const reviewWindowDays = parseInt(process.env.REVIEW_WINDOW_DAYS || '30', 10);
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - reviewWindowDays);
     
-    if (!order.completedAt || order.completedAt < thirtyDaysAgo) {
-      throw new AppError('Can only review orders completed within the last 30 days', 400);
+    if (!order.completedAt || order.completedAt < cutoffDate) {
+      throw new AppError(`Can only review orders completed within the last ${reviewWindowDays} days`, 400);
     }
 
     // Verify dish exists in order

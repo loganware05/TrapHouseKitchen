@@ -112,6 +112,11 @@ export interface OrderItem {
   priceAtOrder: number;
   customizations?: string;
   dish: Dish;
+  reviews?: {
+    id: string;
+    approved: boolean;
+    createdAt: string;
+  }[];
 }
 
 export interface Order {

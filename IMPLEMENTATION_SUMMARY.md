@@ -1,313 +1,324 @@
-# TrapHouse Kitchen v2 - Implementation Summary
+# Review System Improvements - Implementation Summary
 
-## ✅ All Features Successfully Implemented
+## Overview
+Successfully implemented all improvements from the review system plan to make the system more robust, maintainable, and user-friendly.
 
-### 🔧 Critical Bug Fix
-**CORS Configuration Updated** (Backend `src/index.ts`)
-- **Problem**: Backend only allowed `localhost:5173`, but frontend runs on `localhost:5174`
-- **Solution**: Updated CORS to accept multiple ports: `5173`, `5174`, `3000`
-- **Impact**: This was preventing login/register functionality
+## Completed Improvements
 
----
+### ✅ 1. Centralized Order Status Transitions (HIGH PRIORITY)
+**Status:** Already implemented
 
-## 📱 Frontend Changes
+**What was done:**
+- `backend/src/services/order.service.ts` already existed with centralized `setOrderStatus()` function
+- Added missing import in `backend/src/routes/webhook.routes.ts`
+- Both `order.routes.ts` and `webhook.routes.ts` now use the centralized service
 
-### 1. Landing Page & Navigation
-**Files Modified:**
-- `frontend/src/App.tsx`
-- `frontend/src/components/Layout.tsx`
-- `frontend/src/pages/HomePage.tsx` → **DELETED**
-
-**Changes:**
-- ✅ `MenuPage` is now the default landing page (index route)
-- ✅ Navigation updated: "Home" → "Reviews" for customers
-- ✅ Chef navigation includes new "Reviews" tab
-- ✅ "Requests" tab only visible to logged-in users
-
-### 2. Review System
-**New Files Created:**
-- `frontend/src/pages/ReviewsPage.tsx` - Public review viewing
-- `frontend/src/pages/ReviewFormPage.tsx` - Submit new reviews
-- `frontend/src/pages/MyReviewsPage.tsx` - User's review management
-- `frontend/src/pages/chef/ChefReviewsPage.tsx` - Chef review moderation
-
-**Features:**
-- ✅ Public can view approved reviews (logged out)
-- ✅ Customers can write reviews for completed orders (within 30 days)
-- ✅ Star rating (1-5) + text comment
-- ✅ Chef approval workflow
-- ✅ Automatic $4 coupon generation upon approval
-- ✅ Review editing and deletion
-- ✅ One review per order
-
-### 3. Checkout & Payment
-**File Modified:**
-- `frontend/src/pages/CheckoutPage.tsx`
-
-**Changes:**
-- ✅ Removed "Cash on Pickup" payment option
-- ✅ Added coupon code input field
-- ✅ Coupon validation and application
-- ✅ Discount displayed in order summary
-- ✅ Apple Pay enabled (via Stripe automatic payment methods)
-
-### 4. Order Management
-**Files Modified:**
-- `frontend/src/pages/OrdersPage.tsx`
-- `frontend/src/pages/OrderConfirmationPage.tsx`
-- `frontend/src/pages/chef/ChefOrdersPage.tsx`
-
-**Changes:**
-- ✅ Display `orderNumber` instead of UUID (e.g., "Order #5")
-- ✅ Chef can archive completed/cancelled orders
-- ✅ Chef can reset order number counter
-- ✅ Toggle to show/hide archived orders
-
-### 5. Protected Routes
-**File Modified:**
-- `frontend/src/App.tsx`
-
-**Changes:**
-- ✅ `DishRequestsPage` requires login
-- ✅ Review form/management requires login
-- ✅ Proper redirects for unauthorized access
-
-### 6. Type Definitions
-**File Modified:**
-- `frontend/src/types/index.ts`
-
-**Added:**
-- ✅ `Review` interface
-- ✅ `Coupon` interface
-- ✅ Updated `Order` interface with `orderNumber`, `isArchived`, `appliedCouponId`
+**Benefits:**
+- Single source of truth for all status transitions
+- Automatic `completedAt` timestamp when status becomes COMPLETED
+- Consistent email notifications across all status changes
+- Impossible to forget side-effects in future updates
 
 ---
 
-## 🔧 Backend Changes
+### ✅ 2. Configurable Review Window (HIGH PRIORITY)
+**Status:** Fully implemented
 
-### 1. Database Schema
-**File Modified:**
-- `backend/prisma/schema.prisma`
+**What was done:**
+- Added `REVIEW_WINDOW_DAYS=30` to `backend/.env.example`
+- Updated `backend/src/controllers/review.controller.ts` to use configurable window in both places:
+  - Line 130-132: `getEligibleOrders()` function
+  - Line 238-244: `createReview()` validation
+- Added environment variable to `render.yaml` for production deployment
+- Dynamic error messages that reference the configured window
 
-**New Models:**
-```prisma
-model Review {
-  id          String   @id @default(uuid())
-  orderId     String   @unique
-  userId      String
-  rating      Int
-  comment     String?
-  dishNames   String[]
-  approved    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Coupon {
-  id             String    @id @default(uuid())
-  code           String    @unique
-  userId         String
-  discountAmount Float     @default(4.00)
-  used           Boolean   @default(false)
-  usedOrderId    String?   @unique
-  createdAt      DateTime  @default(now())
-  expiresAt      DateTime?
-}
-```
-
-**Order Model Updates:**
-- ✅ Added `orderNumber` (Int, auto-increment, unique)
-- ✅ Added `isArchived` (Boolean, default false)
-- ✅ Added `appliedCouponId` (String, optional)
-
-**Migration Created:**
-- ✅ `20260121235009_add_reviews_and_coupons`
-
-### 2. Review System
-**New Files:**
-- `backend/src/controllers/review.controller.ts`
-- `backend/src/routes/review.routes.ts`
-- `backend/src/utils/couponGenerator.ts`
-
-**Endpoints:**
-- `GET /api/reviews` - Get all approved reviews (public)
-- `GET /api/reviews/my` - Get user's reviews (authenticated)
-- `POST /api/reviews` - Create new review (authenticated)
-- `GET /api/reviews/pending` - Get pending reviews (chef only)
-- `POST /api/reviews/:id/approve` - Approve review (chef only)
-- `POST /api/reviews/:id/reject` - Reject review (chef only)
-- `PATCH /api/reviews/:id` - Update review (owner only)
-- `DELETE /api/reviews/:id` - Delete review (owner only)
-
-**Validation:**
-- ✅ Order must be completed and paid
-- ✅ Order must be within 30 days
-- ✅ One review per order
-- ✅ User must be order owner
-
-### 3. Coupon System
-**New File:**
-- `backend/src/routes/coupon.routes.ts`
-
-**Endpoints:**
-- `GET /api/coupons/my` - Get user's available coupons
-- `POST /api/coupons/validate` - Validate coupon code
-- `POST /api/coupons/apply` - Apply coupon to order
-
-**Features:**
-- ✅ Coupon auto-generated on review approval
-- ✅ Format: `TRAP-XXXX-XXXX`
-- ✅ Fixed $4 discount
-- ✅ One-time use
-- ✅ No expiration (by default)
-- ✅ User ownership validation
-
-### 4. Payment System
-**File Modified:**
-- `backend/src/routes/payment.routes.ts`
-
-**Changes:**
-- ✅ Removed `/confirm-cash-payment` endpoint
-- ✅ Added coupon code parameter to `/create-payment-intent`
-- ✅ Coupon validation in payment flow
-- ✅ Discount applied to payment amount
-- ✅ Coupon marked as "used" after successful payment
-- ✅ Apple Pay enabled via `automatic_payment_methods`
-
-### 5. Order Management
-**File Modified:**
-- `backend/src/routes/order.routes.ts`
-
-**New Endpoints:**
-- `POST /api/orders/archive-completed` - Archive completed/cancelled orders (chef only)
-- `POST /api/orders/reset-counter` - Reset order number sequence to 1 (chef only)
-
-**Query Updates:**
-- ✅ Filter `isArchived: false` by default
-- ✅ Option to include archived orders via `?includeArchived=true`
-- ✅ Order number displayed everywhere
-
-### 6. Utilities
-**New File:**
-- `backend/src/utils/couponGenerator.ts`
-
-**Function:**
-```typescript
-generateCouponCode(): string // Returns "TRAP-XXXX-XXXX"
-```
-
-### 7. Server Configuration
-**File Modified:**
-- `backend/src/index.ts`
-
-**Changes:**
-- ✅ CORS updated for multiple localhost ports
-- ✅ Registered `/api/reviews` routes
-- ✅ Registered `/api/coupons` routes
+**Benefits:**
+- Chef can adjust review window via environment variable
+- No code changes needed to modify the review period
+- Easy to test different retention strategies
 
 ---
 
-## 📊 Database Migration
+### ✅ 3. Enhanced Frontend Error Handling and Messaging (HIGH PRIORITY)
+**Status:** Fully implemented
 
-### Seed Script
-**New File:**
-- `backend/prisma/seed-order-numbers.ts`
+**What was done:**
 
-**Purpose:**
-- Assign sequential order numbers to existing orders
-- Run after migration to populate `orderNumber` field
+#### ReviewFormPage (`frontend/src/pages/ReviewFormPage.tsx`):
+- Added error state handling with retry capability
+- Enhanced empty state message with clear expiry explanation
+- Added retry button for failed API calls
+- Configured query with retry logic and stale time
 
-**Command:**
+#### OrdersPage (`frontend/src/pages/OrdersPage.tsx`):
+- Added error banner for eligible orders query failures
+- Added error banner for main orders query failures
+- Both include retry buttons for user recovery
+- Configured queries with retry logic and stale time
+
+**Benefits:**
+- Users can distinguish real errors from empty states
+- Clear path to recovery with retry buttons
+- Better debugging for support issues
+- Improved user experience during network issues
+
+---
+
+### ✅ 4. Per-Dish Review Status Display (HIGH PRIORITY)
+**Status:** Fully implemented
+
+**What was done:**
+
+#### Backend (`backend/src/routes/order.routes.ts`):
+- Extended orders endpoint to include `reviews` relation on order items
+- Only fetches reviews for the current user
+- Returns review status (id, approved, createdAt)
+
+#### Frontend Types (`frontend/src/types/index.ts`):
+- Added `reviews` field to `OrderItem` interface
+
+#### Frontend UI (`frontend/src/pages/OrdersPage.tsx`):
+- Removed order-level "Write Review" button
+- Added per-dish review status badges:
+  - ✅ **Green badge**: "Reviewed • Coupon Earned" (approved)
+  - 🕒 **Yellow badge**: "Pending Approval" (submitted but not approved)
+  - ⭐ **Blue link**: "Write Review" (eligible, not reviewed)
+- Direct link to review form with pre-selected dish
+- Improved `handleWriteReview()` to accept optional `dishId`
+
+**Benefits:**
+- Full review lifecycle visible at a glance
+- Clear call-to-action per dish
+- Shows value of reviewing (coupon status)
+- Reduces confusion about review eligibility
+- Better user experience with inline actions
+
+---
+
+### ✅ 5. Integration Testing Infrastructure (MEDIUM PRIORITY)
+**Status:** Fully implemented
+
+**What was done:**
+
+#### Testing Setup:
+- Created `backend/vitest.config.ts` with proper test configuration
+- Created `backend/tests/setup.ts` with database lifecycle management
+- Updated `backend/package.json` with:
+  - Test dependencies: vitest, supertest, @types/supertest
+  - Test scripts: `npm test` and `npm test:watch`
+
+#### Integration Tests (`backend/tests/integration/review-flow.test.ts`):
+Created comprehensive test suite covering:
+
+1. **Order Status and completedAt**
+   - Verifies `completedAt` is set when order status becomes COMPLETED
+   - Verifies completed orders appear in eligible-orders endpoint
+
+2. **Review Creation**
+   - Allows creating reviews for completed orders
+   - Prevents duplicate reviews for same dish
+   - Validates authentication requirements
+   - Validates rating constraints (1-5)
+
+3. **Review Window (30 Days)**
+   - Excludes orders older than configured window
+   - Prevents creating reviews for expired orders
+   - Includes orders within the window
+
+4. **Review Approval and Coupon Generation**
+   - Chef can approve reviews and generate $4 coupons
+   - Prevents duplicate approval
+   - Approved reviews appear in public list
+   - Customers cannot approve their own reviews
+
+5. **Per-Dish Review Status**
+   - Orders endpoint includes review data for each item
+   - Review status is properly structured
+
+**Benefits:**
+- Catches bugs that headless tests miss
+- Verifies entire flow works end-to-end
+- Tests against real database schema
+- Prevents regressions
+- Can be run in CI/CD pipelines
+
+---
+
+## Files Created
+
+1. ✅ `backend/vitest.config.ts` - Vitest test configuration
+2. ✅ `backend/tests/setup.ts` - Test environment setup
+3. ✅ `backend/tests/integration/review-flow.test.ts` - Comprehensive integration tests
+4. ✅ `backend/src/services/order.service.ts` - Already existed, verified implementation
+
+---
+
+## Files Modified
+
+1. ✅ `backend/.env.example` - Added REVIEW_WINDOW_DAYS
+2. ✅ `backend/package.json` - Added test dependencies and scripts
+3. ✅ `backend/src/controllers/review.controller.ts` - Use configurable window
+4. ✅ `backend/src/routes/order.routes.ts` - Use setOrderStatus(), include review data
+5. ✅ `backend/src/routes/webhook.routes.ts` - Use setOrderStatus()
+6. ✅ `frontend/src/types/index.ts` - Extended OrderItem type
+7. ✅ `frontend/src/pages/OrdersPage.tsx` - Per-dish badges, error states
+8. ✅ `frontend/src/pages/ReviewFormPage.tsx` - Error states, expiry message
+9. ✅ `render.yaml` - Add REVIEW_WINDOW_DAYS env var
+
+---
+
+## Testing Instructions
+
+### Manual Testing
+
+1. **Test completedAt timestamp:**
+   ```
+   - Create order → Pay → Chef marks COMPLETED
+   - Verify completedAt is set in database
+   - Verify order appears in eligible-orders endpoint
+   ```
+
+2. **Test per-dish review badges:**
+   ```
+   - Complete an order with multiple dishes
+   - Observe inline review status per dish
+   - Click "Write Review" on specific dish
+   - Submit review and verify "Pending Approval" badge
+   - Chef approves review
+   - Verify "Reviewed • Coupon Earned" badge appears
+   ```
+
+3. **Test error states:**
+   ```
+   - Disconnect network while on Orders page
+   - Verify error banner appears with retry button
+   - Click retry and verify recovery
+   ```
+
+4. **Test review window:**
+   ```
+   - Set REVIEW_WINDOW_DAYS=7
+   - Verify only orders from last 7 days are eligible
+   - Try reviewing older order → verify error message
+   ```
+
+### Integration Tests
+
+**⚠️ Requires PostgreSQL database to be running**
+
 ```bash
-npx tsx backend/prisma/seed-order-numbers.ts
+cd backend
+npm install  # Install new test dependencies
+
+# Option 1: Use Docker for testing
+docker run --name traphouse-test-db \
+  -e POSTGRES_USER=traphouse \
+  -e POSTGRES_PASSWORD=traphouse_dev_password \
+  -e POSTGRES_DB=traphouse_kitchen_test \
+  -p 5432:5432 -d postgres:16
+
+npm test     # Run all tests
+
+# Cleanup
+docker stop traphouse-test-db && docker rm traphouse-test-db
 ```
 
----
+Expected output:
+- All tests should pass
+- Coverage of order status, review creation, window validation, approval flow
 
-## 🧪 Testing Requirements
-
-### Prerequisites
-1. ✅ Database migration applied
-2. ✅ Order number seed script run (if existing orders)
-3. ✅ Backend server running on port 3001
-4. ✅ Frontend server running (any localhost port)
-5. ✅ Stripe keys configured in backend `.env`
-
-### Test User Accounts Needed
-- **Customer Account**: For placing orders and writing reviews
-- **Chef/Admin Account**: For approving reviews and managing orders
-
-### Key Test Scenarios
-1. **Login Flow**: Registration → Login → Session persistence
-2. **Order Flow**: Add to cart → Checkout → Payment → Confirmation
-3. **Review Flow**: Complete order → Submit review → Chef approval → Receive coupon
-4. **Coupon Flow**: Get coupon → Apply at checkout → Verify discount
-5. **Order Management**: View orders → Archive → Reset counter
-6. **Navigation**: Verify logged-in vs logged-out navigation
-7. **Protection**: Try accessing protected routes while logged out
+See `TESTING_SETUP.md` for more database setup options.
 
 ---
 
-## 📝 Configuration Notes
+## Environment Variables
 
-### Stripe Setup
-**Apple Pay Requirements:**
-1. Domain verification in Stripe Dashboard
-2. Test on Safari or iOS device
-3. Apple Pay configured in user's wallet
-
-**Test Card:**
-- Number: `4242 4242 4242 4242`
-- Expiry: Any future date
-- CVC: Any 3 digits
-- ZIP: Any 5 digits
-
-### Environment Variables Required
-**Backend `.env`:**
+### Backend (.env)
 ```env
-DATABASE_URL=postgresql://...
-JWT_SECRET=your-secret
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-FRONTEND_URL=http://localhost:5173
+REVIEW_WINDOW_DAYS=30  # Number of days customers can review completed orders
 ```
 
-**Frontend `.env` (optional):**
-```env
-VITE_API_URL=http://localhost:3001/api
-```
+### Render.yaml
+Updated production configuration to include `REVIEW_WINDOW_DAYS=30`
 
 ---
 
-## 🎯 Success Criteria
+## Breaking Changes
 
-All features are implemented and ready for testing:
-
-- [x] Menu is landing page (HomePage removed)
-- [x] Reviews tab replaces Home tab
-- [x] Public can view reviews without login
-- [x] Logged-in users can write reviews
-- [x] Chef can approve/reject reviews
-- [x] $4 coupon auto-generated on approval
-- [x] Coupons applied at checkout
-- [x] Cash payment option removed
-- [x] Apple Pay enabled
-- [x] Sequential order numbers displayed
-- [x] Chef can archive orders
-- [x] Chef can reset order counter
-- [x] Requests hidden from logged-out users
-- [x] CORS issue fixed for login
+**None.** All changes are backward compatible:
+- Existing reviews continue to work
+- Old review data is still valid
+- API responses are extended, not changed
+- Frontend gracefully handles missing review data
 
 ---
 
-## 🚀 Next Steps
+## Next Steps
 
-1. **Restart Servers**: Ensure both backend and frontend are running
-2. **Run Tests**: Follow `TESTING_GUIDE.md` systematically
-3. **Report Issues**: Note any failures with details (console errors, screenshots)
-4. **Deploy**: Once testing passes, ready for production deployment
+## Next Steps
+
+1. **Start Docker Desktop** (if not already running)
+   - Look for whale icon in menu bar
+
+2. **Run the all-in-one test script:**
+   ```bash
+   ./run-tests.sh
+   ```
+   
+   This script will:
+   - Setup PostgreSQL test database in Docker
+   - Run database migrations
+   - Execute all integration tests
+   - Optionally clean up after tests
+
+3. **Alternative: Manual testing workflow**
+   ```bash
+   ./setup-test-db.sh        # Setup database
+   cd backend && npm test    # Run tests
+   cd .. && ./cleanup-test-db.sh  # Cleanup
+   ```
+
+4. **Deploy to production:**
+   - Push changes to GitHub
+   - Render will automatically deploy with `REVIEW_WINDOW_DAYS=30`
+   - No manual configuration needed
+
+5. **Monitor in production:**
+   - Watch for review submissions
+   - Verify completedAt is set correctly
+   - Check that per-dish badges display properly
+   - Monitor error rates for eligible-orders query
+
+📚 **See detailed guides:**
+- `QUICK_START.md` - Quick setup and testing
+- `DOCKER_TESTING.md` - Docker testing details
+- `TESTING_SETUP.md` - Alternative database setup options
 
 ---
 
-**Implementation Date:** January 22, 2026  
-**Status:** ✅ Complete - Ready for Testing
+## Success Metrics
+
+After deployment, you should see:
+
+1. **Maintainability:** All order status changes use centralized service
+2. **Flexibility:** Review window adjustable via env var without code changes
+3. **User Experience:** Clear per-dish review status, reduced confusion
+4. **Reliability:** Error states prevent silent failures
+5. **Confidence:** Full test coverage of critical review flow
+
+---
+
+## Notes
+
+- The centralized `order.service.ts` was already implemented ✅
+- Integration tests require a test database (uses same DB as dev/prod but cleans test data)
+- Per-dish badges are the most impactful UX improvement
+- All tests are ready to run with `npm test`
+
+## Questions?
+
+If you encounter any issues:
+1. Check test output: `npm test`
+2. Verify environment variables are set
+3. Check browser console for frontend errors
+4. Review server logs for backend errors

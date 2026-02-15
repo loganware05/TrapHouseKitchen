@@ -2,30 +2,58 @@
 
 A modern, production-ready restaurant web application with allergen management, customer ordering, and dish request voting system.
 
+## 🆕 Recent Updates: Review System Improvements
+
+The review system has been enhanced with comprehensive improvements:
+- ✅ Centralized order status management with automatic `completedAt` tracking
+- ✅ Configurable review window (default 30 days) via environment variable
+- ✅ Per-dish review status badges (Reviewed, Pending Approval, Write Review)
+- ✅ Error handling with retry capability on both frontend pages
+- ✅ Comprehensive integration test suite
+
+### 🧪 Quick Test Setup
+
+```bash
+# 1. Ensure Docker Desktop is running
+# 2. Run the all-in-one test script
+./run-tests.sh
+```
+
+**📚 Documentation:**
+- `QUICK_START.md` - Quick setup and testing guide
+- `DOCKER_TESTING.md` - Docker testing scripts and troubleshooting
+- `IMPLEMENTATION_SUMMARY.md` - Complete implementation details
+- `TESTING_SETUP.md` - Alternative database setup options
+
+---
+
 ## 🌟 Features
 
 ### Customer Features
-- **Browse Menu** - View dishes organized by categories with detailed information
+- **Browse Menu** - View dishes organized by categories with detailed information (only available dishes shown)
 - **Allergen Safety** - Set allergen profile and get automatic warnings for incompatible dishes
 - **Dietary Preferences** - Filter menu based on dietary restrictions (Vegan, Vegetarian, Gluten-Free, etc.)
 - **Order Management** - Place orders and track their status in real-time
+- **Per-Dish Reviews** - Review each dish separately from completed orders; earn a $4 discount code when approved
 - **Dish Requests** - Suggest new dishes and vote on community requests (Reddit-style voting)
 - **Guest Checkout** - Order without creating an account
 
 ### Chef Features
 - **Dashboard** - Overview of orders, menu items, and popular requests
-- **Menu Management** - Full CRUD operations for dishes, ingredients, and allergens
-- **Order Processing** - View and update order statuses (Pending → Preparing → Ready → Completed)
-- **Ingredient Library** - Manage ingredients with allergen associations
+- **Menu Management** - Full CRUD operations for dishes, ingredients, and allergens (soft delete for dishes)
+- **Order Processing** - View and update order statuses (Pending → Preparing → Ready → Completed); see paid and pending orders
+- **Requests** - View and manage dish requests from customers
+- **Review Management** - Approve or reject dish reviews; approved reviews generate discount codes for customers
 
 ### Technical Features
+- **Stripe Payments** - Credit cards, Apple Pay, Cash App Pay via Stripe
 - **Progressive Web App (PWA)** - Add to iOS home screen for app-like experience
 - **Mobile-First Design** - Optimized for iPhone and mobile devices
 - **QR Code Access** - Easy access via QR code scanning
 - **Role-Based Access Control (RBAC)** - Separate customer and chef interfaces
 - **Real-Time Updates** - React Query for automatic data synchronization
 - **Docker Containerization** - Easy deployment with Docker Compose
-- **AWS ECR Ready** - Deployment scripts for AWS Elastic Container Registry
+- **Render & AWS Ready** - `render.yaml` blueprint; deployment scripts for AWS ECR
 
 ## 🏗️ Architecture
 
@@ -80,7 +108,8 @@ docker-compose up -d
 
 4. **Run database migrations**
 ```bash
-docker-compose exec backend npx prisma migrate deploy
+docker-compose exec backend npx prisma db push
+# Or for migrations: npx prisma migrate deploy
 ```
 
 5. **Access the application**
@@ -119,6 +148,16 @@ npm run build:backend
 npm run build:frontend
 ```
 
+### Deploy to Render
+
+The project includes a `render.yaml` blueprint for one-click deployment:
+
+- **Backend:** Schema changes applied via `prisma db push` during build
+- **Frontend:** Static site built from `frontend/` directory
+- **Database:** PostgreSQL (create manually, then link via `DATABASE_URL`)
+
+Required environment variables: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`, `STRIPE_*` keys.
+
 ### Deploy to AWS ECR
 
 1. **Create ECR Repository**
@@ -155,6 +194,11 @@ JWT_EXPIRES_IN=7d
 PORT=3001
 NODE_ENV=production
 FRONTEND_URL=https://yourdomain.com
+
+# Stripe (required for payments)
+STRIPE_SECRET_KEY=sk_...
+STRIPE_PUBLISHABLE_KEY=pk_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
 **Frontend (.env):**
@@ -185,6 +229,7 @@ Key entities:
 - **Ingredients** - Components of dishes
 - **Allergens** - Allergen information with severity levels
 - **Orders** - Customer orders with status tracking
+- **Reviews** - Per-dish reviews (one per dish per order); chef approval generates discount codes
 - **DishRequests** - Community dish suggestions
 - **Votes** - Upvote/downvote system for requests
 
@@ -198,9 +243,10 @@ Key entities:
 ## 📊 API Endpoints
 
 ### Public Endpoints
-- `GET /api/dishes` - List all dishes
+- `GET /api/dishes` - List all dishes (default: available only)
 - `GET /api/categories` - List categories
 - `GET /api/allergens` - List allergens
+- `GET /api/reviews` - List approved reviews
 - `GET /api/dish-requests` - List dish requests
 
 ### Protected Endpoints
@@ -210,15 +256,21 @@ Key entities:
 - `GET /api/users/profile` - Get user profile
 - `POST /api/users/allergens` - Update allergen profile
 - `POST /api/orders` - Create order
+- `GET /api/reviews/eligible-orders` - Get orders with unreviewed dishes
+- `POST /api/reviews` - Create review (requires `orderId`, `dishId`, `rating`, `comment`)
+- `GET /api/reviews/my` - Get user's reviews
 - `POST /api/dish-requests` - Create dish request
 - `POST /api/dish-requests/:id/vote` - Vote on request
 
 ### Chef-Only Endpoints
 - `POST /api/dishes` - Create dish
 - `PUT /api/dishes/:id` - Update dish
-- `DELETE /api/dishes/:id` - Delete dish
-- `GET /api/orders/all` - View all orders
+- `DELETE /api/dishes/:id` - Soft delete dish (sets status to UNAVAILABLE)
+- `GET /api/orders/all` - View all orders (paid and pending)
 - `PATCH /api/orders/:id/status` - Update order status
+- `GET /api/reviews/pending` - View pending reviews
+- `POST /api/reviews/:id/approve` - Approve review (creates discount code)
+- `POST /api/reviews/:id/reject` - Reject review
 
 ## 🧪 Testing
 
@@ -230,6 +282,12 @@ npm test
 # Frontend tests
 cd frontend
 npm test
+
+# Headless validation scripts (no DB required)
+cd backend
+npx tsx scripts/test-review-system.ts   # Per-dish review logic
+npx tsx scripts/test-dish-filter.ts    # Dish availability filtering
+npx tsx scripts/test-order-filter.ts   # Chef order visibility
 ```
 
 ## 🛠️ Development
@@ -268,6 +326,12 @@ TrapHouseKitchen v2/
 │   │   └── index.ts      # Entry point
 │   ├── prisma/
 │   │   └── schema.prisma # Database schema
+│   ├── scripts/          # Migration & headless test scripts
+│   │   ├── migrate-reviews-to-dish-based.ts
+│   │   ├── add-dish-review-columns.sql
+│   │   ├── test-review-system.ts
+│   │   ├── test-dish-filter.ts
+│   │   └── test-order-filter.ts
 │   └── package.json
 │
 └── frontend/

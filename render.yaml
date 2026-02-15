@@ -35,6 +35,8 @@ services:
         value: TrapHouse Kitchen <orders@traphousekitchen.com>
       - key: CHEF_EMAIL
         sync: false
+      - key: REVIEW_WINDOW_DAYS
+        value: 30
     healthCheckPath: /health
     
   # Frontend Static Site

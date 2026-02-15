@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import stripe, { fromStripeAmount } from '../lib/stripe';
 import prisma from '../lib/prisma';
+import { setOrderStatus } from '../services/order.service';
 
 const router = Router();
 
@@ -148,18 +149,22 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       },
     });
 
-    // Update order status
-    const updatedOrder = await prisma.order.update({
+    // Update order status to PENDING using centralized service
+    await setOrderStatus(payment.orderId, 'PENDING', {
+      sendEmail: false, // Don't send email for webhook transitions
+    });
+
+    // Also update payment status
+    await prisma.order.update({
       where: { id: payment.orderId },
       data: {
-        status: 'PENDING', // Set to PENDING so chef can start preparing
         paymentStatus: 'PAID',
       },
     });
 
     console.log('✅ Payment processed successfully for order:', payment.orderId);
-    console.log('   Order paymentStatus updated to:', updatedOrder.paymentStatus);
-    console.log('   Order status:', updatedOrder.status);
+    console.log('   Order paymentStatus updated to: PAID');
+    console.log('   Order status: PENDING');
 
     // TODO: Send notification to chef
     // TODO: Send confirmation email to customer

@@ -3,8 +3,9 @@ import { body, validationResult } from 'express-validator';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest, authenticate, authorize } from '../middleware/auth';
-import { sendOrderConfirmationEmail, sendNewOrderNotificationToChef, sendOrderStatusEmail } from '../services/emailService';
+import { sendOrderConfirmationEmail, sendNewOrderNotificationToChef } from '../services/emailService';
 import { orderLimiter } from '../middleware/rateLimiter';
+import { setOrderStatus } from '../services/order.service';
 
 const router = Router();
 
@@ -22,6 +23,15 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next: any)
             dish: {
               include: {
                 category: true,
+              },
+            },
+            // Include reviews for this specific order item
+            reviews: {
+              where: { userId: req.user!.id },
+              select: {
+                id: true,
+                approved: true,
+                createdAt: true,
               },
             },
           },
@@ -276,32 +286,13 @@ router.patch(
       const { id } = req.params;
       const { status } = req.body;
 
-      const order = await prisma.order.update({
-        where: { id },
-        data: {
-          status,
-          ...(status === 'COMPLETED' && { completedAt: new Date() }),
-        },
-        include: {
-          items: {
-            include: {
-              dish: true,
-            },
-          },
-          user: true,
+      // Use centralized service to ensure all side-effects are applied
+      const order = await setOrderStatus(id, status, {
+        sendEmail: true,
+        emailData: {
+          estimatedTime: status === 'READY' ? 'Now' : undefined,
         },
       });
-
-      // Send status update email to customer (async - don't wait)
-      if (['PREPARING', 'READY', 'COMPLETED', 'CANCELLED'].includes(status)) {
-        sendOrderStatusEmail({
-          customerName: order.user.name,
-          customerEmail: order.user.email || '',
-          orderNumber: order.orderNumber.toString(),
-          status,
-          estimatedTime: status === 'READY' ? 'Now' : undefined,
-        }).catch(err => console.error('Status email send error:', err));
-      }
 
       res.json({
         status: 'success',

@@ -24,12 +24,14 @@ export default function ReviewFormPage() {
     }
   }, [searchParams]);
 
-  const { data: eligibleOrders, isLoading } = useQuery({
+  const { data: eligibleOrders, isLoading, isError, refetch } = useQuery({
     queryKey: ['eligibleOrders'],
     queryFn: async () => {
       const res = await api.get<{ data: { orders: Order[] } }>('/reviews/eligible-orders');
       return res.data.data.orders;
     },
+    retry: 2,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   const createReviewMutation = useMutation({
@@ -100,6 +102,18 @@ export default function ReviewFormPage() {
       {isLoading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+        </div>
+      ) : isError ? (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-800 mb-2">
+            Unable to load review eligibility. Please try again.
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="text-sm text-red-600 hover:underline font-medium"
+          >
+            Retry
+          </button>
         </div>
       ) : eligibleOrders && eligibleOrders.length > 0 ? (
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -262,6 +276,8 @@ export default function ReviewFormPage() {
           <p className="text-xl text-gray-600 mb-2">No orders available for review</p>
           <p className="text-gray-500 mb-6">
             You can review orders that are completed, paid, and within the last 30 days.
+            <br />
+            <span className="text-sm">Orders older than 30 days are no longer eligible for review.</span>
           </p>
           <button
             onClick={() => navigate('/menu')}
