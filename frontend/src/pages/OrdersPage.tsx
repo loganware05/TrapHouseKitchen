@@ -33,25 +33,6 @@ export default function OrdersPage() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Get eligible orders for review to check which orders can be reviewed
-  const { 
-    data: eligibleOrdersData, 
-    isError: isEligibleError, 
-    refetch: refetchEligible 
-  } = useQuery({
-    queryKey: ['eligibleOrders'],
-    queryFn: async () => {
-      const res = await api.get<{ data: { orders: Order[] } }>('/reviews/eligible-orders');
-      return res.data.data.orders;
-    },
-    retry: 2,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-
-  const canReviewOrder = (orderId: string) => {
-    return eligibleOrdersData?.some(order => order.id === orderId) || false;
-  };
-
   const handleWriteReview = (orderId: string, dishId?: string) => {
     if (dishId) {
       navigate(`/reviews/new?orderId=${orderId}&dishId=${dishId}`);
@@ -71,21 +52,6 @@ export default function OrdersPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">My Orders</h1>
-
-      {/* Error banner for eligible orders query */}
-      {isEligibleError && (
-        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm text-yellow-800 mb-2">
-            Unable to load review eligibility. Some orders may not show review options.
-          </p>
-          <button
-            onClick={() => refetchEligible()}
-            className="text-sm text-yellow-600 hover:underline font-medium"
-          >
-            Retry
-          </button>
-        </div>
-      )}
 
       {isError ? (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -130,7 +96,6 @@ export default function OrdersPage() {
                 <div className="space-y-3 mb-4">
                   {order.items.map((item) => {
                     const review = item.reviews?.[0];
-                    const isOrderEligible = canReviewOrder(order.id);
                     
                     return (
                       <div key={item.id} className="flex justify-between items-start">
@@ -153,14 +118,14 @@ export default function OrdersPage() {
                                     <Clock className="h-3 w-3" /> Pending Approval
                                   </span>
                                 )
-                              ) : isOrderEligible ? (
+                              ) : (
                                 <button
                                   onClick={() => handleWriteReview(order.id, item.dishId)}
                                   className="text-xs text-primary-600 hover:underline flex items-center gap-1"
                                 >
                                   <Star className="h-3 w-3" /> Write Review
                                 </button>
-                              ) : null}
+                              )}
                             </div>
                           )}
                         </div>
@@ -187,6 +152,17 @@ export default function OrdersPage() {
                       ${order.totalPrice.toFixed(2)}
                     </span>
                   </div>
+
+                  {order.status === 'COMPLETED' && order.paymentStatus === 'PAID' &&
+                   order.items.some(item => !item.reviews?.length) && (
+                    <button
+                      onClick={() => handleWriteReview(order.id)}
+                      className="w-full mt-4 py-3 px-4 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Star className="h-5 w-5" />
+                      Write Review
+                    </button>
+                  )}
                 </div>
               </div>
             );
