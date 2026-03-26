@@ -39,7 +39,7 @@ export default function PaymentForm({
         elements,
         redirect: 'if_required',
         confirmParams: {
-          return_url: `${window.location.origin}/payment/success`,
+          return_url: `${window.location.origin}/payment/success?order_id=${encodeURIComponent(orderId)}`,
         },
       });
 

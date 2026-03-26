@@ -223,3 +223,13 @@ export interface Coupon {
   createdAt: string;
   expiresAt?: string;
 }
+
+/** Saved card for 1-tap checkout (API strips Stripe payment method ids). */
+export interface SavedCardSummary {
+  id: string;
+  brand: string;
+  last4: string;
+  expiryMonth: number;
+  expiryYear: number;
+  isDefault: boolean;
+}

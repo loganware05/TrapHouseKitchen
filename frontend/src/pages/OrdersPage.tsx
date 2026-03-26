@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Package, Clock, CheckCircle, XCircle, Star } from 'lucide-react';
 import api from '../lib/api';
 import { Order } from '../types';
@@ -175,12 +175,12 @@ export default function OrdersPage() {
           <p className="text-gray-500 mb-6">
             Start ordering delicious food from our menu!
           </p>
-          <a
-            href="/menu"
+          <Link
+            to="/menu"
             className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             Browse Menu
-          </a>
+          </Link>
         </div>
       )}
     </div>

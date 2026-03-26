@@ -11,6 +11,8 @@ export type AuthRequest = Request & {
   };
 };
 
+const jwtSecret = () => process.env.JWT_SECRET || 'default-secret';
+
 export const authenticate = async (
   req: AuthRequest,
   res: Response,
@@ -23,14 +25,19 @@ export const authenticate = async (
       throw new AppError('Authentication required', 401);
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+    const decoded = jwt.verify(token, jwtSecret()) as {
       id: string;
-      name: string;
+      name?: string;
       email?: string;
       role: string;
     };
 
-    req.user = decoded;
+    req.user = {
+      id: decoded.id,
+      name: decoded.name ?? '',
+      email: decoded.email,
+      role: decoded.role,
+    };
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
@@ -53,5 +60,34 @@ export const authorize = (...roles: string[]) => {
 
     next();
   };
+};
+
+/** Attach user when a valid Bearer token is present; otherwise continue anonymously (no error). */
+export const optionalAuthenticate = (
+  req: AuthRequest,
+  _res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return next();
+    }
+    const decoded = jwt.verify(token, jwtSecret()) as {
+      id: string;
+      name?: string;
+      email?: string;
+      role: string;
+    };
+    req.user = {
+      id: decoded.id,
+      name: decoded.name ?? '',
+      email: decoded.email,
+      role: decoded.role,
+    };
+    next();
+  } catch {
+    next();
+  }
 };
 

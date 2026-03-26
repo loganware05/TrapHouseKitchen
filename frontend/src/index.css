@@ -3,8 +3,20 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --th-radius-sm: 0.5rem;
+    --th-radius-md: 0.75rem;
+    --th-radius-lg: 1rem;
+    --th-radius-xl: 1.25rem;
+    --th-space-section: 1.5rem;
+    --th-color-surface: #fafafa;
+    --th-color-elevated: #ffffff;
+    --th-color-primary: #ea580c;
+    --th-color-muted-fg: #71717a;
+  }
+
   body {
-    @apply bg-white text-gray-900;
+    @apply bg-th-surface text-gray-900;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }

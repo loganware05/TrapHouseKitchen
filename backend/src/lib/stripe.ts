@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { PaymentRecordStatus } from '@prisma/client';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not defined in environment variables');
@@ -31,3 +32,20 @@ export const toStripeAmount = (amount: number): number => {
 export const fromStripeAmount = (amount: number): number => {
   return amount / 100;
 };
+
+/** Maps Stripe PaymentIntent.status (snake_case) to our Prisma PaymentRecordStatus (DB uses @map snake_case; client enums are SCREAMING_CASE). */
+const STRIPE_PI_STATUS_TO_RECORD: Record<Stripe.PaymentIntent.Status, PaymentRecordStatus> = {
+  requires_payment_method: PaymentRecordStatus.REQUIRES_PAYMENT_METHOD,
+  requires_confirmation: PaymentRecordStatus.REQUIRES_CONFIRMATION,
+  requires_action: PaymentRecordStatus.REQUIRES_ACTION,
+  processing: PaymentRecordStatus.PROCESSING,
+  requires_capture: PaymentRecordStatus.REQUIRES_CAPTURE,
+  canceled: PaymentRecordStatus.CANCELED,
+  succeeded: PaymentRecordStatus.SUCCEEDED,
+};
+
+export function paymentIntentStatusToRecordStatus(
+  status: Stripe.PaymentIntent.Status
+): PaymentRecordStatus {
+  return STRIPE_PI_STATUS_TO_RECORD[status];
+}

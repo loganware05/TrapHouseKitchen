@@ -1,10 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { randomUUID } from 'crypto';
 import request from 'supertest';
-import app from '../../src/index';
+import app from '../../src/app';
 import prisma from '../../src/lib/prisma';
 import bcrypt from 'bcryptjs';
 
 describe('Review Flow Integration Tests', () => {
+  const runId = randomUUID().slice(0, 8);
+  const categoryName = `Test Category ${runId}`;
+  const dishName = `Test Burger ${runId}`;
+  const customerEmail = `test-customer-${runId}@example.com`;
+  const chefEmail = `test-chef-${runId}@example.com`;
+
   let authToken: string;
   let chefToken: string;
   let userId: string;
@@ -14,20 +21,18 @@ describe('Review Flow Integration Tests', () => {
   let categoryId: string;
 
   beforeAll(async () => {
-    // Create test category
     const category = await prisma.category.create({
       data: {
-        name: 'Test Category',
+        name: categoryName,
         description: 'Category for testing',
         displayOrder: 1,
       },
     });
     categoryId = category.id;
 
-    // Create test dish
     const dish = await prisma.dish.create({
       data: {
-        name: 'Test Burger',
+        name: dishName,
         description: 'A delicious test burger',
         price: 12.99,
         categoryId,
@@ -43,7 +48,7 @@ describe('Review Flow Integration Tests', () => {
     const hashedPassword = await bcrypt.hash('test-password-123', 10);
     const user = await prisma.user.create({
       data: {
-        email: 'test-customer@example.com',
+        email: customerEmail,
         name: 'Test Customer',
         password: hashedPassword,
         role: 'CUSTOMER',
@@ -55,7 +60,7 @@ describe('Review Flow Integration Tests', () => {
     // Create test chef user
     const chef = await prisma.user.create({
       data: {
-        email: 'test-chef@example.com',
+        email: chefEmail,
         name: 'Test Chef',
         password: hashedPassword,
         role: 'CHEF',
@@ -68,7 +73,7 @@ describe('Review Flow Integration Tests', () => {
     const customerLoginRes = await request(app)
       .post('/api/auth/login')
       .send({
-        email: 'test-customer@example.com',
+        email: customerEmail,
         password: 'test-password-123',
       });
     authToken = customerLoginRes.body.data.token;
@@ -76,7 +81,7 @@ describe('Review Flow Integration Tests', () => {
     const chefLoginRes = await request(app)
       .post('/api/auth/login')
       .send({
-        email: 'test-chef@example.com',
+        email: chefEmail,
         password: 'test-password-123',
       });
     chefToken = chefLoginRes.body.data.token;
@@ -105,10 +110,14 @@ describe('Review Flow Integration Tests', () => {
   });
 
   afterAll(async () => {
-    // Clean up test data
+    await prisma.order.updateMany({
+      where: { userId },
+      data: { appliedCouponId: null },
+    });
+    await prisma.coupon.deleteMany({ where: { userId } });
     await prisma.review.deleteMany({ where: { userId } });
-    await prisma.orderItem.deleteMany({ where: { orderId } });
-    await prisma.order.deleteMany({ where: { id: orderId } });
+    await prisma.orderItem.deleteMany({ where: { dishId } });
+    await prisma.order.deleteMany({ where: { userId } });
     await prisma.dish.deleteMany({ where: { id: dishId } });
     await prisma.category.deleteMany({ where: { id: categoryId } });
     await prisma.user.deleteMany({ where: { id: { in: [userId, chefId] } } });
@@ -306,7 +315,7 @@ describe('Review Flow Integration Tests', () => {
 
     it('should allow chef to approve review and generate coupon', async () => {
       const response = await request(app)
-        .patch(`/api/reviews/${reviewId}/approve`)
+        .post(`/api/reviews/${reviewId}/approve`)
         .set('Authorization', `Bearer ${chefToken}`)
         .expect(200);
 
@@ -320,7 +329,7 @@ describe('Review Flow Integration Tests', () => {
 
     it('should not allow approving already approved review', async () => {
       const response = await request(app)
-        .patch(`/api/reviews/${reviewId}/approve`)
+        .post(`/api/reviews/${reviewId}/approve`)
         .set('Authorization', `Bearer ${chefToken}`)
         .expect(400);
 
@@ -366,7 +375,7 @@ describe('Review Flow Integration Tests', () => {
       // Create new dish for new review
       const newDish = await prisma.dish.create({
         data: {
-          name: 'Test Fries',
+          name: `Test Fries ${runId}`,
           description: 'Test side dish',
           price: 4.99,
           categoryId,
@@ -401,7 +410,7 @@ describe('Review Flow Integration Tests', () => {
 
       // Try to approve own review
       await request(app)
-        .patch(`/api/reviews/${newReviewId}/approve`)
+        .post(`/api/reviews/${newReviewId}/approve`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(403);
 

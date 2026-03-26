@@ -2,7 +2,10 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import stripe, { fromStripeAmount } from '../lib/stripe';
 import prisma from '../lib/prisma';
+import { PaymentRecordStatus } from '@prisma/client';
 import { setOrderStatus } from '../services/order.service';
+import { finalizeCouponAfterPayment, handleSetupIntentSucceededWebhook } from '../services/payment.service';
+import { sendNewOrderNotificationToChef, sendOrderConfirmationEmail } from '../services/emailService';
 
 const router = Router();
 
@@ -11,6 +14,11 @@ const router = Router();
 router.post(
   '/stripe',
   async (req: Request, res: Response) => {
+    if (process.env.NODE_ENV === 'production' && !process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error('STRIPE_WEBHOOK_SECRET is required in production');
+      return res.status(503).json({ error: 'Webhook signing is not configured' });
+    }
+
     const sig = req.headers['stripe-signature'] as string;
 
     let event: Stripe.Event;
@@ -24,8 +32,7 @@ router.post(
           process.env.STRIPE_WEBHOOK_SECRET
         );
       } else {
-        // In development, if no webhook secret is set, parse the body directly
-        // NOTE: This should NOT be used in production
+        // Development only: parse unsigned payload (never use in production)
         event = JSON.parse(req.body.toString());
         console.warn('⚠️  Webhook signature verification skipped (no STRIPE_WEBHOOK_SECRET)');
       }
@@ -53,6 +60,10 @@ router.post(
 
         case 'payment_intent.canceled':
           await handlePaymentIntentCanceled(event.data.object as Stripe.PaymentIntent);
+          break;
+
+        case 'setup_intent.succeeded':
+          await handleSetupIntentSucceededWebhook(event.data.object as Stripe.SetupIntent);
           break;
 
         default:
@@ -132,7 +143,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     await prisma.payment.update({
       where: { id: payment.id },
       data: {
-        status: 'succeeded',
+        status: PaymentRecordStatus.SUCCEEDED,
         paymentMethodDetails,
         receiptUrl,
       },
@@ -149,12 +160,10 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       },
     });
 
-    // Update order status to PENDING using centralized service
     await setOrderStatus(payment.orderId, 'PENDING', {
-      sendEmail: false, // Don't send email for webhook transitions
+      sendEmail: false,
     });
 
-    // Also update payment status
     await prisma.order.update({
       where: { id: payment.orderId },
       data: {
@@ -162,12 +171,47 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       },
     });
 
+    const order = await prisma.order.findUnique({
+      where: { id: payment.orderId },
+      include: {
+        items: { include: { dish: true } },
+        user: true,
+      },
+    });
+
+    if (order) {
+      await finalizeCouponAfterPayment(order.id, order.appliedCouponId);
+
+      const orderDate = new Date(order.createdAt).toLocaleString();
+      const emailPayload = {
+        customerName: order.user.name,
+        customerEmail: order.user.email || '',
+        orderNumber: order.orderNumber.toString(),
+        orderDate,
+        items: order.items.map(item => ({
+          name: item.dish.name,
+          quantity: item.quantity,
+          price: item.priceAtOrder,
+        })),
+        subtotal: order.totalPrice,
+        tip: order.tipAmount,
+        total: order.finalAmount,
+        paymentStatus: 'PAID',
+        prepTime: order.prepTime || 25,
+        specialInstructions: order.specialInstructions || undefined,
+      };
+
+      sendOrderConfirmationEmail(emailPayload).catch(err =>
+        console.error('Confirmation email error:', err)
+      );
+      sendNewOrderNotificationToChef(emailPayload).catch(err =>
+        console.error('Chef notification email error:', err)
+      );
+    }
+
     console.log('✅ Payment processed successfully for order:', payment.orderId);
     console.log('   Order paymentStatus updated to: PAID');
     console.log('   Order status: PENDING');
-
-    // TODO: Send notification to chef
-    // TODO: Send confirmation email to customer
   } catch (error) {
     console.error('❌ Error handling payment success:', error);
     console.error('   PaymentIntent ID:', paymentIntent.id);
@@ -198,7 +242,7 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
     await prisma.payment.update({
       where: { id: payment.id },
       data: {
-        status: 'failed',
+        status: PaymentRecordStatus.FAILED,
         failureReason,
       },
     });
@@ -249,7 +293,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     await prisma.payment.update({
       where: { id: transaction.paymentId },
       data: {
-        status: isFullRefund ? 'refunded' : 'succeeded', // Keep as succeeded if partial
+        status: isFullRefund ? PaymentRecordStatus.REFUNDED : PaymentRecordStatus.SUCCEEDED, // Keep succeeded if partial
       },
     });
 
@@ -289,7 +333,7 @@ async function handlePaymentIntentCanceled(paymentIntent: Stripe.PaymentIntent) 
     await prisma.payment.update({
       where: { id: payment.id },
       data: {
-        status: 'canceled',
+        status: PaymentRecordStatus.CANCELED,
       },
     });
 

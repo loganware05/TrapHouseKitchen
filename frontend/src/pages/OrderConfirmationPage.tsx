@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CheckCircle, Clock, MapPin, Phone, Mail, Package, ArrowRight } from 'lucide-react';
 import api from '../lib/api';
 import { Order } from '../types';
+import OrderTracker from '../components/OrderTracker';
 
 export default function OrderConfirmationPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -11,6 +12,7 @@ export default function OrderConfirmationPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [nowTick, setNowTick] = useState(() => Date.now());
 
   const paymentSuccess = location.state?.paymentSuccess || false;
   const prepTime = location.state?.prepTime || order?.prepTime || 25;
@@ -23,6 +25,11 @@ export default function OrderConfirmationPage() {
 
     fetchOrder();
   }, [orderId]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const fetchOrder = async () => {
     try {
@@ -72,12 +79,33 @@ export default function OrderConfirmationPage() {
 
   const estimatedPickupTime = new Date(order.createdAt);
   estimatedPickupTime.setMinutes(estimatedPickupTime.getMinutes() + prepTime);
+  const minutesUntilReady = Math.max(
+    0,
+    Math.ceil((estimatedPickupTime.getTime() - nowTick) / 60_000)
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 md:ml-64 mb-20 md:mb-8">
+    <div className="min-h-screen bg-th-surface py-8 px-4 md:ml-64 mb-20 md:mb-8">
       <div className="max-w-3xl mx-auto">
+        <div className="bg-white rounded-th-xl shadow-th-card p-6 mb-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-th-muted-fg mb-4">Order status</h2>
+          <OrderTracker status={order.status} />
+          {order.status !== 'CANCELLED' && order.status !== 'COMPLETED' && (
+            <p className="mt-4 text-center text-sm text-gray-600">
+              {minutesUntilReady > 0 ? (
+                <>
+                  About <span className="font-bold text-primary-600 tabular-nums">{minutesUntilReady}</span> min
+                  until estimated ready time
+                </>
+              ) : (
+                <span className="font-medium text-primary-600">You&apos;re at or past the estimated ready window — check with the kitchen if needed.</span>
+              )}
+            </p>
+          )}
+        </div>
+
         {/* Success Header */}
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-6 text-center">
+        <div className="bg-white rounded-th-xl shadow-th-card p-8 mb-6 text-center">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
             <CheckCircle className="h-12 w-12 text-green-600" />
           </div>
@@ -96,14 +124,14 @@ export default function OrderConfirmationPage() {
         </div>
 
         {/* Pickup Info */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <div className="bg-white rounded-th-xl shadow-th-card p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
             <Clock className="h-6 w-6 mr-2 text-primary-600" />
-            Estimated Pickup Time
+            Estimated pickup
           </h2>
-          <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-6 text-center">
-            <p className="text-sm text-gray-600 mb-2">Your order will be ready around:</p>
-            <p className="text-3xl font-bold text-primary-600 mb-2">
+          <div className="bg-primary-50 border-2 border-primary-200 rounded-th-lg p-6 text-center">
+            <p className="text-sm text-gray-600 mb-2">Ready around</p>
+            <p className="text-3xl font-bold text-primary-600 mb-2 tabular-nums">
               {estimatedPickupTime.toLocaleTimeString('en-US', { 
                 hour: 'numeric', 
                 minute: '2-digit',
@@ -111,7 +139,12 @@ export default function OrderConfirmationPage() {
               })}
             </p>
             <p className="text-sm text-gray-600">
-              Preparation time: approximately {prepTime} minutes
+              Prep estimate: ~{prepTime} min
+              {order.status !== 'CANCELLED' && order.status !== 'COMPLETED' && (
+                <span className="block mt-2 font-medium text-primary-800">
+                  ~{minutesUntilReady} min from now
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -240,7 +273,7 @@ export default function OrderConfirmationPage() {
             View All Orders
           </button>
           <button
-            onClick={() => navigate('/menu')}
+            onClick={() => navigate('/')}
             className="flex items-center justify-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
           >
             Order Again

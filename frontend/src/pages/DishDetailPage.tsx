@@ -6,13 +6,16 @@ import api from '../lib/api';
 import { Dish } from '../types';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
+import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
 import { toast } from 'sonner';
+import { trackEvent } from '../stores/analyticsStore';
 
 export default function DishDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const addItem = useCartStore((state) => state.addItem);
+  const openCheckout = useCheckoutSheetStore((s) => s.open);
   const [quantity, setQuantity] = useState(1);
   const [userAllergens, setUserAllergens] = useState<string[]>([]);
 
@@ -38,6 +41,15 @@ export default function DishDetailPage() {
       setUserAllergens(userProfile.allergenProfile.map((ua: any) => ua.allergenId));
     }
   }, [userProfile]);
+
+  useEffect(() => {
+    if (!dish || dish.status !== 'AVAILABLE') return;
+    trackEvent('view_dish', {
+      dishId: dish.id,
+      name: dish.name,
+      categoryId: dish.categoryId,
+    });
+  }, [dish?.id, dish?.status, dish?.categoryId, dish?.name]);
 
   if (isLoading) {
     return (
@@ -110,8 +122,15 @@ export default function DishDetailPage() {
     }
 
     addItem(dish, quantity);
+    trackEvent('add_to_cart', {
+      dishId: dish.id,
+      name: dish.name,
+      price: dish.price,
+      quantity,
+      source: 'dish_detail',
+    });
     toast.success(`Added ${quantity} ${dish.name} to cart!`);
-    navigate('/menu');
+    openCheckout();
   };
 
   return (

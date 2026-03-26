@@ -1,14 +1,33 @@
 import { Router, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import stripe, { toStripeAmount, fromStripeAmount, calculatePrepTime } from '../lib/stripe';
+import stripe, { toStripeAmount, fromStripeAmount, paymentIntentStatusToRecordStatus } from '../lib/stripe';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest, authenticate } from '../middleware/auth';
 import { paymentLimiter } from '../middleware/rateLimiter';
+import {
+  createPaymentIntentForOrder,
+  createSetupIntentForUser,
+  listSavedPaymentMethods,
+  deleteSavedPaymentMethod,
+  setDefaultSavedPaymentMethod,
+  syncSavedMethodAfterSetupIntent,
+} from '../services/payment.service';
+import { PaymentRecordStatus } from '@prisma/client';
 
 const router = Router();
 
-// Create Payment Intent
+function mapSavedMethods(methods: Awaited<ReturnType<typeof listSavedPaymentMethods>>) {
+  return methods.map((m) => ({
+    id: m.id,
+    brand: m.brand,
+    last4: m.last4,
+    expiryMonth: m.expiryMonth,
+    expiryYear: m.expiryYear,
+    isDefault: m.isDefault,
+  }));
+}
+
 router.post(
   '/create-payment-intent',
   authenticate,
@@ -17,6 +36,7 @@ router.post(
     body('orderId').notEmpty(),
     body('tipAmount').optional().isFloat({ min: 0 }),
     body('couponCode').optional().isString(),
+    body('savedPaymentMethodId').optional().isUUID(),
   ],
   async (req: AuthRequest, res: Response, next: any) => {
     try {
@@ -24,147 +44,23 @@ router.post(
       if (!errors.isEmpty()) {
         throw new AppError('Validation failed', 400);
       }
-
-      const { orderId, tipAmount = 0, couponCode } = req.body;
-
-      // Fetch the order with items
-      const order = await prisma.order.findUnique({
-        where: { id: orderId },
-        include: {
-          items: {
-            include: {
-              dish: true,
-            },
-          },
-          user: true,
-        },
+      const { orderId, tipAmount = 0, couponCode, savedPaymentMethodId } = req.body;
+      const result = await createPaymentIntentForOrder({
+        userId: req.user!.id,
+        orderId,
+        tipAmount,
+        couponCode,
+        savedPaymentMethodId,
       });
-
-      if (!order) {
-        throw new AppError('Order not found', 404);
-      }
-
-      // Verify the order belongs to the authenticated user
-      if (order.userId !== req.user!.id) {
-        throw new AppError('Unauthorized to pay for this order', 403);
-      }
-
-      // Check if order already has a successful payment
-      const existingPayment = await prisma.payment.findFirst({
-        where: {
-          orderId,
-          status: 'succeeded',
-        },
-      });
-
-      if (existingPayment) {
-        throw new AppError('Order has already been paid', 400);
-      }
-
-      // Handle coupon if provided
-      let coupon = null;
-      let discount = 0;
-      
-      if (couponCode) {
-        coupon = await prisma.coupon.findUnique({
-          where: { code: couponCode.toUpperCase() },
-        });
-
-        if (!coupon) {
-          throw new AppError('Invalid coupon code', 404);
-        }
-
-        if (coupon.userId !== req.user!.id) {
-          throw new AppError('This coupon does not belong to you', 403);
-        }
-
-        if (coupon.used) {
-          throw new AppError('This coupon has already been used', 400);
-        }
-
-        if (coupon.expiresAt && coupon.expiresAt < new Date()) {
-          throw new AppError('This coupon has expired', 400);
-        }
-
-        discount = coupon.discountAmount;
-      }
-
-      // Calculate amounts
-      const subtotal = order.totalPrice;
-      const tip = parseFloat(tipAmount.toString()) || 0;
-      const total = Math.max(0, subtotal + tip - discount);
-
-      // Calculate prep time
-      const prepTime = calculatePrepTime(order.items.length);
-
-      // Create Payment Intent with Stripe
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: toStripeAmount(total),
-        currency: 'usd',
-        automatic_payment_methods: {
-          enabled: true,
-          allow_redirects: 'always',
-        },
-        metadata: {
-          orderId: order.id,
-          userId: order.userId,
-          customerName: order.user.name,
-          customerEmail: order.user.email || '',
-          itemCount: order.items.length.toString(),
-          prepTime: prepTime.toString(),
-        },
-        description: `TrapHouse Kitchen Order #${order.id.slice(0, 8)}`,
-      });
-
-      // Create Payment record in database
-      const payment = await prisma.payment.create({
-        data: {
-          orderId: order.id,
-          stripePaymentIntentId: paymentIntent.id,
-          amount: subtotal,
-          tipAmount: tip,
-          totalAmount: total,
-          currency: 'usd',
-          status: 'pending',
-          paymentMethod: 'CARD', // Will be updated by webhook with actual method used
-          metadata: {
-            prepTime,
-            itemCount: order.items.length,
-          },
-        },
-      });
-
-      // Update order with tip, coupon, and prep time
-      await prisma.order.update({
-        where: { id: orderId },
-        data: {
-          tipAmount: tip,
-          finalAmount: total,
-          prepTime,
-          paymentStatus: 'PENDING',
-          ...(coupon && { appliedCouponId: coupon.id }),
-        },
-      });
-
-      // Mark coupon as used if applied
-      if (coupon) {
-        await prisma.coupon.update({
-          where: { id: coupon.id },
-          data: {
-            used: true,
-            usedOrderId: orderId,
-          },
-        });
-      }
-
       res.json({
         status: 'success',
         data: {
-          clientSecret: paymentIntent.client_secret,
-          paymentIntentId: paymentIntent.id,
-          paymentId: payment.id,
-          amount: total,
-          prepTime,
+          clientSecret: result.clientSecret,
+          paymentIntentId: result.paymentIntentId,
+          paymentId: result.paymentId,
+          amount: result.amount,
+          prepTime: result.prepTime,
+          stripePaymentStatus: result.stripePaymentStatus,
         },
       });
     } catch (error) {
@@ -173,7 +69,6 @@ router.post(
   }
 );
 
-// Get Payment Status
 router.get(
   '/status/:paymentId',
   authenticate,
@@ -200,24 +95,20 @@ router.get(
         throw new AppError('Payment not found', 404);
       }
 
-      // Verify authorization
       if (payment.order.userId !== req.user!.id) {
         throw new AppError('Unauthorized', 403);
       }
 
-      // If payment has Stripe Payment Intent, fetch latest status
       let stripeStatus = null;
       if (payment.stripePaymentIntentId) {
-        const paymentIntent = await stripe.paymentIntents.retrieve(
-          payment.stripePaymentIntentId
-        );
+        const paymentIntent = await stripe.paymentIntents.retrieve(payment.stripePaymentIntentId);
         stripeStatus = paymentIntent.status;
+        const mapped = paymentIntentStatusToRecordStatus(stripeStatus);
 
-        // Update local payment status if different
-        if (stripeStatus !== payment.status) {
+        if (mapped !== payment.status) {
           await prisma.payment.update({
             where: { id: paymentId },
-            data: { status: stripeStatus },
+            data: { status: mapped },
           });
         }
       }
@@ -237,20 +128,15 @@ router.get(
   }
 );
 
-// Refund Payment (Chef only)
 router.post(
   '/refund/:paymentId',
   authenticate,
-  [
-    body('amount').optional().isFloat({ min: 0 }),
-    body('reason').optional().isString(),
-  ],
+  [body('amount').optional().isFloat({ min: 0 }), body('reason').optional().isString()],
   async (req: AuthRequest, res: Response, next: any) => {
     try {
       const { paymentId } = req.params;
       const { amount, reason } = req.body;
 
-      // Only chefs and admins can issue refunds
       if (!['CHEF', 'ADMIN'].includes(req.user!.role)) {
         throw new AppError('Unauthorized', 403);
       }
@@ -266,7 +152,7 @@ router.post(
         throw new AppError('Payment not found', 404);
       }
 
-      if (payment.status !== 'succeeded') {
+      if (payment.status !== PaymentRecordStatus.SUCCEEDED) {
         throw new AppError('Can only refund successful payments', 400);
       }
 
@@ -274,12 +160,10 @@ router.post(
         throw new AppError('Cannot refund cash payments through this endpoint', 400);
       }
 
-      // Determine refund amount
-      const refundAmount = amount 
+      const refundAmount = amount
         ? toStripeAmount(parseFloat(amount.toString()))
-        : toStripeAmount(payment.totalAmount); // Full refund if no amount specified
+        : toStripeAmount(payment.totalAmount);
 
-      // Create refund with Stripe
       const refund = await stripe.refunds.create({
         payment_intent: payment.stripePaymentIntentId,
         amount: refundAmount,
@@ -290,7 +174,6 @@ router.post(
         },
       });
 
-      // Create transaction record
       await prisma.transaction.create({
         data: {
           paymentId: payment.id,
@@ -302,16 +185,14 @@ router.post(
         },
       });
 
-      // Update payment status
       const isFullRefund = refundAmount === toStripeAmount(payment.totalAmount);
       await prisma.payment.update({
         where: { id: paymentId },
         data: {
-          status: isFullRefund ? 'refunded' : payment.status,
+          status: isFullRefund ? PaymentRecordStatus.REFUNDED : payment.status,
         },
       });
 
-      // Update order status
       await prisma.order.update({
         where: { id: payment.orderId },
         data: {
@@ -336,7 +217,6 @@ router.post(
   }
 );
 
-// Get Payment Configuration (returns publishable key)
 router.get('/config', (_req, res) => {
   res.json({
     status: 'success',
@@ -348,5 +228,72 @@ router.get('/config', (_req, res) => {
     },
   });
 });
+
+router.post('/setup-intent', authenticate, paymentLimiter, async (req: AuthRequest, res: Response, next: any) => {
+  try {
+    const { clientSecret } = await createSetupIntentForUser(req.user!.id);
+    res.json({ status: 'success', data: { clientSecret } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/methods', authenticate, async (req: AuthRequest, res: Response, next: any) => {
+  try {
+    const methods = await listSavedPaymentMethods(req.user!.id);
+    res.json({
+      status: 'success',
+      data: {
+        methods: mapSavedMethods(methods),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete('/methods/:id', authenticate, paymentLimiter, async (req: AuthRequest, res: Response, next: any) => {
+  try {
+    await deleteSavedPaymentMethod(req.user!.id, req.params.id);
+    res.json({ status: 'success', data: null });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch(
+  '/methods/:id/default',
+  authenticate,
+  paymentLimiter,
+  async (req: AuthRequest, res: Response, next: any) => {
+    try {
+      await setDefaultSavedPaymentMethod(req.user!.id, req.params.id);
+      const methods = await listSavedPaymentMethods(req.user!.id);
+      res.json({ status: 'success', data: { methods: mapSavedMethods(methods) } });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/methods/sync',
+  authenticate,
+  paymentLimiter,
+  [body('setupIntentId').notEmpty()],
+  async (req: AuthRequest, res: Response, next: any) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new AppError('Validation failed', 400);
+      }
+      await syncSavedMethodAfterSetupIntent(req.user!.id, req.body.setupIntentId);
+      const methods = await listSavedPaymentMethods(req.user!.id);
+      res.json({ status: 'success', data: { methods: mapSavedMethods(methods) } });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 export default router;

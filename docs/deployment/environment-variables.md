@@ -122,7 +122,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_live_YOUR_PUBLISHABLE_KEY
 - **Development:** `http://localhost:3001/api`
 - **Production:** `https://your-backend.onrender.com/api`
 - **Note:** Must include `/api` at the end
-- **Render:** Auto-configured from backend service
+- **Render:** Set manually on the static site to `https://<api-host>/api`; redeploy after changes (see [render.md](./render.md))
 
 #### VITE_STRIPE_PUBLISHABLE_KEY (Required)
 - **Description:** Stripe publishable key (same as backend)
@@ -135,21 +135,18 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_live_YOUR_PUBLISHABLE_KEY
 
 ## Render Configuration
 
-### Auto-Configured Variables
+### From blueprint (`render.yaml`)
 
-Render automatically configures:
-- `DATABASE_URL` - From PostgreSQL service
-- `FRONTEND_URL` - From frontend service URL
-- `VITE_API_URL` - From backend service URL
-- `NODE_ENV` - Set to `production`
-- `JWT_SECRET` - Can be auto-generated
+- `DATABASE_URL` on the API — linked from `traphousekitchen-db` via `fromDatabase` → `connectionString`
+- `NODE_ENV`, `PORT`, `JWT_EXPIRES_IN`, `JWT_SECRET` (generated), and other non-secret defaults as defined in the blueprint
 
-### Manually Set Variables
+### Set in the dashboard
 
-You must manually set:
-- All Stripe keys
-- Email service keys
-- Custom configuration
+- `FRONTEND_URL` on the API — exact frontend HTTPS origin, **no trailing slash** (CORS)
+- `VITE_API_URL` and `VITE_STRIPE_PUBLISHABLE_KEY` on the static site — build-time; **redeploy** the static site after changes
+- Stripe keys, webhook secret, email keys, `CHEF_EMAIL`, etc.
+
+See [DEPLOYMENT_ENV_VARS.md](./DEPLOYMENT_ENV_VARS.md) and [render.md](./render.md) for the post-deploy checklist and PR preview / CORS caveats.
 
 ### Setting Variables in Render
 
@@ -193,14 +190,14 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_51...
 
 ### Production (Render)
 
-**Backend Environment Variables:**
+**Backend environment variables:**
 ```bash
-DATABASE_URL=postgresql://... (auto-configured)
+DATABASE_URL=... (from blueprint database link)
 JWT_SECRET=... (auto-generated or manual)
 JWT_EXPIRES_IN=7d
-PORT=10000 (auto-configured)
-NODE_ENV=production (auto-configured)
-FRONTEND_URL=https://traphousekitchen-web.onrender.com (auto-configured)
+PORT=10000
+NODE_ENV=production
+FRONTEND_URL=https://traphousekitchen-web.onrender.com  # set manually — exact origin, no trailing slash
 
 # Live Stripe Keys
 STRIPE_SECRET_KEY=sk_live_51...
@@ -212,9 +209,9 @@ FROM_EMAIL=TrapHouse Kitchen <orders@traphousekitchen.com>
 CHEF_EMAIL=chef@traphousekitchen.com
 ```
 
-**Frontend Environment Variables:**
+**Frontend environment variables:**
 ```bash
-VITE_API_URL=https://traphousekitchen-api.onrender.com/api (auto-configured)
+VITE_API_URL=https://traphousekitchen-api.onrender.com/api  # set manually; redeploy static site after changes
 VITE_STRIPE_PUBLISHABLE_KEY=pk_live_51...
 ```
 

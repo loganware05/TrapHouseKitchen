@@ -52,6 +52,27 @@ enum TransactionType {
   PARTIAL_REFUND
 }
 
+/// Row-level Stripe PaymentIntent / refund lifecycle for the Payment model (distinct from Order.paymentStatus).
+enum PaymentRecordStatus {
+  PENDING @map("pending")
+  REQUIRES_PAYMENT_METHOD @map("requires_payment_method")
+  REQUIRES_CONFIRMATION @map("requires_confirmation")
+  REQUIRES_ACTION @map("requires_action")
+  PROCESSING @map("processing")
+  REQUIRES_CAPTURE @map("requires_capture")
+  CANCELED @map("canceled")
+  SUCCEEDED @map("succeeded")
+  FAILED @map("failed")
+  REFUNDED @map("refunded")
+}
+
+enum OrderSource {
+  MANUAL @map("manual")
+  AI_BUILDER @map("ai_builder")
+  REORDER @map("reorder")
+  TRENDING @map("trending")
+}
+
 model User {
   id                String              @id @default(uuid())
   email             String?             @unique
@@ -59,6 +80,8 @@ model User {
   name              String
   role              UserRole            @default(CUSTOMER)
   isGuest           Boolean             @default(false)
+  /// Stripe Customer id (cus_...) for saved payment methods and 1-tap checkout
+  stripeCustomerId  String?             @unique
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   
@@ -70,7 +93,10 @@ model User {
   votes             Vote[]
   reviews           Review[]
   coupons           Coupon[]
-  
+  budget            UserBudget?
+  aiInteractions    AIInteraction[]
+  savedPaymentMethods SavedPaymentMethod[]
+
   @@index([email])
 }
 
@@ -204,6 +230,7 @@ model Order {
   userId        String
   status        OrderStatus   @default(PENDING)
   paymentStatus PaymentStatus @default(UNPAID)
+  source        OrderSource   @default(MANUAL)
   totalPrice    Float
   tipAmount     Float         @default(0)
   finalAmount   Float
@@ -220,13 +247,13 @@ model Order {
   payments   Payment[]
   reviews    Review[]
   appliedCoupon Coupon?   @relation("AppliedCoupon", fields: [appliedCouponId], references: [id])
-  
+  aiInteractions AIInteraction[]
+
   @@unique([orderNumber])
   @@index([userId])
   @@index([status])
   @@index([paymentStatus])
   @@index([createdAt])
-  @@index([orderNumber])
 }
 
 model OrderItem {
@@ -282,7 +309,7 @@ model Payment {
   tipAmount             Float         @default(0)
   totalAmount           Float         // amount + tipAmount
   currency              String        @default("usd")
-  status                String        @default("pending") // pending, processing, succeeded, failed, canceled
+  status                PaymentRecordStatus @default(PENDING)
   paymentMethod         PaymentMethod
   paymentMethodDetails  Json?         // Store card brand, last4, etc.
   receiptUrl            String?
@@ -357,4 +384,67 @@ model Coupon {
   @@index([userId])
   @@index([code])
   @@index([used])
+}
+
+model UserBudget {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  weeklyBudget Float    @default(50.00)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AIInteraction {
+  id                 String   @id @default(uuid())
+  userId             String
+  type               String // "budget_meal", "reorder_suggestion", "trending"
+  inputBudget        Float?
+  inputContext       Json
+  outputResponse     Json
+  selectedComboIndex Int?
+  convertedToOrder   Boolean  @default(false)
+  orderId            String?
+  latencyMs          Int
+  model              String // e.g. "gpt-4o-mini"
+  createdAt          DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([convertedToOrder])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  userId    String?
+  event     String // "view_dish", "add_to_cart", etc.
+  metadata  Json?
+  sessionId String?
+  createdAt DateTime @default(now())
+
+  @@index([event])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([sessionId])
+}
+
+model SavedPaymentMethod {
+  id                    String   @id @default(uuid())
+  userId                String
+  stripePaymentMethodId String   @unique
+  brand                 String // "visa", "mastercard", "amex"
+  last4                 String
+  expiryMonth           Int
+  expiryYear            Int
+  isDefault             Boolean  @default(false)
+  createdAt             DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

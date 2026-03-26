@@ -1,103 +1,24 @@
 import { Router, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest, authenticate, authorize } from '../middleware/auth';
-import { sendOrderConfirmationEmail, sendNewOrderNotificationToChef } from '../services/emailService';
 import { orderLimiter } from '../middleware/rateLimiter';
-import { setOrderStatus } from '../services/order.service';
+import {
+  archiveCompletedOrders,
+  createOrderAndPaymentIntent,
+  createUnpaidOrder,
+  getChefOrders,
+  getCustomerOrdersWithItemReviews,
+  getOrderByIdForUser,
+  resetOrderNumberSequence,
+  setOrderStatus,
+} from '../services/order.service';
 
 const router = Router();
 
-// Get user's orders
 router.get('/', authenticate, async (req: AuthRequest, res: Response, next: any) => {
   try {
-    const orders = await prisma.order.findMany({
-      where: { 
-        userId: req.user!.id,
-        isArchived: false, // Exclude archived orders for customers
-      },
-      include: {
-        items: {
-          include: {
-            dish: {
-              include: {
-                category: true,
-              },
-            },
-          },
-        },
-        // Include order-level reviews (match to items by dishId)
-        reviews: {
-          where: { userId: req.user!.id },
-          select: {
-            id: true,
-            approved: true,
-            createdAt: true,
-            dishId: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    // Map order reviews to each item by dishId for per-dish status display
-    const ordersWithItemReviews = orders.map(order => ({
-      ...order,
-      items: order.items.map(item => ({
-        ...item,
-        reviews: order.reviews
-          .filter(r => r.dishId === item.dishId)
-          .map(({ id, approved, createdAt }) => ({ id, approved, createdAt })),
-      })),
-    }));
-
-    res.json({
-      status: 'success',
-      data: { orders: ordersWithItemReviews },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Get all orders (chef only)
-router.get('/all', authenticate, authorize('CHEF', 'ADMIN'), async (req: AuthRequest, res: Response, next: any) => {
-  try {
-    const { status, includeArchived } = req.query;
-
-    const orders = await prisma.order.findMany({
-      where: {
-        // Show orders that are paid or pending payment (not unpaid/abandoned)
-        paymentStatus: { in: ['PAID', 'PENDING'] },
-        ...(status && { status: status as any }),
-        ...(includeArchived !== 'true' && { isArchived: false }),
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        items: {
-          include: {
-            dish: {
-              include: {
-                category: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
+    const orders = await getCustomerOrdersWithItemReviews(req.user!.id);
     res.json({
       status: 'success',
       data: { orders },
@@ -107,45 +28,70 @@ router.get('/all', authenticate, authorize('CHEF', 'ADMIN'), async (req: AuthReq
   }
 });
 
-// Get single order
+router.get('/all', authenticate, authorize('CHEF', 'ADMIN'), async (req: AuthRequest, res: Response, next: any) => {
+  try {
+    const { status, includeArchived } = req.query;
+    const orders = await getChefOrders({
+      ...(status && typeof status === 'string' ? { status } : {}),
+      includeArchived: includeArchived === 'true',
+    });
+    res.json({
+      status: 'success',
+      data: { orders },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post(
+  '/checkout',
+  authenticate,
+  orderLimiter,
+  [
+    body('items').isArray({ min: 1 }),
+    body('items.*.dishId').notEmpty(),
+    body('items.*.quantity').isInt({ min: 1 }),
+    body('tipAmount').optional().isFloat({ min: 0 }),
+    body('couponCode').optional().isString(),
+    body('specialInstructions').optional().isString(),
+    body('savedPaymentMethodId').optional().isUUID(),
+  ],
+  async (req: AuthRequest, res: Response, next: any) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new AppError('Validation failed', 400);
+      }
+      const { items, tipAmount = 0, couponCode, specialInstructions, savedPaymentMethodId } = req.body;
+      const result = await createOrderAndPaymentIntent({
+        userId: req.user!.id,
+        items,
+        specialInstructions: specialInstructions ?? null,
+        tipAmount,
+        couponCode,
+        savedPaymentMethodId,
+      });
+      res.status(201).json({
+        status: 'success',
+        data: result,
+      });
+    } catch (error: any) {
+      console.error('Error in checkout:', error);
+      if (error.code === 'P2002') {
+        return next(new AppError('Order number conflict. Please try again.', 409));
+      }
+      if (error.code === 'P2003') {
+        return next(new AppError('Invalid reference in order data.', 400));
+      }
+      next(error);
+    }
+  }
+);
+
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next: any) => {
   try {
-    const order = await prisma.order.findUnique({
-      where: { id: req.params.id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        items: {
-          include: {
-            dish: {
-              include: {
-                category: true,
-                allergens: {
-                  include: {
-                    allergen: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!order) {
-      throw new AppError('Order not found', 404);
-    }
-
-    // Check authorization
-    if (order.userId !== req.user!.id && !['CHEF', 'ADMIN'].includes(req.user!.role)) {
-      throw new AppError('Not authorized', 403);
-    }
-
+    const order = await getOrderByIdForUser(req.params.id, req.user!.id, req.user!.role);
     res.json({
       status: 'success',
       data: { order },
@@ -155,7 +101,6 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next: a
   }
 });
 
-// Create order
 router.post(
   '/',
   authenticate,
@@ -171,106 +116,14 @@ router.post(
       if (!errors.isEmpty()) {
         throw new AppError('Validation failed', 400);
       }
-
       const { items, specialInstructions } = req.body;
-
-      // Validate dishes exist and calculate total
-      const dishIds = items.map((item: any) => item.dishId);
-      const dishes = await prisma.dish.findMany({
-        where: {
-          id: { in: dishIds },
-          status: 'AVAILABLE',
-        },
-      });
-
-      if (dishes.length !== dishIds.length) {
-        throw new AppError('Some dishes are not available', 400);
-      }
-
-      // Calculate total price
-      let totalPrice = 0;
-      const orderItems = items.map((item: any) => {
-        const dish = dishes.find(d => d.id === item.dishId);
-        if (!dish) throw new AppError('Dish not found', 404);
-        
-        const itemTotal = dish.price * item.quantity;
-        totalPrice += itemTotal;
-
-        return {
-          dishId: item.dishId,
-          quantity: item.quantity,
-          priceAtOrder: dish.price,
-          customizations: item.customizations || null,
-        };
-      });
-
-      // Create order with items
-      const order = await prisma.order.create({
-        data: {
-          userId: req.user!.id,
-          totalPrice,
-          finalAmount: totalPrice, // Initially same as totalPrice, will be updated with tips at checkout
-          tipAmount: 0, // Will be updated at checkout
-          specialInstructions: specialInstructions || null,
-          items: {
-            create: orderItems,
-          },
-        },
-        include: {
-          items: {
-            include: {
-              dish: true,
-            },
-          },
-          user: true,
-        },
-      });
-
-      // Send order confirmation email (async - don't wait)
-      sendOrderConfirmationEmail({
-        customerName: req.user!.name,
-        customerEmail: req.user!.email || '',
-        orderNumber: order.orderNumber.toString(),
-        orderDate: new Date(order.createdAt).toLocaleString(),
-        items: order.items.map(item => ({
-          name: item.dish.name,
-          quantity: item.quantity,
-          price: item.priceAtOrder,
-        })),
-        subtotal: order.totalPrice,
-        tip: order.tipAmount,
-        total: order.finalAmount,
-        paymentStatus: order.paymentStatus,
-        prepTime: order.prepTime || 25,
-        specialInstructions: order.specialInstructions || undefined,
-      }).catch(err => console.error('Email send error:', err));
-
-      // Notify chef (async - don't wait)
-      sendNewOrderNotificationToChef({
-        customerName: req.user!.name,
-        customerEmail: req.user!.email || '',
-        orderNumber: order.orderNumber.toString(),
-        orderDate: new Date(order.createdAt).toLocaleString(),
-        items: order.items.map(item => ({
-          name: item.dish.name,
-          quantity: item.quantity,
-          price: item.priceAtOrder,
-        })),
-        subtotal: order.totalPrice,
-        tip: order.tipAmount,
-        total: order.finalAmount,
-        paymentStatus: order.paymentStatus,
-        prepTime: order.prepTime || 25,
-        specialInstructions: order.specialInstructions || undefined,
-      }).catch(err => console.error('Chef email send error:', err));
-
+      const order = await createUnpaidOrder(req.user!.id, items, specialInstructions ?? null);
       res.status(201).json({
         status: 'success',
         data: { order },
       });
     } catch (error: any) {
       console.error('Error creating order:', error);
-      // If it's a Prisma error, provide more details
       if (error.code === 'P2002') {
         return next(new AppError('Order number conflict. Please try again.', 409));
       }
@@ -282,7 +135,6 @@ router.post(
   }
 );
 
-// Update order status (chef only)
 router.patch(
   '/:id/status',
   authenticate,
@@ -294,18 +146,14 @@ router.patch(
       if (!errors.isEmpty()) {
         throw new AppError('Validation failed', 400);
       }
-
       const { id } = req.params;
       const { status } = req.body;
-
-      // Use centralized service to ensure all side-effects are applied
       const order = await setOrderStatus(id, status, {
         sendEmail: true,
         emailData: {
           estimatedTime: status === 'READY' ? 'Now' : undefined,
         },
       });
-
       res.json({
         status: 'success',
         data: { order },
@@ -316,56 +164,29 @@ router.patch(
   }
 );
 
-// Archive completed orders (chef only)
-router.post(
-  '/archive-completed',
-  authenticate,
-  authorize('CHEF', 'ADMIN'),
-  async (req: AuthRequest, res: Response, next: any) => {
-    try {
-      const result = await prisma.order.updateMany({
-        where: {
-          status: {
-            in: ['COMPLETED', 'CANCELLED'],
-          },
-          isArchived: false,
-        },
-        data: {
-          isArchived: true,
-        },
-      });
-
-      res.json({
-        status: 'success',
-        data: { archivedCount: result.count },
-        message: `Successfully archived ${result.count} orders`,
-      });
-    } catch (error) {
-      next(error);
-    }
+router.post('/archive-completed', authenticate, authorize('CHEF', 'ADMIN'), async (_req: AuthRequest, res: Response, next: any) => {
+  try {
+    const result = await archiveCompletedOrders();
+    res.json({
+      status: 'success',
+      data: { archivedCount: result.count },
+      message: `Successfully archived ${result.count} orders`,
+    });
+  } catch (error) {
+    next(error);
   }
-);
+});
 
-// Reset order counter (chef only)
-router.post(
-  '/reset-counter',
-  authenticate,
-  authorize('CHEF', 'ADMIN'),
-  async (req: AuthRequest, res: Response, next: any) => {
-    try {
-      // This is a PostgreSQL-specific operation
-      // We need to reset the sequence for orderNumber
-      await prisma.$executeRaw`ALTER SEQUENCE "Order_orderNumber_seq" RESTART WITH 1`;
-
-      res.json({
-        status: 'success',
-        message: 'Order counter reset to 1. Next order will be #1.',
-      });
-    } catch (error) {
-      next(error);
-    }
+router.post('/reset-counter', authenticate, authorize('CHEF', 'ADMIN'), async (_req: AuthRequest, res: Response, next: any) => {
+  try {
+    await resetOrderNumberSequence();
+    res.json({
+      status: 'success',
+      message: 'Order counter reset to 1. Next order will be #1.',
+    });
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 export default router;
-

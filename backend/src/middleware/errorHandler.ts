@@ -13,6 +13,19 @@ export class AppError extends Error {
   }
 }
 
+function logError(req: Request, err: Error) {
+  const payload = {
+    level: 'error' as const,
+    requestId: req.requestId,
+    path: req.path,
+    method: req.method,
+    message: err.message,
+    timestamp: new Date().toISOString(),
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
+  };
+  console.error(JSON.stringify(payload));
+}
+
 export const errorHandler = (
   err: Error | AppError,
   req: Request,
@@ -22,15 +35,17 @@ export const errorHandler = (
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
       status: 'error',
-      message: err.message
+      message: err.message,
+      ...(req.requestId && { requestId: req.requestId }),
     });
   }
 
-  console.error('ERROR 💥', err);
-  
+  logError(req, err);
+
   res.status(500).json({
     status: 'error',
-    message: 'Internal server error'
+    message: 'Internal server error',
+    ...(req.requestId && { requestId: req.requestId }),
   });
 };
 

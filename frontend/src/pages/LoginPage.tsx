@@ -33,7 +33,7 @@ export default function LoginPage() {
         navigate('/chef');
       } else {
         toast.success('Welcome back!');
-        navigate('/menu');
+        navigate('/');
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Login failed');
@@ -44,7 +44,7 @@ export default function LoginPage() {
     try {
       await guestLogin(data.name);
       toast.success('Welcome!');
-      navigate('/menu');
+      navigate('/');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Login failed');
     }

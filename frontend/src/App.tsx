@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
+import UnauthorizedRedirect from './components/UnauthorizedRedirect';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import HomePage from './pages/HomePage';
 import MenuPage from './pages/MenuPage';
 import DishDetailPage from './pages/DishDetailPage';
 import OrdersPage from './pages/OrdersPage';
@@ -10,6 +12,7 @@ import ProfilePage from './pages/ProfilePage';
 import DishRequestsPage from './pages/DishRequestsPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
@@ -44,15 +47,17 @@ function App() {
 
   return (
     <BrowserRouter>
+      <UnauthorizedRedirect />
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<MenuPage />} />
+          <Route index element={<HomePage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="menu" element={<MenuPage />} />
           <Route path="privacy" element={<PrivacyPolicyPage />} />
           <Route path="terms" element={<TermsOfServicePage />} />
-          
+          <Route path="payment/success" element={<PaymentSuccessPage />} />
+
           {/* Reviews - Public */}
           <Route path="reviews" element={<ReviewsPage />} />
           
