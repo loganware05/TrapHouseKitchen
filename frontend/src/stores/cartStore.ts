@@ -4,6 +4,9 @@ import { CartItem, Dish } from '../types';
 
 interface CartState {
   items: CartItem[];
+  /** Set when the cart was filled from the AI meal builder; sent with checkout for conversion tracking. */
+  pendingAiInteractionId: string | null;
+  setPendingAiInteractionId: (id: string | null) => void;
   addItem: (dish: Dish, quantity?: number) => void;
   removeItem: (dishId: string) => void;
   updateQuantity: (dishId: string, quantity: number) => void;
@@ -16,6 +19,9 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      pendingAiInteractionId: null,
+
+      setPendingAiInteractionId: (id) => set({ pendingAiInteractionId: id }),
 
       addItem: (dish, quantity = 1) => {
         const items = get().items;
@@ -50,7 +56,7 @@ export const useCartStore = create<CartState>()(
         }
       },
 
-      clearCart: () => set({ items: [] }),
+      clearCart: () => set({ items: [], pendingAiInteractionId: null }),
 
       getTotalPrice: () => {
         return get().items.reduce(
@@ -65,6 +71,7 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: 'cart-storage',
+      partialize: (state) => ({ items: state.items }),
     }
   )
 );

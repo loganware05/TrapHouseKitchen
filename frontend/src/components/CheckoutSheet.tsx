@@ -26,7 +26,14 @@ export default function CheckoutSheet() {
   const isOpen = useCheckoutSheetStore((s) => s.isOpen);
   const close = useCheckoutSheetStore((s) => s.close);
 
-  const { items, removeItem, updateQuantity, getTotalPrice, clearCart } = useCartStore();
+  const {
+    items,
+    removeItem,
+    updateQuantity,
+    getTotalPrice,
+    clearCart,
+    pendingAiInteractionId,
+  } = useCartStore();
   const { user } = useAuthStore();
 
   const [cartExpanded, setCartExpanded] = useState(true);
@@ -113,6 +120,7 @@ export default function CheckoutSheet() {
         specialInstructions: '',
         tipAmount,
         ...(couponApplied && { couponCode: couponCode.toUpperCase() }),
+        ...(pendingAiInteractionId && { aiInteractionId: pendingAiInteractionId }),
       });
 
       const { order, clientSecret: secret, prepTime: time } = response.data.data;
