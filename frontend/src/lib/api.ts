@@ -1,7 +1,16 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
 import { notifySessionExpired } from './authSession';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const fallback = Capacitor.isNativePlatform()
+  ? undefined
+  : 'http://localhost:3001/api';
+
+const API_URL = import.meta.env.VITE_API_URL || fallback;
+
+if (!API_URL) {
+  throw new Error('VITE_API_URL must be set for native iOS builds');
+}
 
 const api = axios.create({
   baseURL: API_URL,
