@@ -13,9 +13,13 @@
     "postinstall": "node backend/scripts/check-migrations-layout.mjs --fix && node backend/scripts/check-migrations-layout.mjs",
     "bootstrap": "npm ci && cd backend && npm ci && cd ../frontend && npm ci",
     "repo:where-migrate-deploy": "node scripts/grep-migrate-deploy.mjs",
-    "verify": "npm run repo:where-migrate-deploy && cd backend && npm run prisma:fix-migrations-dir && npm run test:all"
+    "verify": "npm run repo:where-migrate-deploy && cd backend && npm run prisma:fix-migrations-dir && npm run test:all",
+    "e2e:seed": "cd backend && npx tsx scripts/e2e-seed-chef-flow.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "@playwright/test": "^1.49.1"
   }
 }

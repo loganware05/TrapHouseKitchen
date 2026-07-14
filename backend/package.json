@@ -18,7 +18,14 @@
     "test": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:all": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify": "npm run prisma:fix-migrations-dir && npm run test:all",
+    "pretest": "node scripts/check-migrations-layout.mjs",
+    "pretest:integration": "node scripts/check-migrations-layout.mjs",
+    "pretest:performance": "node scripts/check-migrations-layout.mjs",
+    "pretest:all": "node scripts/check-migrations-layout.mjs",
+    "test:performance": "vitest run --config vitest.performance.config.ts",
+    "test:e2e": "cd .. && npx playwright test"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
