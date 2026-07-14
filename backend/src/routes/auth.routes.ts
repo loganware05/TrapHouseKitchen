@@ -4,7 +4,13 @@ import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest, authenticate } from '../middleware/auth';
 import { authLimiter } from '../middleware/rateLimiter';
-import { createGuestUser, loginUser, registerUser } from '../services/auth.service';
+import {
+  createGuestUser,
+  loginUser,
+  registerUser,
+  requestPasswordReset,
+  resetPasswordWithToken,
+} from '../services/auth.service';
 
 const router = Router();
 
@@ -71,6 +77,53 @@ router.post(
       res.status(201).json({
         status: 'success',
         data: { user, token },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/forgot-password',
+  authLimiter,
+  [body('email').isEmail().normalizeEmail()],
+  async (req: any, res: any, next: any) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new AppError('Validation failed', 400);
+      }
+      await requestPasswordReset(req.body.email);
+      res.json({
+        status: 'success',
+        message:
+          'If an account exists for that email, you will receive reset instructions shortly.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/reset-password',
+  authLimiter,
+  [
+    body('token').trim().notEmpty().withMessage('Reset token is required'),
+    body('password').isLength({ min: 6 }),
+  ],
+  async (req: any, res: any, next: any) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new AppError('Validation failed', 400);
+      }
+      const { token, password } = req.body;
+      await resetPasswordWithToken(token, password);
+      res.json({
+        status: 'success',
+        message: 'Password updated. You can sign in now.',
       });
     } catch (error) {
       next(error);
