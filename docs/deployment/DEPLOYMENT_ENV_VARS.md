@@ -30,6 +30,9 @@ JWT_EXPIRES_IN=7d
 # CORS — you must set manually (Render cannot derive this from YAML)
 FRONTEND_URL=https://traphousekitchen-web.onrender.com
 
+# Capacitor iOS app origins (optional; defaults cover standard Capacitor iOS)
+CAPACITOR_ORIGINS=capacitor://localhost,ionic://localhost
+
 # Stripe
 STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxxx
 STRIPE_PUBLISHABLE_KEY=pk_live_xxxxxxxxxxxxx
@@ -78,9 +81,10 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_live_xxxxxxxxxxxxx
 
 1. **Order:** Database and API should be live before the static site build that needs a real `VITE_API_URL` (preview URLs differ — see pull request / CORS notes in [render.md](./render.md)).
 2. **`FRONTEND_URL`:** Must match the deployed frontend origin exactly or CORS will block the API (common on iOS Safari).
-3. **Stripe keys:** Use the same mode (test vs live) on API and static site.
-4. **Webhook secret:** Create the Stripe webhook after the API URL is known.
-5. **External Postgres:** If you ever attach a non-Render database, set `DATABASE_URL` in the dashboard and remove or override the blueprint `fromDatabase` entry for that environment.
+3. **`CAPACITOR_ORIGINS`:** Optional on the API service. Defaults allow the Capacitor iOS WebView (`capacitor://localhost`, `ionic://localhost`) so the native app can call the hosted API. Redeploy the API after changing.
+4. **Stripe keys:** Use the same mode (test vs live) on API and static site.
+5. **Webhook secret:** Create the Stripe webhook after the API URL is known.
+6. **External Postgres:** If you ever attach a non-Render database, set `DATABASE_URL` in the dashboard and remove or override the blueprint `fromDatabase` entry for that environment.
 
 ---
 

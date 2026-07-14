@@ -36,3 +36,7 @@ lerna-debug.log*
 # Docker
 *.log
 
+
+# Capacitor iOS generated artifacts
+frontend/ios/App/Pods/
+frontend/ios/DerivedData/

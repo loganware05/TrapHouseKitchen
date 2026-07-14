@@ -24,6 +24,25 @@ import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
 
+const DEFAULT_CAPACITOR_ORIGINS = ['capacitor://localhost', 'ionic://localhost'];
+
+function getAllowedOrigins(): string[] {
+  const capacitorOrigins =
+    process.env.CAPACITOR_ORIGINS?.split(',').map((o) => o.trim()).filter(Boolean) ??
+    DEFAULT_CAPACITOR_ORIGINS;
+
+  if (process.env.NODE_ENV === 'production') {
+    return [process.env.FRONTEND_URL, ...capacitorOrigins].filter(Boolean) as string[];
+  }
+
+  return [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:3000',
+    ...capacitorOrigins,
+  ];
+}
+
 const app: Application = express();
 
 // Trust proxy - Required for Render, Heroku, etc.
@@ -34,10 +53,15 @@ app.use(requestIdMiddleware);
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
-  credentials: true
+  origin: (origin, callback) => {
+    const allowedOrigins = getAllowedOrigins();
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
+  credentials: true,
 }));
 
 // Webhook routes MUST come before express.json() to receive raw body
