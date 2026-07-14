@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import stripe, { fromStripeAmount } from '../lib/stripe';
 import prisma from '../lib/prisma';
-import { PaymentRecordStatus } from '@prisma/client';
+import { PaymentRecordStatus, Prisma } from '@prisma/client';
 import { setOrderStatus } from '../services/order.service';
 import { finalizeCouponAfterPayment, handleSetupIntentSucceededWebhook } from '../services/payment.service';
 import { sendNewOrderNotificationToChef, sendOrderConfirmationEmail } from '../services/emailService';
@@ -112,6 +112,8 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       return;
     }
 
+    const wasAlreadyPaid = payment.order.paymentStatus === 'PAID';
+
     // Retrieve the PaymentIntent with expanded charges to get charge details
     const expandedPaymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id, {
       expand: ['charges.data.payment_method_details']
@@ -149,16 +151,28 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       },
     });
 
-    // Create transaction record
-    await prisma.transaction.create({
-      data: {
-        paymentId: payment.id,
-        type: 'CHARGE',
-        amount: fromStripeAmount(paymentIntent.amount),
-        status: 'succeeded',
-        stripeChargeId: chargeId,
-      },
-    });
+    try {
+      await prisma.transaction.create({
+        data: {
+          paymentId: payment.id,
+          type: 'CHARGE',
+          amount: fromStripeAmount(paymentIntent.amount),
+          status: 'succeeded',
+          stripeChargeId: chargeId,
+        },
+      });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        console.log(
+          'ℹ️ Charge transaction already recorded (Stripe webhook retry idempotency)'
+        );
+      } else {
+        throw err;
+      }
+    }
 
     await setOrderStatus(payment.orderId, 'PENDING', {
       sendEmail: false,
@@ -181,7 +195,9 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
 
     if (order) {
       await finalizeCouponAfterPayment(order.id, order.appliedCouponId);
+    }
 
+    if (order && !wasAlreadyPaid) {
       const orderDate = new Date(order.createdAt).toLocaleString();
       const emailPayload = {
         customerName: order.user.name,
@@ -334,6 +350,13 @@ async function handlePaymentIntentCanceled(paymentIntent: Stripe.PaymentIntent) 
       where: { id: payment.id },
       data: {
         status: PaymentRecordStatus.CANCELED,
+      },
+    });
+
+    await prisma.order.update({
+      where: { id: payment.orderId },
+      data: {
+        paymentStatus: 'FAILED',
       },
     });
 

@@ -36,6 +36,52 @@ export async function resolveCouponForCheckout(userId: string, couponCode?: stri
   return coupon;
 }
 
+/**
+ * Resolves the coupon and discount for a PaymentIntent: prefers `order.appliedCouponId` (set by
+ * POST /coupons/apply) so Stripe charges match the order; optional `couponCode` must match when
+ * a coupon is already applied.
+ */
+async function resolveCouponForPaymentIntent(params: {
+  userId: string;
+  order: Order & { appliedCouponId: string | null };
+  couponCode?: string;
+}): Promise<{ coupon: Coupon | null; discount: number }> {
+  const { userId, order, couponCode } = params;
+
+  if (order.appliedCouponId) {
+    const applied = await prisma.coupon.findUnique({
+      where: { id: order.appliedCouponId },
+    });
+    if (!applied) {
+      throw new AppError('Applied coupon not found', 404);
+    }
+    if (couponCode?.trim()) {
+      if (applied.code.toUpperCase() !== couponCode.trim().toUpperCase()) {
+        throw new AppError('Coupon code does not match the coupon applied to this order', 400);
+      }
+    }
+    if (applied.userId !== userId) {
+      throw new AppError('This coupon does not belong to you', 403);
+    }
+    if (applied.used) {
+      throw new AppError('This coupon has already been used', 400);
+    }
+    if (applied.expiresAt && applied.expiresAt < new Date()) {
+      throw new AppError('This coupon has expired', 400);
+    }
+    return { coupon: applied, discount: applied.discountAmount };
+  }
+
+  if (couponCode?.trim()) {
+    const coupon = await resolveCouponForCheckout(userId, couponCode);
+    if (coupon) {
+      return { coupon, discount: coupon.discountAmount };
+    }
+  }
+
+  return { coupon: null, discount: 0 };
+}
+
 export type PaymentIntentResult = {
   clientSecret: string | null;
   paymentIntentId: string;
@@ -252,14 +298,11 @@ export async function createPaymentIntentForOrder(params: {
     throw new AppError('Order has already been paid', 400);
   }
 
-  let coupon: Coupon | null = null;
-  let discount = 0;
-  if (couponCode) {
-    coupon = await resolveCouponForCheckout(userId, couponCode);
-    if (coupon) {
-      discount = coupon.discountAmount;
-    }
-  }
+  const { coupon, discount } = await resolveCouponForPaymentIntent({
+    userId,
+    order,
+    couponCode,
+  });
 
   const subtotal = order.totalPrice;
   const tip = parseFloat(String(tipAmount)) || 0;
