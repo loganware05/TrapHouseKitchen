@@ -82,6 +82,8 @@ model User {
   isGuest           Boolean             @default(false)
   /// Stripe Customer id (cus_...) for saved payment methods and 1-tap checkout
   stripeCustomerId  String?             @unique
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   
@@ -332,7 +334,7 @@ model Transaction {
   type            TransactionType
   amount          Float
   status          String          // succeeded, pending, failed
-  stripeChargeId  String?
+  stripeChargeId  String?         @unique
   stripeRefundId  String?
   reason          String?
   metadata        Json?
