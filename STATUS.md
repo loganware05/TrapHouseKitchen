@@ -13,7 +13,17 @@
 On `origin/main` and considered the live product surface:
 
 | Area | Notes |
-|------|--------|
+|------|| Order | Slice | Branch | PR |
+|------:|-------|--------|----|
+| 1 | Docker docs (layout clarified) | `fix/docker-packaging` | [#1](https://github.com/loganware05/TrapHouseKitchen/pull/1) |
+| 2 | Project status + doc archive | `chore/project-status` | [#2](https://github.com/loganware05/TrapHouseKitchen/pull/2) |
+| 3 | Prisma migrations baseline | `chore/prisma-migrations-baseline` | [#3](https://github.com/loganware05/TrapHouseKitchen/pull/3) |
+| 4 | Password reset | `feat/password-reset` (base: migrations) | [#4](https://github.com/loganware05/TrapHouseKitchen/pull/4) |
+| 5 | Payment / webhook hardening | `feat/payment-webhook-hardening` (base: migrations) | [#5](https://github.com/loganware05/TrapHouseKitchen/pull/5) |
+| 6 | AI order attribution | `feat/ai-order-attribution` (base: migrations) | [#6](https://github.com/loganware05/TrapHouseKitchen/pull/6) |
+| 7 | Capacitor iOS scaffold | `feat/capacitor-ios-scaffold` (base: migrations) | [#7](https://github.com/loganware05/TrapHouseKitchen/pull/7) |
+| 8 | Test harness + CI | `chore/test-harness-ci` (base: migrations) | [#8](https://github.com/loganware05/TrapHouseKitchen/pull/8) |
+-|
 | Menu / cart / guest checkout | Soft-delete dishes; guest cart |
 | Chef order pipeline | Pending → Preparing → Ready → Completed |
 | Stripe payments | PaymentIntent + `automatic_payment_methods` |
