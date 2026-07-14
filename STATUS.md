@@ -4,7 +4,7 @@
 **Production / shared baseline:** `a48d739` (`origin/main` — “Ready for production deployment”)  
 **Canonical rule:** This file is the only place that asserts Shipped / WIP / Broken. Do not add new root `*_COMPLETE.md` / `*_READY.md` snapshots — update this file instead.
 
-**Related:** [QA_CHECKLIST.md](QA_CHECKLIST.md) (after test-harness PR) · [SUPPORT_PLAYBOOKS.md](SUPPORT_PLAYBOOKS.md) · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md)
+**Related:** QA checklist / support playbooks land with the test-harness PR · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md)
 
 ---
 
@@ -13,17 +13,7 @@
 On `origin/main` and considered the live product surface:
 
 | Area | Notes |
-|------|| Order | Slice | Branch | PR |
-|------:|-------|--------|----|
-| 1 | Docker docs (layout clarified) | `fix/docker-packaging` | [#1](https://github.com/loganware05/TrapHouseKitchen/pull/1) |
-| 2 | Project status + doc archive | `chore/project-status` | [#2](https://github.com/loganware05/TrapHouseKitchen/pull/2) |
-| 3 | Prisma migrations baseline | `chore/prisma-migrations-baseline` | [#3](https://github.com/loganware05/TrapHouseKitchen/pull/3) |
-| 4 | Password reset | `feat/password-reset` (base: migrations) | [#4](https://github.com/loganware05/TrapHouseKitchen/pull/4) |
-| 5 | Payment / webhook hardening | `feat/payment-webhook-hardening` (base: migrations) | [#5](https://github.com/loganware05/TrapHouseKitchen/pull/5) |
-| 6 | AI order attribution | `feat/ai-order-attribution` (base: migrations) | [#6](https://github.com/loganware05/TrapHouseKitchen/pull/6) |
-| 7 | Capacitor iOS scaffold | `feat/capacitor-ios-scaffold` (base: migrations) | [#7](https://github.com/loganware05/TrapHouseKitchen/pull/7) |
-| 8 | Test harness + CI | `chore/test-harness-ci` (base: migrations) | [#8](https://github.com/loganware05/TrapHouseKitchen/pull/8) |
--|
+|------|--------|
 | Menu / cart / guest checkout | Soft-delete dishes; guest cart |
 | Chef order pipeline | Pending → Preparing → Ready → Completed |
 | Stripe payments | PaymentIntent + `automatic_payment_methods` |
@@ -40,16 +30,16 @@ On `origin/main` and considered the live product surface:
 
 Local mega-commit `eb66711` was **not** pushed. Work was split onto these branches (open as PRs; prefer merge order below):
 
-| Order | Slice | Branch |
-|------:|-------|--------|
-| 1 | Docker docs (layout clarified) | `fix/docker-packaging` |
-| 2 | Project status + doc archive | `chore/project-status` |
-| 3 | Prisma migrations baseline | `chore/prisma-migrations-baseline` |
-| 4 | Password reset | `feat/password-reset` (base: migrations) |
-| 5 | Payment / webhook hardening | `feat/payment-webhook-hardening` (base: migrations) |
-| 6 | AI order attribution | `feat/ai-order-attribution` (base: migrations) |
-| 7 | Capacitor iOS scaffold | `feat/capacitor-ios-scaffold` (base: migrations) |
-| 8 | Test harness + CI | `chore/test-harness-ci` (base: migrations) |
+| Order | Slice | Branch | PR |
+|------:|-------|--------|----|
+| 1 | Docker docs (layout clarified) | `fix/docker-packaging` | [#1](https://github.com/loganware05/TrapHouseKitchen/pull/1) |
+| 2 | Project status + doc archive | `chore/project-status` | [#2](https://github.com/loganware05/TrapHouseKitchen/pull/2) |
+| 3 | Prisma migrations baseline | `chore/prisma-migrations-baseline` | [#3](https://github.com/loganware05/TrapHouseKitchen/pull/3) |
+| 4 | Password reset | `feat/password-reset` (base: migrations) | [#4](https://github.com/loganware05/TrapHouseKitchen/pull/4) |
+| 5 | Payment / webhook hardening | `feat/payment-webhook-hardening` (base: migrations) | [#5](https://github.com/loganware05/TrapHouseKitchen/pull/5) |
+| 6 | AI order attribution | `feat/ai-order-attribution` (base: migrations) | [#6](https://github.com/loganware05/TrapHouseKitchen/pull/6) |
+| 7 | Capacitor iOS scaffold | `feat/capacitor-ios-scaffold` (base: migrations) | [#7](https://github.com/loganware05/TrapHouseKitchen/pull/7) |
+| 8 | Test harness + CI | `chore/test-harness-ci` (base: migrations) | [#8](https://github.com/loganware05/TrapHouseKitchen/pull/8) |
 
 **Backup of the unpacked mega-commit:** `backup/mega-eb66711` / `wip/mega-unpack` (local branches; do not merge as-is).
 
