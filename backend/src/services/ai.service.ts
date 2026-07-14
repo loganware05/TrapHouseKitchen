@@ -27,12 +27,12 @@ export type MealCombo = {
 const AI_INTERACTION_BUDGET_MEAL = 'budget_meal';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function isMainCategory(categoryName: string): boolean {
+export function isMainCategory(categoryName: string): boolean {
   const n = categoryName.toLowerCase();
   return !/\b(beverage|drinks?|dessert)\b/i.test(n);
 }
 
-function dishMatchesDietaryPrefs(
+export function dishMatchesDietaryPrefs(
   dish: Pick<Dish, 'isVegan' | 'isVegetarian' | 'isGlutenFree'>,
   prefs: string[]
 ): boolean {
@@ -99,7 +99,7 @@ function sanitizeInputContext(params: {
   };
 }
 
-type LlmCombo = {
+export type LlmCombo = {
   name: string;
   description: string;
   items: { dishId: string; name: string; price: number; quantity?: number }[];
@@ -198,7 +198,7 @@ async function callLlmForCombos(system: string, user: string): Promise<LlmRespon
   throw new Error('No LLM API key configured');
 }
 
-function buildGreedyCombos(
+export function buildGreedyCombos(
   dishes: EligibleDish[],
   budget: number,
   trending: Map<string, number>,
@@ -266,7 +266,7 @@ function buildGreedyCombos(
   return combos.slice(0, maxCombos);
 }
 
-function validateAndHydrateCombos(
+export function validateAndHydrateCombos(
   raw: LlmCombo[],
   dishById: Map<string, EligibleDish>,
   budget: number

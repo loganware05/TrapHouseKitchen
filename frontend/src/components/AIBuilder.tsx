@@ -49,6 +49,7 @@ export type AIBuilderProps = {
 export default function AIBuilder({ sheet }: AIBuilderProps) {
   const { user } = useAuthStore();
   const addItem = useCartStore((s) => s.addItem);
+  const setPendingAiInteractionId = useCartStore((s) => s.setPendingAiInteractionId);
   const openCheckout = useCheckoutSheetStore((s) => s.open);
 
   const controlled = !!sheet;
@@ -137,6 +138,10 @@ export default function AIBuilder({ sheet }: AIBuilderProps) {
     }
 
     await logSelection(index);
+
+    if (interactionId) {
+      setPendingAiInteractionId(interactionId);
+    }
 
     trackEvent('ai_combo_selected', {
       interactionId,

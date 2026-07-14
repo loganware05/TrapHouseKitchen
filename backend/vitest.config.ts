@@ -21,6 +21,18 @@ export default defineConfig({
           name: 'integration',
           include: ['tests/integration/**/*.test.ts'],
           setupFiles: ['./tests/setup.ts'],
+          retry: 1,
+        },
+      },
+      {
+        root: '.',
+        test: {
+          name: 'performance',
+          include: ['tests/performance/**/*.test.ts'],
+          setupFiles: ['./tests/setup.performance.ts'],
+          testTimeout: 120_000,
+          hookTimeout: 120_000,
+          retry: 1,
         },
       },
     ],

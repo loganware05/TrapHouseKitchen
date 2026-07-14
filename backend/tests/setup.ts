@@ -1,6 +1,10 @@
 import { beforeAll, afterAll, afterEach } from 'vitest';
 import prisma from '../src/lib/prisma';
 
+// Stripe client loads with the app; allow running integration tests without a real key.
+process.env.STRIPE_SECRET_KEY =
+  process.env.STRIPE_SECRET_KEY || 'sk_test_integration_placeholder012345678901234567890';
+
 // Set test environment variables
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
@@ -34,70 +38,59 @@ afterEach(async () => {
   // Clean up test data after each test
   // Only clean up data with test identifiers to avoid affecting other concurrent tests
   try {
+    const testUserEmailFilter = {
+      OR: [
+        { email: { contains: 'test-' } },
+        { email: { contains: 'integration-' } },
+      ],
+    };
+
     await prisma.coupon.deleteMany({
       where: {
-        user: {
-          email: {
-            contains: 'test-',
-          },
-        },
+        user: testUserEmailFilter,
       },
     });
 
     await prisma.review.deleteMany({
       where: {
-        user: {
-          email: {
-            contains: 'test-',
-          },
-        },
+        user: testUserEmailFilter,
       },
     });
-    
+
     await prisma.orderItem.deleteMany({
       where: {
         order: {
-          user: {
-            email: {
-              contains: 'test-',
-            },
-          },
+          user: testUserEmailFilter,
         },
       },
     });
-    
+
     await prisma.order.deleteMany({
       where: {
-        user: {
-          email: {
-            contains: 'test-',
-          },
-        },
+        user: testUserEmailFilter,
       },
     });
-    
+
     await prisma.dish.deleteMany({
       where: {
-        name: {
-          startsWith: 'Test ',
-        },
+        OR: [
+          { name: { startsWith: 'Test ' } },
+          { name: { startsWith: 'Integration ' } },
+        ],
       },
     });
-    
+
     await prisma.category.deleteMany({
       where: {
-        name: {
-          startsWith: 'Test ',
-        },
+        OR: [
+          { name: { startsWith: 'Test ' } },
+          { name: { startsWith: 'Integration ' } },
+        ],
       },
     });
-    
+
     await prisma.user.deleteMany({
-      where: {
-        email: {
-          contains: 'test-',
-        },
-      },
+      where: testUserEmailFilter,
     });
   } catch (error) {
     // Ignore cleanup errors (might happen if records don't exist)

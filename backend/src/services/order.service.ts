@@ -3,6 +3,7 @@ import { OrderStatus } from '@prisma/client';
 import { sendOrderStatusEmail } from './emailService';
 import { AppError } from '../middleware/errorHandler';
 import { createPaymentIntentForOrder } from './payment.service';
+import { markInteractionOrderPlaced } from './ai.service';
 
 export type OrderItemInput = {
   dishId: string;
@@ -114,7 +115,8 @@ async function buildOrderItemsFromInput(items: OrderItemInput[]) {
 export async function createUnpaidOrder(
   userId: string,
   items: OrderItemInput[],
-  specialInstructions?: string | null
+  specialInstructions?: string | null,
+  aiInteractionId?: string | null
 ) {
   await assertNoAllergenConflicts(
     userId,
@@ -122,7 +124,7 @@ export async function createUnpaidOrder(
   );
   const { totalPrice, orderItems } = await buildOrderItemsFromInput(items);
 
-  return prisma.order.create({
+  const order = await prisma.order.create({
     data: {
       userId,
       totalPrice,
@@ -142,6 +144,12 @@ export async function createUnpaidOrder(
       user: true,
     },
   });
+
+  if (aiInteractionId) {
+    await markInteractionOrderPlaced(userId, aiInteractionId, order.id);
+  }
+
+  return order;
 }
 
 export async function getCustomerOrdersWithItemReviews(userId: string) {
@@ -264,9 +272,18 @@ export async function createOrderAndPaymentIntent(params: {
   tipAmount?: number;
   couponCode?: string;
   savedPaymentMethodId?: string;
+  aiInteractionId?: string | null;
 }) {
-  const { userId, items, specialInstructions, tipAmount, couponCode, savedPaymentMethodId } = params;
-  const order = await createUnpaidOrder(userId, items, specialInstructions);
+  const {
+    userId,
+    items,
+    specialInstructions,
+    tipAmount,
+    couponCode,
+    savedPaymentMethodId,
+    aiInteractionId,
+  } = params;
+  const order = await createUnpaidOrder(userId, items, specialInstructions, aiInteractionId);
   try {
     const payment = await createPaymentIntentForOrder({
       userId,
