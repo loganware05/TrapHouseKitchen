@@ -5,6 +5,8 @@ node_modules/
 
 # Testing
 coverage/
+test-results/
+playwright-report/
 
 # Production
 build/
@@ -30,9 +32,6 @@ lerna-debug.log*
 *.swp
 *.swo
 *~
-
-# Prisma
-backend/prisma/migrations/
 
 # Docker
 *.log
