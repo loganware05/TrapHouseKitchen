@@ -114,14 +114,6 @@ export default function ChefLoginPage() {
               </Link>
             </div>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="text-xs text-gray-500 text-center space-y-1">
-              <p><strong>Default Chef Account:</strong></p>
-              <p>Email: chef@traphouse.com</p>
-              <p>Password: chef123</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

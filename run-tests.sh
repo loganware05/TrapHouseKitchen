@@ -37,23 +37,22 @@ echo "📦 Setting up test database..."
 # Update DATABASE_URL for tests to use test database
 export DATABASE_URL="postgresql://traphouse:traphouse_dev_password@localhost:5432/traphouse_kitchen_test?schema=public"
 
-# Run database migrations (push schema to test database)
+# Run database migrations (align with CI: migrate deploy)
 echo ""
-echo "🔄 Pushing database schema to test database..."
+echo "🔄 Applying Prisma migrations to test database..."
 cd backend
 
-# Push the Prisma schema to create tables
-npx prisma db push --skip-generate --accept-data-loss > /dev/null 2>&1
+npx prisma migrate deploy
 
 echo -e "${GREEN}✅ Database schema ready${NC}"
 
 # Run tests
 echo ""
-echo "🧪 Running integration tests..."
-echo "=================================="
+echo "🧪 Running full backend test suite (unit + integration + performance)..."
+echo "================================================================="
 echo ""
 
-npm test
+npm run test:all
 
 TEST_EXIT_CODE=$?
 
