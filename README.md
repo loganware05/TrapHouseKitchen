@@ -1,33 +1,32 @@
 # TrapHouse Kitchen - Restaurant Web Application
 
-A modern, production-ready restaurant web application with allergen management, customer ordering, and dish request voting system.
+Restaurant web app for allergen-aware ordering, chef kitchen ops, Stripe checkout, reviews/coupons, and dish request voting.
 
-## 🆕 Recent Updates: Review System Improvements
+**Project status (single source of truth):** [STATUS.md](STATUS.md)
 
-The review system has been enhanced with comprehensive improvements:
-- ✅ Centralized order status management with automatic `completedAt` tracking
-- ✅ Configurable review window (default 30 days) via environment variable
-- ✅ Per-dish review status badges (Reviewed, Pending Approval, Write Review)
-- ✅ Error handling with retry capability on both frontend pages
-- ✅ Comprehensive integration test suite
+Historical “READY / COMPLETE” write-ups live under [docs/archive/snapshots/](docs/archive/snapshots/) — do not treat them as current status.
 
-### 🧪 Quick Test Setup
+## Documentation
+
+| Doc | Purpose |
+|-----|---------|
+| [STATUS.md](STATUS.md) | Shipped / WIP / ops gaps |
+| [docs/development/getting-started.md](docs/development/getting-started.md) | Local setup |
+| [docs/deployment/render.md](docs/deployment/render.md) | Render deploy |
+| [docs/deployment/go-live.md](docs/deployment/go-live.md) | Live Stripe cutover checklist |
+| [docker/README.md](docker/README.md) | Docker / Compose layout |
+| QA checklist | Lands with `chore/test-harness-ci` — see [STATUS.md](STATUS.md) |
+
+### Quick local test (Docker)
 
 ```bash
-# 1. Ensure Docker Desktop is running
-# 2. Run the all-in-one test script
+# Docker Desktop running, then:
 ./run-tests.sh
 ```
 
-**📚 Documentation:**
-- `QUICK_START.md` - Quick setup and testing guide
-- `DOCKER_TESTING.md` - Docker testing scripts and troubleshooting
-- `IMPLEMENTATION_SUMMARY.md` - Complete implementation details
-- `TESTING_SETUP.md` - Alternative database setup options
-
 ---
 
-## 🌟 Features
+## Features
 
 ### Customer Features
 - **Browse Menu** - View dishes organized by categories with detailed information (only available dishes shown)
@@ -48,12 +47,13 @@ The review system has been enhanced with comprehensive improvements:
 ### Technical Features
 - **Stripe Payments** - Credit cards, Apple Pay, Cash App Pay via Stripe
 - **Progressive Web App (PWA)** - Add to iOS home screen for app-like experience
+- **Capacitor iOS scaffold** - On feature branch; `frontend/ios` generated locally (not App Store ready) — [STATUS.md](STATUS.md)
 - **Mobile-First Design** - Optimized for iPhone and mobile devices
 - **QR Code Access** - Easy access via QR code scanning
 - **Role-Based Access Control (RBAC)** - Separate customer and chef interfaces
 - **Real-Time Updates** - React Query for automatic data synchronization
-- **Docker Containerization** - Easy deployment with Docker Compose
-- **Render & AWS Ready** - `render.yaml` blueprint; deployment scripts for AWS ECR
+- **Docker** - Compose/Dockerfile under [`docker/`](docker/) with root symlinks
+- **Render & AWS** - `render.yaml` blueprint; ECR image build via GitHub Actions
 
 ## 🏗️ Architecture
 
@@ -77,15 +77,15 @@ The review system has been enhanced with comprehensive improvements:
 - bcryptjs for password hashing
 
 **DevOps:**
-- Docker & Docker Compose
+- Docker & Docker Compose (see [`docker/README.md`](docker/README.md))
 - AWS ECR for container registry
 - Health checks and monitoring
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 - Node.js 20+
-- Docker & Docker Compose
+- Docker & Docker Compose (optional but recommended for Postgres)
 - PostgreSQL (or use Docker Compose)
 
 ### Quick Start with Docker
@@ -101,15 +101,16 @@ cp backend/.env.example backend/.env
 # Edit backend/.env with your configuration
 ```
 
-3. **Start with Docker Compose**
+3. **Start with Docker Compose** (root symlinks → `docker/`)
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
-4. **Run database migrations**
+4. **Sync the database**
 ```bash
-docker-compose exec backend npx prisma db push
-# Or for migrations: npx prisma migrate deploy
+docker compose exec backend npx prisma migrate deploy
+# Fresh local DBs: migrate deploy. Existing prod DBs that used db push:
+# see docs/deployment/MIGRATION_BASELINE.md (after migrations PR lands).
 ```
 
 5. **Access the application**
@@ -150,13 +151,13 @@ npm run build:frontend
 
 ### Deploy to Render
 
-The project includes a `render.yaml` blueprint for one-click deployment:
+The project includes a `render.yaml` blueprint:
 
-- **Backend:** Schema changes applied via `prisma db push` during build
+- **Backend:** Prefer `prisma migrate deploy` (see [docs/deployment/render.md](docs/deployment/render.md) and [STATUS.md](STATUS.md))
 - **Frontend:** Static site built from `frontend/` directory
 - **Database:** PostgreSQL (create manually, then link via `DATABASE_URL`)
 
-Required environment variables: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`, `STRIPE_*` keys.
+Required environment variables: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`, `STRIPE_*` keys. Full list: [docs/deployment/DEPLOYMENT_ENV_VARS.md](docs/deployment/DEPLOYMENT_ENV_VARS.md).
 
 ### Deploy to AWS ECR
 
@@ -233,12 +234,15 @@ Key entities:
 - **DishRequests** - Community dish suggestions
 - **Votes** - Upvote/downvote system for requests
 
-## 🔐 Authentication
+## Authentication
+
+See [docs/features/authentication.md](docs/features/authentication.md).
 
 - JWT-based authentication
-- Role-based access control (Customer, Chef, Admin)
+- Role-based access control (Customer, Chef)
 - Guest checkout option
 - Secure password hashing with bcrypt
+- Password reset (feature branch — see [STATUS.md](STATUS.md))
 
 ## 📊 API Endpoints
 
@@ -295,37 +299,31 @@ npx tsx scripts/test-order-filter.ts   # Chef order visibility
 ### Project Structure
 ```
 TrapHouseKitchen v2/
-├── README.md              # Main documentation
+├── README.md              # Product overview
+├── STATUS.md              # Living project status (canonical)
 ├── render.yaml            # Render deployment config
-├── package.json           # Root workspace config
+├── package.json           # Root scripts (not npm workspaces)
 │
-├── docs/                  # All documentation
-│   ├── deployment/        # Deployment guides
-│   ├── development/       # Development guides
-│   ├── features/          # Feature documentation
-│   └── archive/           # Historical docs
+├── docs/                  # Documentation
+│   ├── deployment/        # Deploy / env / go-live
+│   ├── development/       # Local development
+│   ├── features/          # Feature docs
+│   └── archive/           # Historical + snapshots/
 │
 ├── scripts/               # Deployment & setup scripts
-│   ├── deploy-ecr.sh
-│   ├── deploy-render.sh
-│   ├── setup.sh
-│   └── validate-setup.sh
 │
-├── docker/                # Containerization
-│   ├── Dockerfile
-│   ├── docker-compose.yml
-│   └── docker-compose.dev.yml
+├── docker/                # Dockerfile + Compose (root symlinks point here)
 │
 ├── backend/
 │   ├── src/
-│   │   ├── routes/        # API routes (standardized .routes.ts)
-│   │   ├── controllers/   # Route controllers
-│   │   ├── middleware/    # Auth, error handling
-│   │   ├── services/      # Business logic
-│   │   ├── lib/          # Shared utilities
-│   │   └── index.ts      # Entry point
+│   │   ├── routes/
+│   │   ├── middleware/
+│   │   ├── services/
+│   │   ├── lib/
+│   │   └── index.ts
 │   ├── prisma/
-│   │   └── schema.prisma # Database schema
+│   │   ├── schema.prisma
+│   │   └── migrations/    # After migrations PR lands
 │   ├── scripts/          # Migration & headless test scripts
 │   │   ├── migrate-reviews-to-dish-based.ts
 │   │   ├── add-dish-review-columns.sql
