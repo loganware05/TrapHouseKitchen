@@ -73,9 +73,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-    # Non-blocking until the spec suite is stabilized (14 specs currently fail
-    # against the real app; tracked in STATUS.md). Flip this off once green.
-    continue-on-error: true
     services:
       postgres:
         image: postgres:16-alpine
@@ -143,17 +140,20 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
 
       - name: Run Playwright tests
+        # Non-blocking until the spec suite is stabilized (14 of 19 specs fail
+        # against the real app; tracked in STATUS.md). Remove once green.
+        continue-on-error: true
         run: npm run test:e2e
 
       - name: Upload Playwright report
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: playwright-report/
 
       - name: Upload Playwright test results
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-test-results
