@@ -52,8 +52,8 @@ Historical “READY / COMPLETE” write-ups live under [docs/archive/snapshots/]
 - **QR Code Access** - Easy access via QR code scanning
 - **Role-Based Access Control (RBAC)** - Separate customer and chef interfaces
 - **Real-Time Updates** - React Query for automatic data synchronization
-- **Docker** - Compose/Dockerfile under [`docker/`](docker/) with root symlinks
-- **Render & AWS** - `render.yaml` blueprint; ECR image build via GitHub Actions
+- **Docker** - Compose/Dockerfile under [`docker/`](docker/) with root symlinks (local dev only)
+- **Render** - `render.yaml` blueprint is the production deploy path
 
 ## 🏗️ Architecture
 
@@ -77,8 +77,9 @@ Historical “READY / COMPLETE” write-ups live under [docs/archive/snapshots/]
 - bcryptjs for password hashing
 
 **DevOps:**
-- Docker & Docker Compose (see [`docker/README.md`](docker/README.md))
-- AWS ECR for container registry
+- Docker & Docker Compose for local development (see [`docker/README.md`](docker/README.md))
+- Render for production hosting (`render.yaml`)
+- GitHub Actions CI (tests + Playwright E2E)
 - Health checks and monitoring
 
 ## Installation
@@ -159,31 +160,7 @@ The project includes a `render.yaml` blueprint:
 
 Required environment variables: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`, `STRIPE_*` keys. Full list: [docs/deployment/DEPLOYMENT_ENV_VARS.md](docs/deployment/DEPLOYMENT_ENV_VARS.md).
 
-### Deploy to AWS ECR
-
-1. **Create ECR Repository**
-```bash
-aws ecr create-repository --repository-name traphouse-kitchen --region us-east-1
-```
-
-2. **Configure environment variables**
-```bash
-export AWS_REGION=us-east-1
-export ECR_REPOSITORY=traphouse-kitchen
-```
-
-3. **Run deployment script**
-```bash
-chmod +x deploy-ecr.sh
-./deploy-ecr.sh v1.0.0
-```
-
-The script will:
-- Log in to AWS ECR
-- Build the Docker image
-- Tag the image
-- Push to ECR
-- Output the image URI for deployment
+Render is the only production deployment target. The AWS ECR/ECS pipeline was removed — see [STATUS.md](STATUS.md). Historical AWS docs live in [docs/archive/snapshots/aws.md](docs/archive/snapshots/aws.md).
 
 ### Environment Variables
 
@@ -357,7 +334,6 @@ npm run dev:frontend     # Start frontend only
 ./scripts/validate-setup.sh  # Validate configuration
 
 # Deployment
-./scripts/deploy-ecr.sh v1.0.0    # Deploy to AWS ECR
 ./scripts/deploy-render.sh        # Deploy to Render
 
 # Database
@@ -379,7 +355,6 @@ All documentation is organized in the `docs/` directory:
 - **Architecture:** [docs/development/architecture.md](docs/development/architecture.md)
 - **Testing Guide:** [docs/development/testing.md](docs/development/testing.md)
 - **Render Deployment:** [docs/deployment/render.md](docs/deployment/render.md)
-- **AWS Deployment:** [docs/deployment/aws.md](docs/deployment/aws.md)
 - **Environment Variables:** [docs/deployment/environment-variables.md](docs/deployment/environment-variables.md)
 - **Stripe Payments:** [docs/features/stripe-payments.md](docs/features/stripe-payments.md)
 
