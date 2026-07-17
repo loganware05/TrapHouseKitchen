@@ -78,6 +78,7 @@ Local mega-commit `eb66711` was **not** pushed. Work was split onto these branch
 | Capacitor / native iOS | Scaffold on `feat/capacitor-ios-scaffold`. `frontend/ios/` is generated locally / gitignored — **not** App Store ready. |
 | Operating hours | Still deferred (not built). |
 | Webhook email TODOs | Failed-payment / refund customer emails still open in payment slice. |
+| Playwright E2E suite | CI job now boots both servers and runs, but **14 of 19 specs fail** against the real app (login redirects, checkout selectors). Job is `continue-on-error` until stabilized — do not treat a green PR as E2E-verified. |
 
 ---
 
