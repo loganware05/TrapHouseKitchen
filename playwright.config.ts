@@ -46,10 +46,12 @@ export default defineConfig({
             stderr: 'pipe',
           },
           {
-            command: 'cd frontend && npm run dev',
+            command: 'cd frontend && npm run dev -- --host 127.0.0.1 --port 5173 --strictPort',
             url: baseURL,
             reuseExistingServer: true,
             timeout: 120_000,
+            stdout: 'pipe',
+            stderr: 'pipe',
             env: {
               ...process.env,
               VITE_API_URL: `${apiURL}/api`,

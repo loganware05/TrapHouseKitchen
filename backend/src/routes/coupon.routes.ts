@@ -133,13 +133,21 @@ router.post(
         throw new AppError('A coupon has already been applied to this order', 400);
       }
 
-      // Apply coupon to order
-      const updatedOrder = await prisma.order.update({
-        where: { id: orderId },
+      // Conditional update so concurrent applies cannot both win
+      const applied = await prisma.order.updateMany({
+        where: { id: orderId, appliedCouponId: null },
         data: {
           appliedCouponId: coupon.id,
           finalAmount: Math.max(0, order.finalAmount - coupon.discountAmount),
         },
+      });
+
+      if (applied.count === 0) {
+        throw new AppError('A coupon has already been applied to this order', 400);
+      }
+
+      const updatedOrder = await prisma.order.findUnique({
+        where: { id: orderId },
       });
 
       res.json({

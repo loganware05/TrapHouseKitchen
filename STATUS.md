@@ -22,7 +22,8 @@ On `origin/main` and considered the live product surface:
 | Dish requests + voting | Customer + chef management |
 | Auth (customer / chef login) | JWT RBAC |
 | PWA | Home-screen install |
-| Docker local / ECR packaging | Files under [`docker/`](docker/) with root symlinks; see [`docker/README.md`](docker/README.md) |
+| Docker (local dev only) | Files under [`docker/`](docker/) with root symlinks; see [`docker/README.md`](docker/README.md) |
+| Render production deploy | `render.yaml` blueprint; the only production target |
 
 ---
 
@@ -65,7 +66,8 @@ Local mega-commit `eb66711` was **not** pushed. Work was split onto these branch
 
 | Item | Status |
 |------|--------|
-| Mega-commit Docker deletion | **Avoided** — `main` reset to `origin/main` restored `docker/*`. Do not re-delete packaging without updating ECR. |
+| Mega-commit Docker deletion | **Avoided** — `main` reset to `origin/main` restored `docker/*`. Docker is now local-dev-only. |
+| AWS ECR / ECS pipeline | **Removed (2026-07-17)** — Render is the sole production deploy target. CI workflow keeps tests + Playwright E2E only. Historical AWS docs: [docs/archive/snapshots/aws.md](docs/archive/snapshots/aws.md). |
 
 ---
 
@@ -76,6 +78,7 @@ Local mega-commit `eb66711` was **not** pushed. Work was split onto these branch
 | Capacitor / native iOS | Scaffold on `feat/capacitor-ios-scaffold`. `frontend/ios/` is generated locally / gitignored — **not** App Store ready. |
 | Operating hours | Still deferred (not built). |
 | Webhook email TODOs | Failed-payment / refund customer emails still open in payment slice. |
+| Playwright E2E suite | CI job now boots both servers and runs, but **14 of 19 specs fail** against the real app (login redirects, checkout selectors). Job is `continue-on-error` until stabilized — do not treat a green PR as E2E-verified. |
 
 ---
 
