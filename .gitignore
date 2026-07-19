@@ -36,3 +36,10 @@ lerna-debug.log*
 # Docker
 *.log
 
+
+# Captain's Compass
+.agent/evidence/private/
+.agent/runs/
+.env
+.env.*
+!.env.example
