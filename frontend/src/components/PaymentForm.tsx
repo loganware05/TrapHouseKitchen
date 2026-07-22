@@ -22,11 +22,12 @@ export default function PaymentForm({
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [elementReady, setElementReady] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (!stripe || !elements) {
+    if (!stripe || !elements || !elementReady) {
       return;
     }
 
@@ -34,7 +35,14 @@ export default function PaymentForm({
     setErrorMessage('');
 
     try {
-      // Confirm the payment
+      // Required for Payment Element: validate/mount before confirmPayment
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        setErrorMessage(submitError.message || 'Payment form incomplete');
+        toast.error(submitError.message || 'Payment form incomplete');
+        return;
+      }
+
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         redirect: 'if_required',
@@ -44,21 +52,17 @@ export default function PaymentForm({
       });
 
       if (error) {
-        // Show error message
         setErrorMessage(error.message || 'Payment failed');
         toast.error(error.message || 'Payment failed');
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        // Payment succeeded!
         toast.success('Payment successful!');
         onSuccess();
       } else if (paymentIntent) {
-        // Handle other payment intent statuses
         switch (paymentIntent.status) {
           case 'processing':
             toast.info('Payment is processing...');
             break;
           case 'requires_action':
-            // Additional authentication required
             toast.info('Please complete the authentication');
             break;
           default:
@@ -74,9 +78,10 @@ export default function PaymentForm({
     }
   };
 
+  const canPay = !!stripe && !!elements && elementReady && !isProcessing;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Stripe Payment Element */}
       <div>
         <PaymentElement
           options={{
@@ -86,10 +91,23 @@ export default function PaymentForm({
               googlePay: 'auto',
             },
           }}
+          onReady={() => setElementReady(true)}
+          onLoadError={(event) => {
+            setElementReady(false);
+            const msg =
+              event.error?.message ||
+              'Could not load payment form. Check that the publishable key matches the payment mode (test vs live).';
+            setErrorMessage(msg);
+            toast.error(msg);
+          }}
         />
+        {!elementReady && !errorMessage && (
+          <p className="mt-3 text-sm text-th-muted-fg" aria-live="polite">
+            Loading secure payment form…
+          </p>
+        )}
       </div>
 
-      {/* Error Message */}
       {errorMessage && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-sm text-red-800">{errorMessage}</p>
@@ -103,19 +121,21 @@ export default function PaymentForm({
         </div>
       )}
 
-      {/* Submit Button */}
       <button
         type="submit"
-        disabled={isProcessing || !stripe || !elements}
+        disabled={!canPay}
         className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {isProcessing && <Loader2 className="animate-spin h-5 w-5 mr-2" />}
-        {isProcessing ? 'Processing...' : `Pay $${totalAmount.toFixed(2)}`}
+        {!elementReady && !isProcessing
+          ? 'Waiting for payment form…'
+          : isProcessing
+            ? 'Processing...'
+            : `Pay $${totalAmount.toFixed(2)}`}
       </button>
 
-      {/* Security Notice */}
       <p className="text-xs text-gray-500 text-center">
-        🔒 Secured by Stripe • Your payment information is encrypted
+        Secured by Stripe · Your payment information is encrypted
       </p>
     </form>
   );

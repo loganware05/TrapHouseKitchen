@@ -2,6 +2,8 @@
 
 # 🚀 TrapHouse Kitchen - Go Live Action Plan
 
+**Pre-launch payment QA:** use Stripe **Test mode** (sandbox) keys locally — see `PROJECT_CONTEXT.md`. This checklist is for switching **production** to Live mode when ready for real customers.
+
 ## ⚠️ IMPORTANT: This Requires YOUR Action
 
 Your application is **already production-ready**! No code changes are needed. You just need to complete business verification in Stripe and switch API keys.

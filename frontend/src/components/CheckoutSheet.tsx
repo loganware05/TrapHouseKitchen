@@ -422,6 +422,7 @@ export default function CheckoutSheet() {
               {clientSecret && showCustomerCheckout && (
                 <div className="rounded-th-md border border-th-border p-4">
                   <Elements
+                    key={clientSecret}
                     stripe={stripePromise}
                     options={{
                       clientSecret,

@@ -1,0 +1,36 @@
+{
+  "mode": "test",
+  "steps": {
+    "register": {
+      "code": 201,
+      "ok": true
+    },
+    "dish": {
+      "id": "55f29bf7-ada5-43ec-8e59-3931134a77fe",
+      "name": "New Chef Dish d87283",
+      "price": 8.25
+    },
+    "checkout": {
+      "code": 201,
+      "orderId": "ae9f3cee-a165-4246-adc9-e03136c207f1",
+      "paymentIntentId": "pi_3Tw5s63HCUaM188q1iJ22Y0r",
+      "amount": 8.25,
+      "hasClientSecret": true
+    },
+    "confirm": {
+      "paymentIntentId": "pi_3Tw5s63HCUaM188q1iJ22Y0r",
+      "status": "succeeded",
+      "amount": 825,
+      "currency": "usd"
+    },
+    "orderAfter": {
+      "code": 200,
+      "paymentStatus": "PENDING",
+      "status": "PENDING"
+    }
+  },
+  "frontendFix": {
+    "paymentForm": "onReady + elements.submit() before confirmPayment",
+    "checkoutSheet": "Elements key={clientSecret}"
+  }
+}
