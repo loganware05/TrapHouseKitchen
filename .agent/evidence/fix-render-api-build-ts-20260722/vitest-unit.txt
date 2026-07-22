@@ -1,0 +1,14 @@
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v1.6.1 /Users/loganware/Documents/Buisness/TrapHouseKitchen v2/backend
+
+ ✓ tests/unit/analytics.service.test.ts  (5 tests) 9ms
+ ✓ tests/unit/order.service.allergens.test.ts  (3 tests) 6ms
+ ✓ tests/unit/auth.service.test.ts  (2 tests) 497ms
+
+ Test Files  3 passed (3)
+      Tests  10 passed (10)
+   Start at  12:47:23
+   Duration  1.27s (transform 310ms, setup 0ms, collect 944ms, tests 512ms, environment 1ms, prepare 700ms)
+
+EXIT:0

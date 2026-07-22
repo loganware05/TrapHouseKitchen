@@ -287,11 +287,17 @@ Total: $30/month
 # Missing environment variables
 → Add STRIPE_SECRET_KEY and other required vars
 
-# Database connection failed
-→ Check DATABASE_URL is set correctly
+# Database connection failed (Prisma P1001)
+→ Unsuspend / start Postgres `traphousekitchen-db` (DB can stay down after web unsuspend)
+→ On the API service, confirm DATABASE_URL is the Internal Database URL from that Postgres
+  (host looks like dpg-xxxxx-a or dpg-xxxxx-a.virginia-postgres.render.com)
+→ Same region as the API (virginia). If the DB was recreated, relink fromDatabase / paste the new URL
 
-# Build errors
-→ Verify TypeScript compiles locally: npm run build
+# Build errors — TS5108 moduleResolution=node10 removed
+→ Caused by TypeScript 7 resolving `"moduleResolution": "node"`. Repo fix: `module`/`moduleResolution` `Node16`, pin typescript@5.9.3, and `npm ci` in render.yaml
+
+# Build errors (general)
+→ Verify TypeScript compiles locally: cd backend && npm run build
 ```
 
 ### Frontend Shows API Errors
