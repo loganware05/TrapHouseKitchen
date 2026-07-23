@@ -3,64 +3,75 @@
 ## Metadata
 
 - Status: **APPROVED**
-- Plan ID: `fix-render-api-build-ts-2026-07-22`
-- Issue: `local/prelaunch-stripe-regression` (blocker remediation)
-- Branch: `fix/local-render-api-build-ts`
+- Plan ID: `fix-stripe-payment-element-sandbox-2026-07-22`
+- Issue: `local/prelaunch-stripe-regression` (payment UI blocker)
+- Branch: `fix/local-stripe-payment-element-ready`
 - Created: 2026-07-22
 - Last updated: 2026-07-22
 - Approved by: Captain (Logan)
 - Approval date: 2026-07-22
-- Approved revision: Captain directed push + PR for this fix after confirming DATABASE_URL links match; unblocks pre-launch verification
+- Approved revision: `fix-stripe-payment-element-sandbox-2026-07-22` as written (chat approval)
 
 ## Request
 
-Fix Render `traphousekitchen-api` deploy failure `TS5108: Option 'moduleResolution=node10' has been removed`, then open a PR so production can redeploy and `/health` can return 200.
+1. Fix checkout error: `Invalid value for stripe.confirmPayment(): elements should have a mounted Payment Element or Express Checkout Element.`
+2. Align pre-launch payment verification with **Stripe test/sandbox keys** (not live charges).
+3. Re-run payment verification with Captain-provided **test** keys (locally; never commit secrets).
 
 ## Problem Statement
 
-API builds fail when TypeScript 7 resolves `"moduleResolution": "node"` to removed `node10`. This blocks production API health and pre-launch verification iteration 3. P1001 DB reachability is a separate ops check (Captain confirmed DATABASE_URL links match).
+On checkout, after Pay starts a PaymentIntent, confirming payment fails because Stripe Elements has no mounted/ready Payment Element (Element still loading, remounting after tip/PI refresh, or publishable key mode mismatches the PaymentIntent).
+
+Captain clarified verification should use **Stripe sandbox (test keys)**, not live card charges.
 
 ## Desired Outcome
 
-- Backend builds cleanly on Render with lockfile-pinned TypeScript
-- PR merged / deployed; API `/health` returns 200 (Captain confirms)
+- Checkout Pay only enables after Payment Element `onReady`; call `elements.submit()` before `confirmPayment`.
+- Elements remount cleanly when `clientSecret` changes (`key={clientSecret}`).
+- Sandbox payment verification succeeds with test keys against local API.
+- Docs: pre-launch payment QA = test mode; production keeps live keys for real customers.
+- Secrets never committed.
 
 ## Acceptance Criteria
 
-- [x] `module` / `moduleResolution` set to `Node16`
-- [x] `typescript` pinned to `5.9.3`; `render.yaml` uses `npm ci`
-- [x] Local `tsc` clean; unit tests pass
-- [ ] PR opened and mergeable into `main`
-- [ ] Deploy succeeds; `/health` → 200 (Captain)
+- [x] PaymentForm waits for Element ready; submit disabled until ready
+- [x] `elements.submit()` then `confirmPayment`
+- [x] CheckoutSheet `Elements` keyed by `clientSecret`
+- [x] Local sandbox PI confirm evidence (redacted) — `succeeded` in `.agent/evidence/fix-stripe-payment-element-20260722/`
+- [x] Memory docs clarify sandbox vs live (`PROJECT_CONTEXT.md`)
+- [x] No `sk_` / `pk_` values in git
 
 ## Non-Goals
 
-- Password reset / payment hardening / iOS landing
-- Changing DATABASE_URL values
-- Full pre-launch Go verdict (continues after health 200)
+- Permanently switching Render production to test keys
+- Feature landing (password reset, hardening, iOS)
+- Real money charges
 
 ## Assumptions
 
-- Captain approval for push+PR constitutes approval of this blocker fix under the active pre-launch workstream.
+- Provided keys are Stripe **test** mode; First Mate may use them in local shell env only.
+- Production may remain live-keyed for real customers.
 
 ## Open Questions
 
-None for this slice.
+None if approved as written.
 
 ## Current-State Analysis
 
-- `"moduleResolution": "node"` → TS5108 under TypeScript 7
-- `npm install` on Render can float away from lockfile intent; `npm ci` preferred
+- `CheckoutSheet` → `clientSecret` → `<Elements>` + `<PaymentForm>` / `<PaymentElement>`
+- `PaymentForm` confirms without Element ready / `elements.submit()`
+- Tip changes replace `clientSecret` → remount races
+- pk/sk mode mismatch also prevents Element mount
 
 ## Proposed Architecture
 
-No runtime architecture change — build/config only.
+Frontend Payment Element lifecycle hardening only. Verification: local backend + Stripe test API.
 
 ## Workstreams
 
-1. tsconfig + typescript pin + render.yaml npm ci
-2. Push + PR
-3. Captain deploy / health confirm → resume verification
+1. Fix `PaymentForm.tsx` + `CheckoutSheet.tsx`
+2. Sandbox verification (env-injected test keys)
+3. Docs update
 
 ## Parallelization Plan
 
@@ -68,25 +79,25 @@ Sequential.
 
 ## Files Expected to Change
 
-- `backend/tsconfig.json`
-- `backend/package.json` / `package-lock.json` / `package.json.render`
-- `render.yaml`
-- `docs/deployment/render.md`
-- `IMPLEMENTATION_PLAN.md` (this record)
+- `frontend/src/components/PaymentForm.tsx`
+- `frontend/src/components/CheckoutSheet.tsx`
+- Memory docs + redacted evidence
+- `IMPLEMENTATION_PLAN.md`
 
 ## Testing Strategy
 
-- `npx tsc -p tsconfig.json`
-- Unit tests
-- Post-deploy: `/health` 200
+- Local checkout with test card `4242…` after fix
+- API confirm with `pm_card_visa` using test secret
+- No production live charge
 
 ## Security Review
 
-No secret changes; no auth/payment logic changes.
+- Do not commit keys; suggest rotate after chat paste
+- Evidence: PI id + status + amount only
 
 ## Accessibility Review
 
-N/A
+- Clear disabled Pay state while Element loads
 
 ## Migration Plan
 
@@ -94,34 +105,32 @@ None.
 
 ## Deployment Plan
 
-Merge to `main` → Render builds `traphousekitchen-api` via blueprint/`npm ci`.
+PR → main → Render frontend rebuild.
 
 ## Rollback Plan
 
-Revert merge commit / redeploy previous `main` SHA. Checkpoint before this workstream: `9ba3cca` / tag `checkpoint/prelaunch-stripe-regression-2026-07-22`.
+Revert merge.
 
 ## Risks and Mitigations
 
 | Risk | Mitigation |
 |------|------------|
-| Node16 changes emit | Verified CommonJS emit + unit tests |
-| DB still unreachable | Captain already verified URL links; re-check logs if health stays down |
+| Keys in chat | Don’t commit; suggest rotate |
+| Prod live keys | Sandbox verify locally |
 
 ## Autonomy Budget
 
-- Maximum iterations: 1 for this fix PR
-- Maximum failed validation cycles: 1
-- Maximum elapsed time: 1 hour
+- Max iterations: 2
+- Max failed validation: 2
+- Elapsed: 2 hours
 
 ## Definition of Done
 
-- PR created
-- Captain can merge/deploy
-- `/health` 200 confirmation starts verification iteration 3
+Fix + sandbox evidence + docs; PR-ready.
 
 ## Approval Record
 
 - **Status:** APPROVED
 - **Approved by:** Captain (Logan)
 - **Approval date:** 2026-07-22
-- **Note:** Explicit instruction to push + open PR for `fix/local-render-api-build-ts` after DATABASE_URL confirmation.
+- **Note:** Explicit chat approval to implement Payment Element fix + local sandbox verification with provided test keys.
