@@ -5,8 +5,34 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not defined in environment variables');
 }
 
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripePublishableKey = process.env.STRIPE_PUBLISHABLE_KEY || '';
+
+function stripeKeyMode(key: string, kind: 'secret' | 'publishable'): 'test' | 'live' | 'unknown' {
+  if (kind === 'secret') {
+    if (key.startsWith('sk_test')) return 'test';
+    if (key.startsWith('sk_live')) return 'live';
+  } else {
+    if (key.startsWith('pk_test')) return 'test';
+    if (key.startsWith('pk_live')) return 'live';
+  }
+  return 'unknown';
+}
+
+const secretMode = stripeKeyMode(stripeSecretKey, 'secret');
+const publishableMode = stripePublishableKey
+  ? stripeKeyMode(stripePublishableKey, 'publishable')
+  : 'unknown';
+
+if (stripePublishableKey && secretMode !== 'unknown' && publishableMode !== 'unknown' && secretMode !== publishableMode) {
+  console.error(
+    `[stripe] MODE MISMATCH: STRIPE_SECRET_KEY is ${secretMode} but STRIPE_PUBLISHABLE_KEY is ${publishableMode}. ` +
+      'Payment Element will fail until both keys are test or both are live from the same Stripe account.'
+  );
+}
+
 // Initialize Stripe with the secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2025-01-27.acacia' as any,
   typescript: true,
 });

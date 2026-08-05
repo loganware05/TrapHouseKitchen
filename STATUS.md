@@ -1,10 +1,24 @@
 # Project status
 
-**Last updated:** 2026-07-14  
-**Production / shared baseline:** `a48d739` (`origin/main` — “Ready for production deployment”)  
+**Last updated:** 2026-08-04  
+**Production / shared baseline:** `0a2031f` (`origin/main` — PR #12 Payment Element fix)  
 **Canonical rule:** This file is the only place that asserts Shipped / WIP / Broken. Do not add new root `*_COMPLETE.md` / `*_READY.md` snapshots — update this file instead.
 
-**Related:** QA checklist / support playbooks land with the test-harness PR · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md)
+**Related:** [QA_CHECKLIST.md](QA_CHECKLIST.md) · [SUPPORT_PLAYBOOKS.md](SUPPORT_PLAYBOOKS.md) · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md) · [AGENTS.md](AGENTS.md)
+
+---
+
+## Status recheck (2026-08-04)
+
+| Check | Result |
+|-------|--------|
+| API `/health` | **200**, database connected |
+| API dishes | **200** (2 dishes) |
+| Web | **200** |
+| Stripe | **Broken config** — API publishable **test**; web bundle baked **live** → client_secret account mismatch |
+| Fix in flight | `fix/local-stripe-publishable-from-api` — load pk from `/api/payment/config` |
+
+Evidence: `.agent/evidence/fix-stripe-pk-mismatch-20260804/`
 
 ---
 

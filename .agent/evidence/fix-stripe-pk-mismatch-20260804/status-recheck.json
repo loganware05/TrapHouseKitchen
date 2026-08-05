@@ -1,0 +1,30 @@
+{
+  "api_health": {
+    "http": 200,
+    "status": "ok",
+    "database": "connected"
+  },
+  "dishes": {
+    "http": 200,
+    "count": 2
+  },
+  "payment_config": {
+    "http": 200,
+    "pk_mode": "test",
+    "pk_acct_prefix": "51SnsOx3"
+  },
+  "web": {
+    "http": 200
+  },
+  "web_bundle_pk": {
+    "http": 200,
+    "mode": "live",
+    "acct_prefix": "51SnsOn3"
+  },
+  "diagnosis": {
+    "issue": "Frontend bundle pk mode != API publishable/secret mode",
+    "api_pk_mode": "test",
+    "web_baked_pk_mode": "live",
+    "fix": "Load publishable key from /api/payment/config at runtime"
+  }
+}
