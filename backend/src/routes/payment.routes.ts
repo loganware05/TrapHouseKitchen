@@ -218,10 +218,29 @@ router.post(
 );
 
 router.get('/config', (_req, res) => {
+  const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY || '';
+  const secretKey = process.env.STRIPE_SECRET_KEY || '';
+  const publishableKeyMode = publishableKey.startsWith('pk_live')
+    ? 'live'
+    : publishableKey.startsWith('pk_test')
+      ? 'test'
+      : 'unknown';
+  const secretKeyMode = secretKey.startsWith('sk_live')
+    ? 'live'
+    : secretKey.startsWith('sk_test')
+      ? 'test'
+      : 'unknown';
+
   res.json({
     status: 'success',
     data: {
-      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
+      publishableKey,
+      publishableKeyMode,
+      secretKeyMode,
+      keysAligned:
+        publishableKeyMode !== 'unknown' &&
+        secretKeyMode !== 'unknown' &&
+        publishableKeyMode === secretKeyMode,
       currency: 'usd',
       businessName: 'TrapHouse Kitchen',
       country: 'US',

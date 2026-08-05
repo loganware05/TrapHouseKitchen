@@ -13,6 +13,8 @@ Do these in the Render Dashboard once `traphousekitchen-api`, `traphousekitchen-
 
 **Important:** `VITE_*` variables are embedded at **build** time. After you change `VITE_API_URL` or `VITE_STRIPE_PUBLISHABLE_KEY`, trigger a **new deploy** of the static site (Clear build cache + deploy if needed) so the bundle picks them up.
 
+**Stripe key mismatch (client_secret / wrong account):** The API must create PaymentIntents with a secret key from the **same Stripe account and mode** (test vs live) as the publishable key used in the browser. The web app loads the publishable key from `GET /api/payment/config` when available so it stays aligned with the API. Still set matching `STRIPE_SECRET_KEY` + `STRIPE_PUBLISHABLE_KEY` on the API, and keep `VITE_STRIPE_PUBLISHABLE_KEY` as a fallback for local/dev.
+
 ---
 
 ## Backend Service (`traphousekitchen-api`)
