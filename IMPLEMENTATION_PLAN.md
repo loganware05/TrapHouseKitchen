@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: **VALIDATED (local) — pending Apple Pay device/domain gate + PR**
+- Status: **APPROVED — LOCALLY VALIDATED** (pending Apple Pay device/domain gate + PR merge)
 - Plan ID: `feature-apple-pay-first-checkout-2026-08-15`
 - Issue: `local/apple-pay-first-checkout` (GitHub CLI authentication unavailable)
 - Branch: `feature/local-apple-pay-first-checkout`
