@@ -2,7 +2,7 @@
 
 ## Current status
 
-PR #14 (Apple Pay-first checkout) is **merged**. Slice 1 (cart and menu UX polish) is implemented and locally validated on `fix/local-cart-ux-polish`; PR preparation is next.
+PR #14 (Apple Pay-first checkout) is **merged**. Slice 1 (cart and menu UX polish) is implemented, locally validated, and open as PR [#15](https://github.com/loganware05/TrapHouseKitchen/pull/15).
 
 ## Completed
 
@@ -16,7 +16,7 @@ PR #14 (Apple Pay-first checkout) is **merged**. Slice 1 (cart and menu UX polis
 
 ## In progress
 
-- Slice 1 PR preparation
+- Slice 1 PR #15 review/merge
 
 ## Next
 

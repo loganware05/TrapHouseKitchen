@@ -55,7 +55,7 @@ Checklist items: "+ adds to cart instead of opening cart", "move cart button nex
 - [x] E2E: add-to-cart keeps user on menu; cart opens only from header button; no Build-my-meal section.
 - [x] Skill: `.cursor/skills/mobile-ux-patterns` (header actions, floating-element pitfalls).
 
-**Slice 1 execution:** `local/cart-ux-polish`; branch `fix/local-cart-ux-polish`; rollback checkpoint `checkpoint/cart-ux-polish-2026-08-15` (`d54bec0`). Local validation passed; PR preparation pending.
+**Slice 1 execution:** `local/cart-ux-polish`; branch `fix/local-cart-ux-polish`; rollback checkpoint `checkpoint/cart-ux-polish-2026-08-15` (`d54bec0`); PR [#15](https://github.com/loganware05/TrapHouseKitchen/pull/15). Local validation passed; merge pending.
 
 ### Slice 2 — Chef nav active-state fix (`fix/local-chef-nav-active`)
 
