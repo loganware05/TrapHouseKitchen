@@ -420,7 +420,7 @@ export default function CheckoutSheet() {
               </div>
 
               {clientSecret && showCustomerCheckout && (
-                <div className="rounded-th-md border border-th-border p-4">
+                <div className="rounded-th-lg border border-th-border bg-white p-4 shadow-sm">
                   <Elements
                     key={clientSecret}
                     stripe={stripePromise}
@@ -449,7 +449,7 @@ export default function CheckoutSheet() {
                 disabled={loading}
                 className="w-full rounded-th-lg bg-gray-900 py-4 text-base font-bold text-white hover:bg-gray-800 disabled:opacity-50 transition-colors"
               >
-                {loading ? 'Preparing…' : `Pay $${total.toFixed(2)}`}
+                {loading ? 'Preparing secure checkout…' : `Continue to payment · $${total.toFixed(2)}`}
               </button>
             ) : (
               <p className="text-center text-xs text-th-muted-fg">Complete payment in the form above</p>

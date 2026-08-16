@@ -2,16 +2,48 @@
 
 ## Test commands
 
-<!-- List package scripts and primary validation commands. -->
+```bash
+# Backend
+cd backend && npm run test:all
+
+# Frontend production build
+npm run build --prefix frontend
+
+# Checkout payment E2E (local API + Vite already running)
+PLAYWRIGHT_PAYMENT_TESTS=1 \
+VITE_STRIPE_PUBLISHABLE_KEY=runtime-api-key \
+PLAYWRIGHT_BASE_URL=http://localhost:5173 \
+PLAYWRIGHT_API_URL=http://localhost:3001 \
+PLAYWRIGHT_SKIP_WEBSERVER=1 \
+npx playwright test e2e/payment-flow.spec.ts --project=chromium
+```
 
 ## Unit tests
 
+Backend Vitest unit suite under `backend/tests/unit` — included in `npm run test:all`.
+
 ## Integration tests
+
+Backend Vitest integration suite under `backend/tests/integration` — requires local Postgres (`traphouse-postgres`).
+
+Latest: **49/49 passed** (2026-08-15, Apple Pay-first branch).
 
 ## End-to-end tests
 
+`e2e/payment-flow.spec.ts`:
+
+- Success card → order confirmation
+- Declined / insufficient-funds card → cart retained
+- Unsupported-wallet Chromium client → Payment Element fallback usable
+
+Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
+
 ## Manual checks
+
+- Stripe Payment Method Domains: register `traphousekitchen-web.onrender.com` (sandbox + live)
+- Safari / Apple device: confirm Apple Pay button appears and sandbox payment succeeds
+- Confirm fallback card path still works when Apple Pay is unavailable
 
 ## Evidence location
 
-Store evidence under `.agent/evidence/` (screenshots, test-results, security, accessibility).
+`.agent/evidence/apple-pay-first-20260815/`
