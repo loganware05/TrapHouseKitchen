@@ -17,8 +17,7 @@ test.describe('Checkout coupons', () => {
   test('valid coupon updates total; remove reverts price', async ({ page }) => {
     await page.goto('/menu');
     await page.getByRole('button', { name: /^add\b/i }).first().click();
-    await expect(page.getByRole('button', { name: /pay \$/i })).toBeVisible({ timeout: 25_000 });
-    await page.getByRole('button', { name: /pay \$/i }).click();
+    await page.getByRole('button', { name: /open cart, 1 item/i }).click();
 
     await expect(page.getByRole('heading', { name: /your order/i })).toBeVisible();
 
@@ -27,7 +26,7 @@ test.describe('Checkout coupons', () => {
     await page.getByRole('button', { name: /^apply$/i }).click();
 
     await expect(page.getByText(/coupon applied|saved/i).first()).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/^−\$1\.00$/)).toBeVisible();
+    await expect(page.getByText(/^−\$1\.00$/).first()).toBeVisible();
 
     await page.getByRole('button', { name: /^remove$/i }).click();
     await expect(page.getByText(/coupon removed/i).first()).toBeVisible({ timeout: 10_000 });
@@ -37,7 +36,7 @@ test.describe('Checkout coupons', () => {
   test('expired coupon shows error', async ({ page }) => {
     await page.goto('/menu');
     await page.getByRole('button', { name: /^add\b/i }).first().click();
-    await page.getByRole('button', { name: /pay \$/i }).click();
+    await page.getByRole('button', { name: /open cart, 1 item/i }).click();
     await page.getByRole('button', { name: /coupon code/i }).click();
     await page.locator('input[placeholder="CODE"]').fill('E2EEXPIRED');
     await page.getByRole('button', { name: /^apply$/i }).click();
@@ -47,7 +46,7 @@ test.describe('Checkout coupons', () => {
   test('invalid coupon code shows error', async ({ page }) => {
     await page.goto('/menu');
     await page.getByRole('button', { name: /^add\b/i }).first().click();
-    await page.getByRole('button', { name: /pay \$/i }).click();
+    await page.getByRole('button', { name: /open cart, 1 item/i }).click();
     await page.getByRole('button', { name: /coupon code/i }).click();
     await page.locator('input[placeholder="CODE"]').fill('NOPE-NOT-REAL-999');
     await page.getByRole('button', { name: /^apply$/i }).click();

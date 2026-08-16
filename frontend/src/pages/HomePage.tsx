@@ -10,7 +10,6 @@ import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
 import { toast } from 'sonner';
 import { trackEvent } from '../stores/analyticsStore';
 import SpendTracker from '../components/SpendTracker';
-import AIBuilder from '../components/AIBuilder';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -69,8 +68,6 @@ export default function HomePage() {
   const { user } = useAuthStore();
   const addItem = useCartStore((s) => s.addItem);
   const openCheckout = useCheckoutSheetStore((s) => s.open);
-  const [aiOpen, setAiOpen] = useState(false);
-  const [budgetInput, setBudgetInput] = useState('10');
   const [userAllergens, setUserAllergens] = useState<string[]>([]);
 
   const { data: categoriesData } = useQuery({
@@ -155,7 +152,6 @@ export default function HomePage() {
       source,
     });
     toast.success('Added to cart');
-    openCheckout();
   };
 
   const trendingDishes = useMemo(() => {
@@ -220,19 +216,6 @@ export default function HomePage() {
     openCheckout();
   };
 
-  const openAiWithBudget = () => {
-    if (!user || user.role !== 'CUSTOMER') {
-      toast.error('Log in to use the meal builder');
-      return;
-    }
-    const n = parseFloat(budgetInput);
-    if (Number.isFinite(n) && n >= 5 && n <= 25) {
-      setAiOpen(true);
-    } else {
-      toast.error('Enter a budget between $5 and $25');
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:ml-64 pb-28 md:pb-8">
       <header className="mb-6">
@@ -252,43 +235,6 @@ export default function HomePage() {
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
           <span>Allergen alerts are on — we&apos;ll block unsafe adds from the home feed.</span>
         </div>
-      )}
-
-      {user?.role === 'CUSTOMER' && (
-        <>
-          <div className="mb-8 rounded-th-xl border border-th-border bg-gradient-to-br from-primary-50 to-white p-4 shadow-th-card">
-            <p className="text-sm font-semibold text-gray-900 mb-3">Build my meal under</p>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-th-muted-fg">$</span>
-                <input
-                  type="number"
-                  min={5}
-                  max={25}
-                  step={1}
-                  value={budgetInput}
-                  onChange={(e) => setBudgetInput(e.target.value)}
-                  className="w-full rounded-th-lg border border-th-border py-3 pl-8 pr-3 text-base font-semibold focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={openAiWithBudget}
-                className="shrink-0 rounded-th-lg bg-primary-600 px-5 py-3 text-base font-bold text-white hover:bg-primary-700"
-              >
-                Go
-              </button>
-            </div>
-          </div>
-
-          <AIBuilder
-            sheet={{
-              open: aiOpen,
-              onClose: () => setAiOpen(false),
-              initialBudget: Math.min(25, Math.max(5, parseFloat(budgetInput) || 10)),
-            }}
-          />
-        </>
       )}
 
       <section className="mb-8">

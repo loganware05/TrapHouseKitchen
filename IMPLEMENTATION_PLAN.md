@@ -2,282 +2,158 @@
 
 ## Metadata
 
-- Status: **APPROVED — LOCALLY VALIDATED** (pending Apple Pay device/domain gate + PR merge)
-- Plan ID: `feature-apple-pay-first-checkout-2026-08-15`
-- Issue: `local/apple-pay-first-checkout` (GitHub CLI authentication unavailable)
-- Branch: `feature/local-apple-pay-first-checkout`
-- Base: `origin/main` at/after `89ffd94` (PR #13 merged)
+- Status: **APPROVED**
+- Plan ID: `post-launch-ux-batch-2026-08-15`
+- Issue: `local/post-launch-ux-batch` (GitHub issues per slice created at implementation time)
+- Base: `origin/main` after PR #14 (Apple Pay-first checkout) merge
 - Created: 2026-08-15
 - Last updated: 2026-08-15
 - Approved by: Captain (Logan)
 - Approval date: 2026-08-15
-- Approved revision: `feature-apple-pay-first-checkout-2026-08-15` as written
-- Rollback checkpoint: `checkpoint/apple-pay-first-checkout-2026-08-15`
 
 ## Request
 
-Redesign Traphouse Kitchen checkout so Apple Pay is the primary/default payment experience, while preserving a cohesive fallback for card and other eligible Stripe payment methods. After this feature is complete, process the Captain’s later change list sequentially with appropriate E2E regression gates between changes.
+Captain provided an 11-item checklist after merging PR #14. Items are to be tackled sequentially, each gated by appropriate E2E tests, and the Captain's Compass system should "train skills" for each task domain (capture reusable procedures under `.cursor/skills/`).
 
-## Important Product Constraint
+## Captain Decisions (recorded 2026-08-15)
 
-“Apple Pay as default” means:
+| Question | Decision |
+|----------|----------|
+| Delivery model | **Delivery only** — every order must select a dorm/location |
+| Dorm list | Harvey Hall; Tantum Hall; Bethune Hall; Banneker Hall; Younge Hall; James Hall; Olivia Davidson Hall; Adams Hall; Douglass Hall; White Hall; Rockefeller Hall; Sage Hall; Emery 1 Hall; Emery 2 Hall; Emery 3 Hall; Emery 4 Hall; East (room number required); North (room number required); West (room number required); Marable (room number required) |
+| Payment-failure handling | Keep pre-creating orders (needed for PaymentIntent), but **hide unpaid orders** from Chef and customer lists until paid, and **auto-cancel abandoned unpaid orders after ~30 min** |
+| Out-for-delivery scope | **All orders** pass through Out for delivery |
+| Dish reviews | Keep backend flow; **redesign UX as receipt-style** — recent completed orders shown as receipts with per-dish "leave a review" actions |
+| Pull-to-refresh scope | Main customer tabs (Home, Menu, Orders) + Chef dashboard/orders |
 
-- Apple Pay is the first, most prominent full-width option whenever Stripe reports it eligible.
-- Apple Pay is requested with `paymentMethods.applePay: "always"` and ordered first in Stripe’s Express Checkout Element.
-- Apple Pay **cannot** be displayed or selected on unsupported devices, browsers, currencies, accounts, or unregistered domains. On those clients, checkout falls back cleanly to the Payment Element.
+## Current-State Findings (from repository discovery)
 
-## Problem Statement
+1. **+ Add behavior:** `MenuPage.tsx` and `DishDetailPage.tsx` call `addItem()` then immediately `openCheckout()` — the checkout sheet opens on every add.
+2. **Chef nav bug:** `Layout.tsx` active-state matcher uses `pathname.startsWith(to + '/')`; Dashboard (`/chef`) matches all nested chef routes, so it stays highlighted everywhere.
+3. **No location model:** `Order` in `schema.prisma` has no delivery/dorm field; checkout collects none; confirmation page hard-codes a pickup address.
+4. **Statuses:** `OrderStatus` = PENDING/PREPARING/READY/COMPLETED/CANCELLED (no OUT_FOR_DELIVERY). Chef advances PENDING→PREPARING→READY→COMPLETED.
+5. **Tracking:** `OrderTracker.tsx` exists (Received→Preparing→Ready→Picked up) but the confirmation page fetches once and never refetches; OrdersPage shows a static badge. No polling/websockets.
+6. **ETA:** `prepTime = 15 + itemCount * 5` at PaymentIntent creation; `Dish.prepTime` exists but is unused; no order-volume input.
+7. **Pull-to-refresh:** none; app is a PWA (VitePWA, autoUpdate).
+8. **Cart button:** mobile cart is a floating bottom-right pill that can overlap content (including dish "+ Add" buttons); desktop cart is already in the header.
+9. **Reviews:** per-dish reviews tied to eligible (COMPLETED + PAID, ≤30 days) orders already exist with chef approval + $4 coupon; UX starts from a form page, not from order receipts. `OrdersPage` passes a `dishId` URL param the form ignores.
+10. **Build my meal:** rendered on `HomePage.tsx` ("Build my meal under" + budget input) opening `AIBuilder`; backend endpoint `/api/ai/build-meal`.
+11. **Payment failure:** Order row is created before payment (PENDING/UNPAID). Failed orders vanish from Chef view but remain in customer view; **abandoned PENDING orders remain visible to both**; PaymentIntent cancellation doesn't update the order; no cleanup job.
 
-The current checkout renders only Stripe’s Payment Element after the customer clicks Pay. Wallets are configured as `auto`, but Apple Pay is not presented as a distinct primary action and its placement remains opaque. The flow also needs explicit browser/device/domain validation because Apple Pay availability cannot be proven by ordinary Chromium E2E alone.
+## Sequenced Slices
 
-PR #13 resolved publishable-key drift by loading the key from `/api/payment/config`; this feature must preserve that alignment.
+Each slice: own branch `feature/local-<slug>` or `fix/local-<slug>`, rollback checkpoint tag, E2E gate (Playwright Chromium + backend `test:all`), evidence under `.agent/evidence/<slug>-<date>/`, then a skill update.
 
-## Desired Outcome
+### Slice 1 — Cart & menu UX polish (`fix/local-cart-ux-polish`)
 
-1. Review order/tip/coupon first, then continue to a payment surface.
-2. Eligible customers see a prominent Apple Pay button before all fallback methods.
-3. A clear “or pay another way” divider separates Apple Pay/express wallets from cards and other Stripe methods.
-4. Unsupported clients never see a broken or empty wallet section.
-5. Existing success, decline, webhook, amount, coupon, and Chef-order behavior remains intact.
-6. Checkout remains mobile-first and WCAG 2.1 AA.
+Checklist items: "+ adds to cart instead of opening cart", "move cart button next to profile", "remove Build my meal".
 
-## Acceptance Criteria
+- [x] `MenuPage`/`DishDetailPage`/Home Dish strips: `addItem()` shows toast + cart badge update only; remove `openCheckout()` on Dish adds.
+- [x] Move mobile cart button into the top header beside the profile button; remove the floating bottom-right pill so it never blocks "+ Add".
+- [x] Cart badge shows item count; opening cart still uses the checkout sheet.
+- [x] Remove the "Build my meal under" section and orphaned `AIBuilder` component (leave backend endpoint intact).
+- [x] E2E: add-to-cart keeps user on menu; cart opens only from header button; no Build-my-meal section.
+- [x] Skill: `.cursor/skills/mobile-ux-patterns` (header actions, floating-element pitfalls).
 
-### UX / UI
+**Slice 1 execution:** `local/cart-ux-polish`; branch `fix/local-cart-ux-polish`; rollback checkpoint `checkpoint/cart-ux-polish-2026-08-15` (`d54bec0`). Local validation passed; PR preparation pending.
 
-- [x] Rename the initial action to “Continue to payment · $X.XX” (or equivalent review-first copy).
-- [x] Render Stripe `ExpressCheckoutElement` above the Payment Element after the PaymentIntent exists.
-- [x] Request Apple Pay as `always` and first in wallet ordering; use a full-width black Apple Pay button with at least a 48px touch target.
-- [x] Show the express section only when `onReady` reports at least one available method.
-- [x] Show “or pay another way” only when both express and fallback sections are available.
-- [x] Preserve cards and other dynamically eligible Stripe methods in the Payment Element.
-- [x] Show useful loading, unavailable, cancellation, and confirmation-error states.
-- [x] Prevent duplicate confirmation, duplicate order, and double-submit behavior.
-- [x] Keep the sheet usable at 375px width without horizontal overflow.
+### Slice 2 — Chef nav active-state fix (`fix/local-chef-nav-active`)
 
-### Payment correctness
+- [ ] Exact-match Dashboard (`/chef`) in `Layout.tsx`; prefix-match only for nested routes.
+- [ ] E2E: visiting `/chef/orders` highlights Orders only.
+- Skill: update `react-engineering` (route active-state matching).
 
-- [x] Express checkout confirms the same PaymentIntent/client secret as fallback checkout.
-- [x] Apple Pay success calls the same success handler as card payment and clears/navigates once.
-- [x] Tip, coupon, subtotal, and final Stripe amount remain consistent.
-- [x] No `payment_method_types` restriction is added to PaymentIntent creation; Stripe dynamic payment methods remain enabled.
-- [x] `/api/payment/config` key alignment remains the source for Stripe.js initialization.
-- [x] Existing card success and decline behavior remains functional.
+### Slice 3 — Payment-failure hardening (`fix/local-unpaid-order-visibility`)
 
-### Apple Pay operations
+Checklist item: "Ensure orders aren't placed when payment method fails."
 
-- [ ] `traphousekitchen-web.onrender.com` is registered under Stripe Payment Method Domains in the active sandbox and live mode.
-- [ ] Apple Pay is enabled in the active Stripe payment-method configuration.
-- [ ] Sandbox validation uses HTTPS, a supported Apple device/browser, and an Apple Wallet.
-- [ ] Live-mode domain registration is verified before accepting real Apple Pay payments.
+- [ ] Customer + Chef order queries exclude orders with `paymentStatus` UNPAID/PENDING/FAILED (customer may see own order only on the confirmation/tracking screen while payment settles).
+- [ ] `payment_intent.canceled` webhook marks the order CANCELLED.
+- [ ] Auto-cancel job (interval on API start): unpaid orders older than ~30 min → CANCELLED.
+- [ ] Failed payment in checkout sheet leaves the cart intact (already covered by existing E2E; keep green).
+- [ ] E2E/integration: failed-payment order never appears in Chef orders; abandoned order auto-cancels.
+- Skill: `.cursor/skills/checkout-payments` (PaymentIntent lifecycle, webhook truth, abandoned-order cleanup).
 
-### Accessibility
+### Slice 4 — Delivery dorm location (`feature/local-dorm-delivery`)
 
-- [x] Wallet and fallback areas have clear headings/status text for screen readers.
-- [x] Loading/error messages use appropriate live regions.
-- [x] Focus order remains logical; fallback remains keyboard operable.
-- [x] Contrast and touch targets meet WCAG 2.1 AA expectations.
+- [ ] Prisma: add `deliveryLocation` (string) to `Order`; migration.
+- [ ] Checkout sheet: required dorm/location dropdown using the Captain-approved list before "Continue to payment"; East, North, West, and Marable additionally require a room number.
+- [ ] Backend checkout validation requires a known location.
+- [ ] Chef orders + customer confirmation show the location; replace the hard-coded pickup address.
+- [ ] E2E: checkout blocked without a dorm; location visible on Chef order card.
+- Skill: update `postgres-prisma` (additive migration pattern on live data).
+
+### Slice 5 — Order status expansion (`feature/local-out-for-delivery`)
+
+Checklist item: customer statuses placed → preparing → ready → out for delivery → complete (all orders).
+
+- [ ] Prisma enum: add `OUT_FOR_DELIVERY`; migration.
+- [ ] Chef flow: READY → OUT_FOR_DELIVERY → COMPLETED buttons; status transition validation server-side.
+- [ ] Customer-facing labels: PENDING = "Placed".
+- [ ] E2E: chef advances through all five states; customer sees each label.
+- Skill: `.cursor/skills/order-lifecycle` (status machine, enum migration).
+
+### Slice 6 — Real order tracking (`feature/local-live-order-tracking`)
+
+- [ ] Extend `OrderTracker` to five steps incl. Out for delivery.
+- [ ] Live updates: poll order status (React Query `refetchInterval` ~10–15s) on confirmation page and active orders in OrdersPage; stop polling on COMPLETED/CANCELLED.
+- [ ] OrdersPage: active orders show the tracker, not just a badge.
+- [ ] E2E: status change by chef reflects on customer screen without manual reload.
+- Skill: update `order-lifecycle` (client polling patterns).
+
+### Slice 7 — Pull-to-refresh (`feature/local-pull-to-refresh`)
+
+- [ ] Touch-gesture pull-to-refresh (lightweight custom hook; no heavy dependency) on Home, Menu, Orders, Chef dashboard, Chef orders; triggers React Query refetch.
+- [ ] Only active at scrollTop 0 on touch devices; a11y-safe (no keyboard trap).
+- [ ] E2E: simulated touch drag triggers refetch (or component-level test if Playwright touch simulation proves flaky — will report, not weaken).
+- Skill: update `mobile-ux-patterns`.
+
+### Slice 8 — Receipt-style dish reviews (`feature/local-review-receipts`)
+
+- [ ] Orders/Profile: recent COMPLETED+PAID orders rendered as receipts (items, prices, date) with per-dish "Leave a review" buttons (hidden when already reviewed).
+- [ ] Review form preselects order + dish from the receipt (fix ignored `dishId` param).
+- [ ] Keep chef approval + coupon flow untouched.
+- [ ] E2E: complete order → receipt appears → review a dish → dish button disappears.
+- Skill: `.cursor/skills/review-flows`.
+
+### Slice 9 — Dynamic estimated ready time (`feature/local-dynamic-eta`) — **last, per Captain**
+
+- [ ] ETA = f(active order queue volume, per-dish `Dish.prepTime`, quantities) replacing `15 + items*5`; details proposed in a mini-plan before this slice (returns to approval gate).
+- Skill: update `order-lifecycle`.
+
+## Dependencies
+
+- Slice 5 depends on Slice 4 (delivery model). Slice 6 depends on Slice 5. Slice 9 is last.
+- Slices 1–3 are independent and go first.
 
 ## Non-Goals
 
-- Migrating the backend from PaymentIntents to Checkout Sessions in this slice.
-- Native iOS/Capacitor Apple Pay integration or Apple merchant entitlements.
-- Removing card or other eligible fallback methods.
-- Permanently changing production between Stripe test and live keys.
-- Implementing the Captain’s future change list before this feature passes its gate.
-- Refactoring unrelated checkout, order, coupon, or webhook behavior.
+- Native iOS/Capacitor work, password reset, AI order attribution (separate priorities).
+- Removing the `/api/ai/build-meal` backend endpoint (UI removal only).
+- Websocket infrastructure (polling chosen for tracking).
 
-## Assumptions
-
-- The current PaymentIntent architecture remains the safest small change.
-- Existing Stripe React/JS packages support `ExpressCheckoutElement`; upgrade only if compilation or documented APIs require it.
-- Sandbox and live key pairs remain aligned through `/api/payment/config`.
-- Stripe controls final method eligibility even when Apple Pay is requested as `always`.
-- Actual Apple Pay wallet confirmation requires Captain-assisted validation on a compatible Apple device.
-
-## Open Questions Resolved by Defaults
-
-- **Fallback methods:** Keep cards and other Stripe-eligible methods.
-- **Other wallets:** Allow Stripe-eligible wallets, but order Apple Pay first.
-- **Visual style:** Full-width black Apple Pay button, compact divider, existing Traphouse Kitchen styling for fallback.
-- **Scope:** Web/PWA checkout only; native Apple Pay is deferred to the Capacitor plan.
-
-## Current-State Analysis
-
-| Area | Current state | Planned change |
-|------|---------------|----------------|
-| Checkout container | Mobile bottom sheet | Preserve |
-| Payment creation | One PaymentIntent via `/orders/checkout` | Preserve |
-| Wallet UI | Payment Element wallets `auto` | Add Express Checkout Element first |
-| Card fallback | Payment Element | Preserve below divider |
-| Stripe key loading | Runtime `/payment/config` with fallback | Preserve |
-| Confirmation | `elements.submit()` + `stripe.confirmPayment()` | Share safe confirmation path |
-| E2E | Card success + decline | Preserve and add wallet/fallback coverage |
-
-## Proposed Architecture
-
-```text
-CheckoutSheet
-  ├─ order / tip / coupon review
-  └─ Elements (one clientSecret)
-       └─ PaymentOptions
-            ├─ ExpressCheckoutElement
-            │    └─ Apple Pay first when eligible
-            ├─ “or pay another way”
-            └─ PaymentElement + card submit button
-
-Both confirmation paths
-  → stripe.confirmPayment(elements)
-  → one shared onSuccess()
-  → webhook remains payment source of truth
-```
-
-## Workstreams
-
-### W1 — Checkout component design
-
-- Extract/refactor the payment area into a focused component if needed.
-- Add Express Checkout Element availability state and confirmation.
-- Preserve Payment Element fallback and current error handling.
-
-### W2 — Stripe and operations configuration
-
-- Confirm dynamic payment methods and Apple Pay eligibility requirements.
-- Document sandbox/live domain registration and supported-device checklist.
-- Do not expose or persist secret keys.
-
-### W3 — Automated tests
-
-- Update payment E2E selectors/copy.
-- Retain test-card success and decline coverage.
-- Add unsupported-wallet fallback coverage in Chromium.
-- Add duplicate-submit/order regression coverage if practical within existing harness.
-
-### W4 — Browser, accessibility, and device validation
-
-- Capture mobile and desktop screenshots.
-- Check keyboard/focus/error states.
-- Perform Safari/WebKit fallback checks.
-- Captain-assisted Apple Pay button + sandbox confirmation on a compatible Apple device.
-
-### W5 — Documentation and PR
-
-- Update `TESTING.md`, `PROGRESS.md`, `STATUS.md`, and Stripe go-live/domain instructions.
-- Perform adversarial, security, and accessibility reviews.
-- Prepare PR with evidence and rollback instructions.
-
-## Sequential Change Policy After This Feature
-
-For the Captain’s later list:
-
-1. Triage dependencies and order changes.
-2. Give each behavioral change an approved plan or an explicitly approved batch.
-3. Implement one cohesive slice at a time.
-4. Run targeted tests plus the core customer/Chef/payment smoke gate after every slice.
-5. Stop on regression before starting the next slice.
-6. Keep PRs small enough to review and roll back independently.
-
-## Files Expected to Change
-
-- `frontend/src/components/CheckoutSheet.tsx`
-- `frontend/src/components/PaymentForm.tsx`
-- New focused wallet/payment component(s), if extraction improves clarity
-- `e2e/payment-flow.spec.ts`
-- Possibly `frontend/package.json` / lockfile only if Stripe SDK upgrade is required
-- `docs/deployment/go-live.md` and/or `docs/deployment/DEPLOYMENT_ENV_VARS.md`
-- `TESTING.md`, `PROGRESS.md`, `STATUS.md`, `IMPLEMENTATION_PLAN.md`
-- `.agent/evidence/…` for validation reports and screenshots
-
-Backend product files are not expected to change unless implementation discovery finds a required confirmation contract change. Any material backend expansion returns to the approval gate.
-
-## Testing Strategy
-
-| Layer | Validation |
-|-------|------------|
-| Static | Frontend TypeScript + production build |
-| Backend regression | Existing backend `test:all` |
-| E2E fallback | Card success, declined card, cart retained |
-| E2E wallet eligibility | Chromium confirms fallback; wallet section hides safely when unavailable |
-| Mobile | iPhone viewport layout, touch targets, no overflow |
-| Accessibility | Keyboard, focus, status/error announcements, contrast |
-| Apple Pay real eligibility | Registered HTTPS sandbox domain + compatible Apple device/browser |
-| Production smoke | Web/API health, `/payment/config` aligned, sandbox payment before live |
-
-### E2E Limitation
-
-Playwright Chromium/WebKit cannot complete a real Apple Pay wallet/biometric confirmation in CI. Automated tests will validate integration state and fallbacks; actual Apple Pay appearance and payment require device-based sandbox evidence.
-
-## Security Review
-
-- Card/wallet details stay inside Stripe Elements.
-- Secret keys never enter frontend bundles, logs, screenshots, or evidence.
-- Publishable/secret account and mode alignment remains enforced.
-- Webhook signature validation remains authoritative.
-- No production charge without explicit Captain approval.
-- Review dependency changes if Stripe packages are upgraded.
-
-## Accessibility Review
-
-Run the workspace accessibility review for:
-
-- focus and keyboard order,
-- live loading/error announcements,
-- express/fallback divider semantics,
-- touch targets and mobile zoom,
-- visual contrast and reduced-motion behavior.
-
-## Migration Plan
-
-No database migration.
-
-## Deployment Plan
-
-1. Merge approved PR to `main`.
-2. Render rebuilds the static web service.
-3. Verify API/web health and `/api/payment/config` alignment.
-4. Register/confirm the Render web domain in the Stripe sandbox.
-5. Run sandbox fallback + Apple Pay device checks.
-6. Register/confirm domain in live mode before real transactions.
-
-## Rollback Plan
-
-- Revert the feature PR and redeploy the previous frontend bundle.
-- PaymentIntent/backend schema remains unchanged.
-- Card fallback from the prior Payment Element implementation is the rollback target.
-
-## Risks and Mitigations
+## Risks
 
 | Risk | Mitigation |
-|------|------------|
-| Apple Pay unavailable on test client | Eligibility-aware UI + supported-device manual gate |
-| Domain not registered in correct mode | Separate sandbox/live checklist |
-| Duplicate orders when changing methods | One PaymentIntent per checkout + submit lock + E2E |
-| Wallet/fallback confirmations diverge | Shared success/error behavior |
-| Existing card flow regresses | Preserve card E2E success/decline tests |
-| UI becomes crowded on mobile | One-column wallet layout + screenshots at 375px |
-| Scope expands into native iOS | Explicit non-goal; separate Capacitor plan |
+|------|-----------|
+| Enum + column migrations on live Render Postgres | Additive-only migrations; `prisma migrate deploy` already in build; rollback checkpoints per slice |
+| Hiding unpaid orders confuses in-flight checkouts | Confirmation/tracking screen still shows the customer's own order regardless of payment status |
+| Playwright touch simulation flaky for pull-to-refresh | Fall back to component-level gesture test; report honestly |
+| Existing payment E2E regressions | Full payment-flow spec runs as a gate on every slice |
 
-## Autonomy Budget
+## Validation per Slice (Definition of Done)
 
-- Maximum implementation iterations: 2
-- Maximum failed validation cycles: 2
-- Maximum elapsed time: 1 working day after approval, excluding Captain device testing
-- Maximum external cost: no live charge; sandbox only
-
-## Definition of Done
-
-- Acceptance criteria satisfied or explicitly blocked with evidence.
-- Static/build/backend/E2E tests recorded.
-- Browser screenshots captured.
-- Security, accessibility, and adversarial reviews completed.
-- Apple Pay sandbox device evidence captured with Captain assistance.
-- Memory docs and rollback notes updated.
-- PR opened; no automatic merge or production live charge.
+- Frontend build (`tsc && vite build`) passes
+- Backend `npm run test:all` 49+/49+ passes
+- Slice-specific Playwright E2E + full payment-flow spec pass
+- Browser screenshot evidence under `.agent/evidence/`
+- Accessibility notes for UI slices; security notes for payment/webhook slices
+- PROGRESS.md / TESTING.md / CHANGELOG.md updated; skill created or updated
 
 ## Approval Record
 
 - **Status:** APPROVED
 - **Approved by:** Captain (Logan)
 - **Approval date:** 2026-08-15
-- **Issue:** `local/apple-pay-first-checkout` because GitHub CLI authentication is invalid
-- **Captain decision:** Explicit approval in chat to implement the plan as written
+- **Approved revision:** `post-launch-ux-batch-2026-08-15` with the complete dorm/location list supplied in chat
+- **Implementation sequence:** Begin with Slice 1; each later slice remains gated by the validation and PR process documented above.
