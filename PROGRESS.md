@@ -2,7 +2,7 @@
 
 ## Current status
 
-PR #15 (Slice 1 cart/menu UX) is **merged**. Slice 2 (Chef nav active-state fix) is implemented and locally validated on `fix/local-chef-nav-active`; PR preparation is next.
+PR #15 (Slice 1 cart/menu UX) is **merged**. Slice 2 (Chef nav active-state fix) is implemented, locally validated, and open as PR [#16](https://github.com/loganware05/TrapHouseKitchen/pull/16).
 
 ## Completed
 
@@ -14,7 +14,7 @@ PR #15 (Slice 1 cart/menu UX) is **merged**. Slice 2 (Chef nav active-state fix)
 
 ## In progress
 
-- Slice 2 PR review/merge
+- Slice 2 PR #16 review/merge
 
 ## Next
 

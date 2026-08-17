@@ -64,7 +64,7 @@ Checklist items: "+ adds to cart instead of opening cart", "move cart button nex
 - [x] E2E: visiting `/chef/orders` highlights Orders only (desktop sidebar + mobile bottom nav).
 - [x] Skill: update `react-engineering` (route active-state matching).
 
-**Slice 2 execution:** branch `fix/local-chef-nav-active`; rollback checkpoint `checkpoint/chef-nav-active-2026-08-17` (`fe06723`); PR pending.
+**Slice 2 execution:** branch `fix/local-chef-nav-active`; rollback checkpoint `checkpoint/chef-nav-active-2026-08-17` (`fe06723`); PR [#16](https://github.com/loganware05/TrapHouseKitchen/pull/16). Local validation passed; merge pending.
 
 ### Slice 3 — Payment-failure hardening (`fix/local-unpaid-order-visibility`)
 
