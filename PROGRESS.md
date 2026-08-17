@@ -10,7 +10,7 @@ PR #14 (Apple Pay-first checkout) is **merged**. Slice 1 (cart and menu UX polis
 - Repository discovery for all 11 checklist items (add-to-cart flow, chef nav bug, no location model, status enum gaps, static tracker, ETA formula, no pull-to-refresh, floating cart overlap, existing review flow, Build-my-meal location, pre-payment order creation)
 - Captain decisions captured: delivery-only with dorm list, hide+expire unpaid orders, out-for-delivery for all orders, receipt-style review UX, pull-to-refresh on main tabs
 - Complete delivery list captured, including required room numbers for East, North, West, and Marable
-- Slice 1: Dish Add actions no longer auto-open checkout; cart moved to the mobile header; meal-builder UI/component removed
+- Slice 1: Dish Add actions no longer auto-open checkout; cart moved to the mobile header; meal-builder UI removed from Home and Profile
 - New project skill: `.cursor/skills/mobile-ux-patterns`
 - Slice 1 validation: frontend build passed; backend 49/49; payment 3/3; focused desktop 3/3; mobile 2/2; coupon scenarios pass with seeded fixtures
 

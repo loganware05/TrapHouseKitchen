@@ -10,7 +10,7 @@
 - Frontend production build: pass
 - IDE lints for frontend/e2e: pass
 - Backend Vitest: 49/49 pass
-- Desktop Slice 1 E2E (`order-flow` + `ai-flow`): 3/3 pass
+- Desktop Slice 1 E2E (`order-flow` + `ai-flow`): 4/4 pass (Home/Profile meal-builder removal + add-to-cart header flow)
 - Mobile WebKit E2E (`mobile`): 2/2 pass
 - Stripe sandbox payment E2E (`payment-flow`): 3/3 pass
 - Coupon E2E: valid, expired, and invalid scenarios pass after `npm run e2e:seed`
@@ -19,6 +19,7 @@
 ## Evidence
 
 - `mobile-header-cart.png` — iPhone 13 viewport with cart beside Profile and the Dish Add action unobstructed
+- `profile-no-meal-builder.png` — Profile spending insights without the AI meal builder card
 
 ## Rollback review
 

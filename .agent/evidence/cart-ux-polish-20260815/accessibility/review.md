@@ -13,5 +13,6 @@
 - Removing the floating cart prevents overlap with Dish Add controls.
 - Mobile header and Add control are unobstructed at the iPhone 13 viewport.
 - Menu Add buttons include the Dish name in their accessible label.
+- Profile spending insights no longer include the AI meal builder stats card.
 
-Screenshot: `../mobile-header-cart.png`.
+Screenshots: `../mobile-header-cart.png`, `../profile-no-meal-builder.png`.

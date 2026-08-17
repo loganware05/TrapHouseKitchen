@@ -14,4 +14,4 @@
 
 ### Fixed
 
-- Removed the customer-facing “Build my meal under” experience while retaining the backend AI endpoint for possible future use.
+- Removed the customer-facing “Build my meal under” experience and the Profile AI meal builder stats card, while retaining the backend AI endpoint for possible future use.

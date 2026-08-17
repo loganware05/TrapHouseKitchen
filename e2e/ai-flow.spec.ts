@@ -22,4 +22,19 @@ test.describe('AI meal builder removal', () => {
       timeout: 15_000,
     });
   });
+
+  test('customer profile no longer shows AI meal builder stats', async ({ page }) => {
+    await page.getByRole('link', { name: /^profile$/i }).first().click();
+    await expect(page).toHaveURL(/\/profile/, { timeout: 15_000 });
+
+    await expect(page.getByRole('heading', { name: /my profile/i })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByText(/ai meal builder/i)).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: /spending insights/i })).toBeVisible();
+    await expect(page.getByText(/welcome back/i)).toBeHidden({ timeout: 10_000 });
+    await page.screenshot({
+      path: '.agent/evidence/cart-ux-polish-20260815/profile-no-meal-builder.png',
+    });
+  });
 });

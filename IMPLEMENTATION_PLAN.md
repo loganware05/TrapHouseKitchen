@@ -7,7 +7,7 @@
 - Issue: `local/post-launch-ux-batch` (GitHub issues per slice created at implementation time)
 - Base: `origin/main` after PR #14 (Apple Pay-first checkout) merge
 - Created: 2026-08-15
-- Last updated: 2026-08-15
+- Last updated: 2026-08-17
 - Approved by: Captain (Logan)
 - Approval date: 2026-08-15
 
@@ -52,7 +52,8 @@ Checklist items: "+ adds to cart instead of opening cart", "move cart button nex
 - [x] Move mobile cart button into the top header beside the profile button; remove the floating bottom-right pill so it never blocks "+ Add".
 - [x] Cart badge shows item count; opening cart still uses the checkout sheet.
 - [x] Remove the "Build my meal under" section and orphaned `AIBuilder` component (leave backend endpoint intact).
-- [x] E2E: add-to-cart keeps user on menu; cart opens only from header button; no Build-my-meal section.
+- [x] Remove the Profile "AI meal builder" spend card (Captain add-on 2026-08-17; Chef dashboard analytics left unchanged).
+- [x] E2E: add-to-cart keeps user on menu; cart opens only from header button; no Build-my-meal section on Home or Profile.
 - [x] Skill: `.cursor/skills/mobile-ux-patterns` (header actions, floating-element pitfalls).
 
 **Slice 1 execution:** `local/cart-ux-polish`; branch `fix/local-cart-ux-polish`; rollback checkpoint `checkpoint/cart-ux-polish-2026-08-15` (`d54bec0`); PR [#15](https://github.com/loganware05/TrapHouseKitchen/pull/15). Local validation passed; merge pending.
