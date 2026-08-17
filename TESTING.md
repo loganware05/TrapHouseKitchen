@@ -47,6 +47,12 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 - `e2e/coupon-flow.spec.ts`: valid, expired, and invalid coupon scenarios passed after `npm run e2e:seed`
 - Mobile screenshot: `.agent/evidence/cart-ux-polish-20260815/mobile-header-cart.png`
 
+### Slice 2 — chef nav active-state
+
+- `e2e/chef-flow.spec.ts` (Chromium): **2/2 passed**
+- `e2e/mobile.spec.ts` chef bottom nav (iPhone 13): **1/1 passed**
+- Screenshot: `.agent/evidence/chef-nav-active-20260817/chef-orders-nav-active.png`
+
 ## Manual checks
 
 - Stripe Payment Method Domains: register `traphousekitchen-web.onrender.com` (sandbox + live)
@@ -58,3 +64,5 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 `.agent/evidence/apple-pay-first-20260815/`
 
 `.agent/evidence/cart-ux-polish-20260815/`
+
+`.agent/evidence/chef-nav-active-20260817/`

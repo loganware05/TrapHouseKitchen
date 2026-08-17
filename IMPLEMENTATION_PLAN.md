@@ -56,13 +56,15 @@ Checklist items: "+ adds to cart instead of opening cart", "move cart button nex
 - [x] E2E: add-to-cart keeps user on menu; cart opens only from header button; no Build-my-meal section on Home or Profile.
 - [x] Skill: `.cursor/skills/mobile-ux-patterns` (header actions, floating-element pitfalls).
 
-**Slice 1 execution:** `local/cart-ux-polish`; branch `fix/local-cart-ux-polish`; rollback checkpoint `checkpoint/cart-ux-polish-2026-08-15` (`d54bec0`); PR [#15](https://github.com/loganware05/TrapHouseKitchen/pull/15). Local validation passed; merge pending.
+**Slice 1 execution:** `local/cart-ux-polish`; branch `fix/local-cart-ux-polish`; rollback checkpoint `checkpoint/cart-ux-polish-2026-08-15` (`d54bec0`); PR [#15](https://github.com/loganware05/TrapHouseKitchen/pull/15) **merged**.
 
 ### Slice 2 — Chef nav active-state fix (`fix/local-chef-nav-active`)
 
-- [ ] Exact-match Dashboard (`/chef`) in `Layout.tsx`; prefix-match only for nested routes.
-- [ ] E2E: visiting `/chef/orders` highlights Orders only.
-- Skill: update `react-engineering` (route active-state matching).
+- [x] Exact-match Dashboard (`/chef`) in `Layout.tsx`; prefix-match only for nested routes.
+- [x] E2E: visiting `/chef/orders` highlights Orders only (desktop sidebar + mobile bottom nav).
+- [x] Skill: update `react-engineering` (route active-state matching).
+
+**Slice 2 execution:** branch `fix/local-chef-nav-active`; rollback checkpoint `checkpoint/chef-nav-active-2026-08-17` (`fe06723`); PR pending.
 
 ### Slice 3 — Payment-failure hardening (`fix/local-unpaid-order-visibility`)
 

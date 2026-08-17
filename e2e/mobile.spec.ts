@@ -52,5 +52,9 @@ test.describe('Mobile (iPhone 13)', () => {
     await page.getByRole('link', { name: /^orders$/i }).click();
     await expect(page).toHaveURL(/\/chef\/orders/, { timeout: 15_000 });
     await expect(page.getByRole('heading', { name: /order management/i })).toBeVisible({ timeout: 20_000 });
+
+    const bottomNav = page.locator('nav.fixed.bottom-0');
+    await expect(bottomNav.getByRole('link', { name: /^dashboard$/i })).not.toHaveClass(/text-primary-600/);
+    await expect(bottomNav.getByRole('link', { name: /^orders$/i })).toHaveClass(/text-primary-600/);
   });
 });
