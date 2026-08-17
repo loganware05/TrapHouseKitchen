@@ -6,7 +6,7 @@ const chefEmail = process.env.E2E_CHEF_EMAIL ?? 'integration-e2e-chef@local.test
 const chefPassword = process.env.E2E_CHEF_PASSWORD ?? 'E2E-Chef-Pass-123';
 
 test.describe('Mobile (iPhone 13)', () => {
-  test('customer login, menu, checkout sheet, pay control reachable', async ({ page }) => {
+  test('customer header cart opens checkout without blocking menu adds', async ({ page }) => {
     await page.goto('/login');
     await page.getByLabel(/email/i).fill(customerEmail);
     await page.getByLabel(/^password$/i).fill(customerPassword);
@@ -21,15 +21,24 @@ test.describe('Mobile (iPhone 13)', () => {
     await expect(addBtn).toBeVisible({ timeout: 20_000 });
     await addBtn.click();
 
-    const fab = page.getByRole('button', { name: /open cart/i });
-    await expect(fab).toBeVisible({ timeout: 20_000 });
-    await fab.click();
+    await expect(page.getByText(/added to cart/i)).toBeVisible();
+    await expect(page).toHaveURL(/\/menu$/);
+    await expect(page.getByRole('heading', { name: /your order/i })).toHaveCount(0);
+
+    const headerCart = page.getByRole('button', { name: /open cart, 1 item/i });
+    await expect(headerCart).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/added to cart/i)).toBeHidden({ timeout: 10_000 });
+    await page.screenshot({
+      path: '.agent/evidence/cart-ux-polish-20260815/mobile-header-cart.png',
+    });
+    await headerCart.click();
 
     await expect(page.getByRole('heading', { name: /your order/i })).toBeVisible({ timeout: 15_000 });
     const sheet = page.locator('.fixed.inset-0.z-\\[100\\]');
     await expect(sheet).toBeVisible();
-    await sheet.evaluate((el) => el.scrollTo(0, el.scrollHeight));
-    await expect(page.getByRole('button', { name: /pay \$/i }).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('button', { name: /continue to payment/i })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test('chef login and bottom navigation', async ({ page }) => {

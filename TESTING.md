@@ -38,6 +38,15 @@ Latest: **49/49 passed** (2026-08-15, Apple Pay-first branch).
 
 Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 
+### Slice 1 — cart and menu UX polish
+
+- `e2e/order-flow.spec.ts` + `e2e/ai-flow.spec.ts` (Chromium): **4/4 passed** (Home/Profile meal-builder removal + add-to-cart header flow)
+- Profile screenshot: `.agent/evidence/cart-ux-polish-20260815/profile-no-meal-builder.png`
+- `e2e/mobile.spec.ts` (iPhone 13 / WebKit): **2/2 passed**
+- `e2e/payment-flow.spec.ts` (Stripe sandbox): **3/3 passed**
+- `e2e/coupon-flow.spec.ts`: valid, expired, and invalid coupon scenarios passed after `npm run e2e:seed`
+- Mobile screenshot: `.agent/evidence/cart-ux-polish-20260815/mobile-header-cart.png`
+
 ## Manual checks
 
 - Stripe Payment Method Domains: register `traphousekitchen-web.onrender.com` (sandbox + live)
@@ -47,3 +56,5 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 ## Evidence location
 
 `.agent/evidence/apple-pay-first-20260815/`
+
+`.agent/evidence/cart-ux-polish-20260815/`

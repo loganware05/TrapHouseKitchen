@@ -75,9 +75,6 @@ export default function Layout() {
 
   const navItems = user?.role === 'CHEF' || user?.role === 'ADMIN' ? chefNav : customerNav;
 
-  const showCustomerFab =
-    !isChefRoute && user?.role === 'CUSTOMER' && totalItems > 0;
-
   return (
     <div className="min-h-screen bg-th-surface flex flex-col">
       <header className="bg-white border-b border-th-border sticky top-0 z-50 safe-top">
@@ -95,13 +92,13 @@ export default function Layout() {
                 <button
                   type="button"
                   onClick={openCheckout}
-                  className="hidden md:flex relative items-center gap-2 rounded-th-lg border border-th-border px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  aria-label={`Cart, ${totalItems} items`}
+                  className="relative flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-th-lg border border-th-border px-2 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 md:px-3"
+                  aria-label={`Open cart, ${totalItems} ${totalItems === 1 ? 'item' : 'items'}`}
                 >
                   <ShoppingCart className="h-5 w-5" />
-                  <span className="tabular-nums">${totalPrice.toFixed(2)}</span>
+                  <span className="hidden tabular-nums md:inline">${totalPrice.toFixed(2)}</span>
                   {totalItems > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary-600 px-1 text-xs font-bold text-white">
+                    <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary-700 px-1 text-xs font-bold text-white">
                       {totalItems}
                     </span>
                   )}
@@ -113,6 +110,7 @@ export default function Layout() {
                   <Link
                     to="/profile"
                     className="flex items-center gap-2 p-2 text-gray-600 hover:text-primary-600 rounded-th-md"
+                    aria-label="Profile"
                   >
                     <User className="h-6 w-6" />
                     <span className="hidden sm:inline text-sm font-medium max-w-[120px] truncate">
@@ -124,6 +122,7 @@ export default function Layout() {
                     onClick={logout}
                     className="p-2 text-gray-600 hover:text-red-600 rounded-th-md"
                     title="Logout"
+                    aria-label="Log out"
                   >
                     <LogOut className="h-6 w-6" />
                   </button>
@@ -146,23 +145,6 @@ export default function Layout() {
       </main>
 
       <CheckoutSheet />
-
-      {showCustomerFab && (
-        <button
-          type="button"
-          onClick={openCheckout}
-          className="md:hidden fixed z-40 flex items-center gap-3 rounded-full bg-gray-900 text-white pl-4 pr-5 py-3 shadow-th-float right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))]"
-          aria-label={`Open cart, ${totalItems} items`}
-        >
-          <div className="relative">
-            <ShoppingCart className="h-6 w-6" />
-            <span className="absolute -top-2 -right-2 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary-500 px-1 text-xs font-bold">
-              {totalItems}
-            </span>
-          </div>
-          <span className="font-bold tabular-nums">${totalPrice.toFixed(2)}</span>
-        </button>
-      )}
 
       <nav className="md:hidden bg-white border-t border-th-border fixed bottom-0 left-0 right-0 safe-bottom z-50">
         <div className="flex justify-around items-center h-16 max-w-lg mx-auto">

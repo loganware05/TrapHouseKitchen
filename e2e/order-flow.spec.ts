@@ -14,32 +14,26 @@ test.describe('Customer order flow', () => {
     });
   });
 
-  test('menu → AI builder → checkout sheet (pay button visible)', async ({ page }) => {
-    test.skip(
-      !process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY,
-      'Set OPENAI_API_KEY or ANTHROPIC_API_KEY for the AI builder step.'
-    );
-
+  test('home no longer shows the meal builder', async ({ page }) => {
     await page.goto('/');
-    const budget = page.locator('input[type="number"]').first();
-    await budget.fill('12');
-    await page.getByRole('button', { name: /^go$/i }).click();
-
-    await expect(page.getByRole('heading', { name: /meal builder/i })).toBeVisible({ timeout: 15_000 });
-    await page.getByRole('button', { name: /build my meal/i }).click();
-    await expect(page.getByRole('button', { name: /add all to cart/i }).first()).toBeVisible({
-      timeout: 60_000,
-    });
-
-    await page.getByRole('button', { name: /add all to cart/i }).first().click();
-    await expect(page.getByRole('button', { name: /pay \$/i })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/build my meal under/i)).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: /trending tonight/i })).toBeVisible();
   });
 
-  test('menu browse → add to cart → checkout shows Pay button', async ({ page }) => {
+  test('menu add stays on menu until the header cart is opened', async ({ page }) => {
     await page.goto('/menu');
     const addBtn = page.getByRole('button', { name: /^add\b/i }).first();
     await expect(addBtn).toBeVisible({ timeout: 20_000 });
     await addBtn.click();
-    await expect(page.getByRole('button', { name: /pay \$/i })).toBeVisible({ timeout: 25_000 });
+
+    await expect(page).toHaveURL(/\/menu$/);
+    await expect(page.getByRole('heading', { name: /your order/i })).toHaveCount(0);
+
+    const cartButton = page.getByRole('button', { name: /open cart, 1 item/i });
+    await expect(cartButton).toBeVisible();
+    await cartButton.click();
+
+    await expect(page.getByRole('heading', { name: /your order/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /continue to payment/i })).toBeVisible();
   });
 });

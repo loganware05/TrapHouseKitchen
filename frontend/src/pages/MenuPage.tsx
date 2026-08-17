@@ -6,7 +6,6 @@ import api from '../lib/api';
 import { Dish, Category, Allergen } from '../types';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
-import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
 import { toast } from 'sonner';
 import { trackEvent } from '../stores/analyticsStore';
 
@@ -16,7 +15,6 @@ export default function MenuPage() {
 
   const { user } = useAuthStore();
   const addItem = useCartStore((state) => state.addItem);
-  const openCheckout = useCheckoutSheetStore((s) => s.open);
 
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryFromUrl);
   const [search, setSearch] = useState('');
@@ -117,7 +115,6 @@ export default function MenuPage() {
       source: 'menu',
     });
     toast.success('Added to cart');
-    openCheckout();
   };
 
   return (
@@ -252,6 +249,7 @@ export default function MenuPage() {
                     type="button"
                     onClick={() => handleAddToCart(dish)}
                     disabled={!safe}
+                    aria-label={`Add ${dish.name}`}
                     className={`px-4 py-2.5 rounded-th-lg font-semibold text-sm transition-colors flex items-center gap-2 ${
                       safe
                         ? 'bg-primary-600 text-white hover:bg-primary-700'

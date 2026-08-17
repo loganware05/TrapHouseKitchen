@@ -162,6 +162,7 @@ test.describe('Payment checkout (Stripe test mode)', () => {
     const addBtn = page.getByRole('button', { name: /^add\b/i }).first();
     await expect(addBtn).toBeVisible({ timeout: 20_000 });
     await addBtn.click();
+    await page.getByRole('button', { name: /open cart, 1 item/i }).click();
 
     await expect(page.getByRole('button', { name: /continue to payment/i })).toBeVisible({
       timeout: 25_000,
@@ -186,6 +187,7 @@ test.describe('Payment checkout (Stripe test mode)', () => {
   test('declined card shows error and keeps cart', async ({ page }) => {
     await page.goto('/menu');
     await page.getByRole('button', { name: /^add\b/i }).first().click();
+    await page.getByRole('button', { name: /open cart, 1 item/i }).click();
     await expect(page.getByRole('button', { name: /continue to payment/i })).toBeVisible({
       timeout: 25_000,
     });
@@ -207,6 +209,7 @@ test.describe('Payment checkout (Stripe test mode)', () => {
   test('unsupported Apple Pay clients retain a usable fallback payment form', async ({ page }) => {
     await page.goto('/menu');
     await page.getByRole('button', { name: /^add\b/i }).first().click();
+    await page.getByRole('button', { name: /open cart, 1 item/i }).click();
     await page.getByRole('button', { name: /continue to payment/i }).click();
 
     await expect(page.getByRole('heading', { name: /payment details|card and other methods/i })).toBeVisible({
@@ -217,7 +220,7 @@ test.describe('Payment checkout (Stripe test mode)', () => {
     await expect(page.getByRole('button', { name: /apple pay/i })).toHaveCount(0);
     await page.getByTestId('fallback-payment-submit').scrollIntoViewIfNeeded();
     await page.screenshot({
-      path: '.agent/evidence/apple-pay-first-20260815/checkout-fallback-chromium.png',
+      path: 'test-results/payment-flow-checkout-fallback.png',
       fullPage: false,
     });
   });

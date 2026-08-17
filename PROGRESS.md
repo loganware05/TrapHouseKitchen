@@ -2,31 +2,29 @@
 
 ## Current status
 
-Apple Pay-first checkout is implemented on `feature/local-apple-pay-first-checkout` and validated locally (frontend build, 49 backend tests, 3 Playwright payment-flow tests). Waiting on Captain-assisted Stripe domain registration + Apple device sandbox confirmation before treating the feature as fully production-ready for wallets.
+PR #14 (Apple Pay-first checkout) is **merged**. Slice 1 (cart and menu UX polish) is implemented, locally validated, and open as PR [#15](https://github.com/loganware05/TrapHouseKitchen/pull/15).
 
 ## Completed
 
-- Approved plan `feature-apple-pay-first-checkout-2026-08-15`
-- Rollback checkpoint `checkpoint/apple-pay-first-checkout-2026-08-15`
-- Express Checkout Element with Apple Pay ordered first
-- Card / other-method fallback retained below a divider when wallets are available
-- Checkout CTA renamed to review-first “Continue to payment”
-- Payment E2E coverage for success, decline, and unsupported-wallet fallback
-- Evidence package under `.agent/evidence/apple-pay-first-20260815/`
+- Apple Pay-first checkout shipped via PR #14 (evidence: `.agent/evidence/apple-pay-first-20260815/`)
+- Repository discovery for all 11 checklist items (add-to-cart flow, chef nav bug, no location model, status enum gaps, static tracker, ETA formula, no pull-to-refresh, floating cart overlap, existing review flow, Build-my-meal location, pre-payment order creation)
+- Captain decisions captured: delivery-only with dorm list, hide+expire unpaid orders, out-for-delivery for all orders, receipt-style review UX, pull-to-refresh on main tabs
+- Complete delivery list captured, including required room numbers for East, North, West, and Marable
+- Slice 1: Dish Add actions no longer auto-open checkout; cart moved to the mobile header; meal-builder UI removed from Home and Profile
+- New project skill: `.cursor/skills/mobile-ux-patterns`
+- Slice 1 validation: frontend build passed; backend 49/49; payment 3/3; focused desktop 3/3; mobile 2/2; coupon scenarios pass with seeded fixtures
 
 ## In progress
 
-- PR open/merge blocked until GitHub CLI re-authentication (`gh auth refresh`)
-- Captain-assisted Apple Pay domain + device sandbox confirmation
+- Slice 1 PR #15 review/merge
 
 ## Next
 
-1. Register payment-method domain(s) in Stripe sandbox/live
-2. Captain validates Apple Pay button + sandbox charge on a compatible Apple device
-3. Open/merge PR for `feature/local-apple-pay-first-checkout`
-4. Receive Captain’s sequential change list and gate each item with E2E
+1. Prepare and merge Slice 1 PR
+2. Slice 2: chef nav active-state fix
+3. Slice 3: payment-failure hardening
+4. Slice 4: dorm delivery location
 
 ## Blockers
 
-- GitHub CLI token invalid for this machine
-- Real Apple Pay confirmation cannot be completed from Chromium Playwright alone
+- Apple Pay device/domain gate from PR #14 still open (Stripe Payment Method Domains registration + Apple device sandbox confirmation)

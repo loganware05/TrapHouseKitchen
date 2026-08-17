@@ -22,12 +22,6 @@ type UserSpendData = {
     percentOfSpend: number;
   }>;
   orderCount: number;
-  aiBuilder: {
-    paidOrdersCount: number;
-    interactions: number;
-    interactionsConvertedToOrder: number;
-    estimatedSavingsVsDeliveryUsd: number;
-  };
 };
 
 function formatBrand(brand: string) {
@@ -358,24 +352,6 @@ export default function ProfilePage() {
                   </ul>
                 </div>
               )}
-
-              <div className="rounded-lg bg-primary-50 border border-primary-100 p-4">
-                <p className="text-sm font-medium text-primary-900">AI meal builder</p>
-                <p className="text-xs text-primary-800 mt-1">
-                  {spendData.aiBuilder.paidOrdersCount} paid order
-                  {spendData.aiBuilder.paidOrdersCount === 1 ? '' : 's'} from AI-suggested meals ·{' '}
-                  {spendData.aiBuilder.interactions} builder session
-                  {spendData.aiBuilder.interactions === 1 ? '' : 's'} (
-                  {spendData.aiBuilder.interactionsConvertedToOrder} led to an order).
-                </p>
-                <p className="text-sm text-primary-900 mt-2 font-semibold">
-                  Est. vs typical delivery fees: ~$
-                  {spendData.aiBuilder.estimatedSavingsVsDeliveryUsd.toFixed(2)}
-                </p>
-                <p className="text-xs text-primary-700 mt-1">
-                  Rough estimate ($4.50 per AI-planned pickup order vs delivery app fees).
-                </p>
-              </div>
             </div>
           )}
         </div>
