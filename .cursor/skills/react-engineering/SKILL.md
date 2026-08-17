@@ -25,6 +25,21 @@ Working on React components, hooks, client routing, forms, browser behavior, res
 6. For user-visible UI, capture screenshot evidence under `.agent/evidence/`.
 7. Run the project's lint and unit test commands before handoff.
 
+## Route active-state matching
+
+When a layout nav item maps to both a parent path and child routes (e.g. Chef Dashboard at `/chef` vs `/chef/orders`):
+
+- Use **exact match** for the parent/dashboard route (`pathname === '/chef'`).
+- Use **prefix match** only for routes with real nested segments (`pathname === to || pathname.startsWith(\`${to}/\`)`).
+- Avoid `startsWith('/chef')` for Dashboard — it will stay highlighted on every `/chef/*` page.
+
+Example helper pattern:
+
+```typescript
+if (to === '/chef') return pathname === '/chef';
+return pathname === to || pathname.startsWith(`${to}/`);
+```
+
 ## Output
 
 Changed React/TS files, tests, and evidence paths reported to the First Mate.

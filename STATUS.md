@@ -6,7 +6,7 @@
 
 **Related:** [QA_CHECKLIST.md](QA_CHECKLIST.md) · [SUPPORT_PLAYBOOKS.md](SUPPORT_PLAYBOOKS.md) · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md) · [AGENTS.md](AGENTS.md)
 
-**Current WIP:** Slice 1 cart/menu UX polish on `fix/local-cart-ux-polish` (locally validated; PR pending).
+**Current WIP:** Slice 2 chef nav active-state on `fix/local-chef-nav-active` (locally validated; PR pending).
 
 ---
 

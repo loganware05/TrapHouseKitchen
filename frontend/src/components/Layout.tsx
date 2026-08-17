@@ -29,6 +29,9 @@ function pathMatchesNav(pathname: string, to: string): boolean {
   if (to === '/orders') {
     return pathname.startsWith('/orders');
   }
+  if (to === '/chef') {
+    return pathname === '/chef';
+  }
   return pathname === to || pathname.startsWith(`${to}/`);
 }
 
