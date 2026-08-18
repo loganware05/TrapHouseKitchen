@@ -64,18 +64,20 @@ Checklist items: "+ adds to cart instead of opening cart", "move cart button nex
 - [x] E2E: visiting `/chef/orders` highlights Orders only (desktop sidebar + mobile bottom nav).
 - [x] Skill: update `react-engineering` (route active-state matching).
 
-**Slice 2 execution:** branch `fix/local-chef-nav-active`; rollback checkpoint `checkpoint/chef-nav-active-2026-08-17` (`fe06723`); PR [#16](https://github.com/loganware05/TrapHouseKitchen/pull/16). Local validation passed; merge pending.
+**Slice 2 execution:** branch `fix/local-chef-nav-active`; rollback checkpoint `checkpoint/chef-nav-active-2026-08-17` (`fe06723`); PR [#16](https://github.com/loganware05/TrapHouseKitchen/pull/16) **merged**.
 
 ### Slice 3 — Payment-failure hardening (`fix/local-unpaid-order-visibility`)
 
 Checklist item: "Ensure orders aren't placed when payment method fails."
 
-- [ ] Customer + Chef order queries exclude orders with `paymentStatus` UNPAID/PENDING/FAILED (customer may see own order only on the confirmation/tracking screen while payment settles).
-- [ ] `payment_intent.canceled` webhook marks the order CANCELLED.
-- [ ] Auto-cancel job (interval on API start): unpaid orders older than ~30 min → CANCELLED.
-- [ ] Failed payment in checkout sheet leaves the cart intact (already covered by existing E2E; keep green).
-- [ ] E2E/integration: failed-payment order never appears in Chef orders; abandoned order auto-cancels.
-- Skill: `.cursor/skills/checkout-payments` (PaymentIntent lifecycle, webhook truth, abandoned-order cleanup).
+- [x] Customer + Chef order queries exclude orders with `paymentStatus` UNPAID/PENDING/FAILED (customer may see own order only on the confirmation/tracking screen while payment settles).
+- [x] `payment_intent.canceled` webhook marks the order CANCELLED.
+- [x] Auto-cancel job (interval on API start): unpaid orders older than ~30 min → CANCELLED.
+- [x] Failed payment in checkout sheet leaves the cart intact (already covered by existing E2E; keep green).
+- [x] E2E/integration: failed-payment order never appears in Chef orders; abandoned order auto-cancels.
+- [x] Skill: `.cursor/skills/checkout-payments` (PaymentIntent lifecycle, webhook truth, abandoned-order cleanup).
+
+**Slice 3 execution:** branch `fix/local-unpaid-order-visibility`; rollback checkpoint `checkpoint/unpaid-order-visibility-2026-08-17` (`0b81dce`); PR pending.
 
 ### Slice 4 — Delivery dorm location (`feature/local-dorm-delivery`)
 

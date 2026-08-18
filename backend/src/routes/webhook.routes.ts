@@ -337,6 +337,15 @@ async function handlePaymentIntentCanceled(paymentIntent: Stripe.PaymentIntent) 
       },
     });
 
+    const order = await prisma.order.findUnique({
+      where: { id: payment.orderId },
+      select: { paymentStatus: true, status: true },
+    });
+
+    if (order && order.paymentStatus !== 'PAID' && order.status !== 'CANCELLED') {
+      await setOrderStatus(payment.orderId, 'CANCELLED', { sendEmail: false });
+    }
+
     console.log('Payment cancellation recorded for order:', payment.orderId);
   } catch (error) {
     console.error('Error handling payment cancellation:', error);
