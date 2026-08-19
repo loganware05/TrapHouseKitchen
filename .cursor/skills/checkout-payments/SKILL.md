@@ -8,7 +8,7 @@ description: Stripe PaymentIntent lifecycle, webhook truth, unpaid-order visibil
 ## Order creation model
 
 1. `POST /api/orders/checkout` creates an **UNPAID** order row, then a PaymentIntent (`paymentStatus` → `PENDING`).
-2. Payment truth comes from Stripe webhooks, not client callbacks.
+2. Payment truth comes from Stripe webhooks **and** idempotent `POST /api/payment/sync-order/:orderId` after client confirm (lists require `PAID`).
 3. Single-order GET (`GET /api/orders/:id`) stays **unfiltered** so confirmation/tracking works during checkout.
 
 ## List visibility
@@ -40,7 +40,8 @@ In development/test without `STRIPE_WEBHOOK_SECRET`, unsigned JSON payloads are 
 
 ## Validation checklist
 
-- Integration: `backend/tests/integration/unpaid-order-visibility.test.ts`
+- Add integration: `backend/tests/integration/unpaid-order-visibility.test.ts`
+- After client `confirmPayment`, call `POST /api/payment/sync-order/:orderId` so orders reach `PAID` even if webhooks lag or fail
 - Keep `e2e/payment-flow.spec.ts` green (declined card does not lose cart)
 - Run `backend npm run test:all`
 - Script sanity: `npx tsx backend/scripts/test-order-filter.ts`
@@ -50,3 +51,4 @@ In development/test without `STRIPE_WEBHOOK_SECRET`, unsigned JSON payloads are 
 - Do not filter single-order GET by payment status — breaks checkout confirmation polling.
 - Do not cancel already-`PAID` orders on `payment_intent.canceled`.
 - Chef list previously included `PENDING`; that exposed unpaid checkouts — treat as a bug.
+- Hiding `PENDING` from lists requires syncing to `PAID` when Stripe succeeds; do not rely on webhooks alone in production.

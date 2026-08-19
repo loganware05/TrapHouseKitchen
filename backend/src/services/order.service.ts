@@ -8,6 +8,10 @@ import {
   ABANDONED_ORDER_PAYMENT_STATUSES,
   ORDER_LIST_VISIBLE_PAYMENT_STATUSES,
 } from './orderVisibility';
+import {
+  reconcileRecentPendingOrdersForChef,
+  reconcileRecentPendingOrdersForUser,
+} from './paymentFinalization.service';
 
 export {
   ABANDONED_ORDER_MAX_AGE_MS,
@@ -156,6 +160,8 @@ export async function createUnpaidOrder(
 }
 
 export async function getCustomerOrdersWithItemReviews(userId: string) {
+  await reconcileRecentPendingOrdersForUser(userId);
+
   const orders = await prisma.order.findMany({
     where: {
       userId,
@@ -202,6 +208,8 @@ export async function getChefOrders(filters: {
   status?: string;
   includeArchived: boolean;
 }) {
+  await reconcileRecentPendingOrdersForChef();
+
   return prisma.order.findMany({
     where: {
       paymentStatus: { in: ORDER_LIST_VISIBLE_PAYMENT_STATUSES },

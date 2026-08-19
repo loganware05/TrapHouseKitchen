@@ -189,7 +189,12 @@ export default function CheckoutSheet() {
     }
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = async () => {
+    try {
+      await api.post(`/payment/sync-order/${orderId}`);
+    } catch (syncError) {
+      console.warn('Payment sync after checkout failed:', syncError);
+    }
     trackOrderPlacedOnce(orderId, {
       amount: total,
       subtotal,

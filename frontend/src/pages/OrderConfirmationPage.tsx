@@ -35,7 +35,19 @@ export default function OrderConfirmationPage() {
     try {
       setLoading(true);
       const response = await api.get(`/orders/${orderId}`);
-      setOrder(response.data.data.order);
+      let nextOrder = response.data.data.order;
+
+      if (nextOrder.paymentStatus !== 'PAID') {
+        try {
+          await api.post(`/payment/sync-order/${orderId}`);
+          const refreshed = await api.get(`/orders/${orderId}`);
+          nextOrder = refreshed.data.data.order;
+        } catch (syncError) {
+          console.warn('Order payment sync failed:', syncError);
+        }
+      }
+
+      setOrder(nextOrder);
     } catch (error: any) {
       console.error('Error fetching order:', error);
       setError('Unable to load order details');
