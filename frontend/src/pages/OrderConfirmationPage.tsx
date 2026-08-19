@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Clock, MapPin, Phone, Mail, Package, ArrowRight } from 'lucide-react';
 import api from '../lib/api';
 import { Order } from '../types';
 import OrderTracker from '../components/OrderTracker';
+import { invalidateCustomerOrders } from '../lib/customerOrders';
 
 export default function OrderConfirmationPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -48,6 +51,7 @@ export default function OrderConfirmationPage() {
       }
 
       setOrder(nextOrder);
+      invalidateCustomerOrders(queryClient);
     } catch (error: any) {
       console.error('Error fetching order:', error);
       setError('Unable to load order details');

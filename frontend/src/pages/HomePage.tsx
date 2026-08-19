@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { AlertTriangle, ChevronRight, Plus, RotateCcw } from 'lucide-react';
 import api from '../lib/api';
 import { Dish, Category, Allergen, Order } from '../types';
+import { customerOrdersQueryOptions } from '../lib/customerOrders';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
@@ -95,14 +96,9 @@ export default function HomePage() {
     enabled: !!user,
   });
 
-  const { data: ordersData } = useQuery({
-    queryKey: ['orders'],
-    queryFn: async () => {
-      const res = await api.get<{ data: { orders: Order[] } }>('/orders');
-      return res.data.data.orders;
-    },
-    enabled: !!user && user.role === 'CUSTOMER',
-  });
+  const { data: ordersData } = useQuery(
+    customerOrdersQueryOptions(!!user && user.role === 'CUSTOMER')
+  );
 
   useEffect(() => {
     if (userProfile?.allergenProfile) {
