@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Clock, MapPin, Phone, Mail, Package, ArrowRight } from 'lucide-react';
 import api from '../lib/api';
 import { Order } from '../types';
 import OrderTracker from '../components/OrderTracker';
+import { invalidateCustomerOrders } from '../lib/customerOrders';
 
 export default function OrderConfirmationPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -35,7 +38,20 @@ export default function OrderConfirmationPage() {
     try {
       setLoading(true);
       const response = await api.get(`/orders/${orderId}`);
-      setOrder(response.data.data.order);
+      let nextOrder = response.data.data.order;
+
+      if (nextOrder.paymentStatus !== 'PAID') {
+        try {
+          await api.post(`/payment/sync-order/${orderId}`);
+          const refreshed = await api.get(`/orders/${orderId}`);
+          nextOrder = refreshed.data.data.order;
+        } catch (syncError) {
+          console.warn('Order payment sync failed:', syncError);
+        }
+      }
+
+      setOrder(nextOrder);
+      invalidateCustomerOrders(queryClient);
     } catch (error: any) {
       console.error('Error fetching order:', error);
       setError('Unable to load order details');

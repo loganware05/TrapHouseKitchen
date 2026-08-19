@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Elements } from '@stripe/react-stripe-js';
 import { toast } from 'sonner';
 import {
@@ -18,11 +19,13 @@ import api from '../lib/api';
 import PaymentForm from './PaymentForm';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent, trackOrderPlacedOnce, flushAnalytics } from '../stores/analyticsStore';
+import { invalidateCustomerOrders } from '../lib/customerOrders';
 
 const TIP_PRESETS = [0, 1, 2, 3];
 
 export default function CheckoutSheet() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isOpen = useCheckoutSheetStore((s) => s.isOpen);
   const close = useCheckoutSheetStore((s) => s.close);
 
@@ -189,7 +192,13 @@ export default function CheckoutSheet() {
     }
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = async () => {
+    try {
+      await api.post(`/payment/sync-order/${orderId}`);
+    } catch (syncError) {
+      console.warn('Payment sync after checkout failed:', syncError);
+    }
+    invalidateCustomerOrders(queryClient);
     trackOrderPlacedOnce(orderId, {
       amount: total,
       subtotal,
@@ -200,8 +209,8 @@ export default function CheckoutSheet() {
     clearCart();
     close();
     toast.success('Payment successful!');
-    navigate(`/orders/${orderId}`, {
-      state: { paymentSuccess: true, prepTime },
+    navigate('/orders', {
+      state: { paymentSuccess: true, prepTime, highlightOrderId: orderId },
     });
   };
 

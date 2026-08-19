@@ -13,6 +13,7 @@ import {
   setDefaultSavedPaymentMethod,
   syncSavedMethodAfterSetupIntent,
 } from '../services/payment.service';
+import { syncOrderPaymentFromStripe } from '../services/paymentFinalization.service';
 import { PaymentRecordStatus } from '@prisma/client';
 
 const router = Router();
@@ -111,6 +112,17 @@ router.get(
             data: { status: mapped },
           });
         }
+
+        if (
+          stripeStatus === 'succeeded' &&
+          payment.order.paymentStatus !== 'PAID'
+        ) {
+          await syncOrderPaymentFromStripe(
+            payment.orderId,
+            req.user!.id,
+            req.user!.role
+          );
+        }
       }
 
       res.json({
@@ -121,6 +133,27 @@ router.get(
             status: stripeStatus || payment.status,
           },
         },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/sync-order/:orderId',
+  authenticate,
+  paymentLimiter,
+  async (req: AuthRequest, res: Response, next: any) => {
+    try {
+      const result = await syncOrderPaymentFromStripe(
+        req.params.orderId,
+        req.user!.id,
+        req.user!.role
+      );
+      res.json({
+        status: 'success',
+        data: result,
       });
     } catch (error) {
       next(error);

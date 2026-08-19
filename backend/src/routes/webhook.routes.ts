@@ -4,8 +4,11 @@ import stripe, { fromStripeAmount } from '../lib/stripe';
 import prisma from '../lib/prisma';
 import { PaymentRecordStatus } from '@prisma/client';
 import { setOrderStatus } from '../services/order.service';
-import { finalizeCouponAfterPayment, handleSetupIntentSucceededWebhook } from '../services/payment.service';
-import { sendNewOrderNotificationToChef, sendOrderConfirmationEmail } from '../services/emailService';
+import { handleSetupIntentSucceededWebhook } from '../services/payment.service';
+import {
+  finalizeFailedPayment,
+  finalizeSuccessfulPayment,
+} from '../services/paymentFinalization.service';
 
 const router = Router();
 
@@ -90,128 +93,11 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   console.log('   Metadata:', JSON.stringify(paymentIntent.metadata));
 
   try {
-    // Find the payment record
-    const payment = await prisma.payment.findUnique({
-      where: { stripePaymentIntentId: paymentIntent.id },
-      include: {
-        order: {
-          include: {
-            items: {
-              include: {
-                dish: true,
-              },
-            },
-            user: true,
-          },
-        },
-      },
-    });
-
-    if (!payment) {
-      console.error('Payment not found for PaymentIntent:', paymentIntent.id);
-      return;
+    const result = await finalizeSuccessfulPayment(paymentIntent, { sendEmails: true });
+    if (result.applied) {
+      console.log('✅ Payment processed successfully for order:', result.orderId);
+      console.log('   Order paymentStatus updated to: PAID');
     }
-
-    // Retrieve the PaymentIntent with expanded charges to get charge details
-    const expandedPaymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id, {
-      expand: ['charges.data.payment_method_details']
-    });
-
-    // Extract payment method details
-    const paymentMethodDetails: any = {};
-    let receiptUrl: string | null = null;
-    let chargeId: string | null = null;
-    
-    // Type assertion for expanded charges (Stripe types don't always reflect expansions)
-    const charges = (expandedPaymentIntent as any).charges as Stripe.ApiList<Stripe.Charge> | undefined;
-    if (charges && charges.data && charges.data.length > 0) {
-      const charge = charges.data[0];
-      chargeId = charge.id;
-      receiptUrl = charge.receipt_url || null;
-      
-      if (charge.payment_method_details?.card) {
-        paymentMethodDetails.card = {
-          brand: charge.payment_method_details.card.brand,
-          last4: charge.payment_method_details.card.last4,
-          exp_month: charge.payment_method_details.card.exp_month,
-          exp_year: charge.payment_method_details.card.exp_year,
-        };
-      }
-    }
-
-    // Update payment status
-    await prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: PaymentRecordStatus.SUCCEEDED,
-        paymentMethodDetails,
-        receiptUrl,
-      },
-    });
-
-    // Create transaction record
-    await prisma.transaction.create({
-      data: {
-        paymentId: payment.id,
-        type: 'CHARGE',
-        amount: fromStripeAmount(paymentIntent.amount),
-        status: 'succeeded',
-        stripeChargeId: chargeId,
-      },
-    });
-
-    await setOrderStatus(payment.orderId, 'PENDING', {
-      sendEmail: false,
-    });
-
-    await prisma.order.update({
-      where: { id: payment.orderId },
-      data: {
-        paymentStatus: 'PAID',
-      },
-    });
-
-    const order = await prisma.order.findUnique({
-      where: { id: payment.orderId },
-      include: {
-        items: { include: { dish: true } },
-        user: true,
-      },
-    });
-
-    if (order) {
-      await finalizeCouponAfterPayment(order.id, order.appliedCouponId);
-
-      const orderDate = new Date(order.createdAt).toLocaleString();
-      const emailPayload = {
-        customerName: order.user.name,
-        customerEmail: order.user.email || '',
-        orderNumber: order.orderNumber.toString(),
-        orderDate,
-        items: order.items.map(item => ({
-          name: item.dish.name,
-          quantity: item.quantity,
-          price: item.priceAtOrder,
-        })),
-        subtotal: order.totalPrice,
-        tip: order.tipAmount,
-        total: order.finalAmount,
-        paymentStatus: 'PAID',
-        prepTime: order.prepTime || 25,
-        specialInstructions: order.specialInstructions || undefined,
-      };
-
-      sendOrderConfirmationEmail(emailPayload).catch(err =>
-        console.error('Confirmation email error:', err)
-      );
-      sendNewOrderNotificationToChef(emailPayload).catch(err =>
-        console.error('Chef notification email error:', err)
-      );
-    }
-
-    console.log('✅ Payment processed successfully for order:', payment.orderId);
-    console.log('   Order paymentStatus updated to: PAID');
-    console.log('   Order status: PENDING');
   } catch (error) {
     console.error('❌ Error handling payment success:', error);
     console.error('   PaymentIntent ID:', paymentIntent.id);
@@ -226,38 +112,10 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
   console.log('   Failure reason:', paymentIntent.last_payment_error?.message || 'Unknown');
 
   try {
-    const payment = await prisma.payment.findUnique({
-      where: { stripePaymentIntentId: paymentIntent.id },
-    });
-
-    if (!payment) {
-      console.error('Payment not found for PaymentIntent:', paymentIntent.id);
-      return;
+    const result = await finalizeFailedPayment(paymentIntent);
+    if (result.applied) {
+      console.log('Payment failure recorded for order:', result.orderId);
     }
-
-    // Extract failure reason
-    const failureReason = paymentIntent.last_payment_error?.message || 'Payment failed';
-
-    // Update payment status
-    await prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: PaymentRecordStatus.FAILED,
-        failureReason,
-      },
-    });
-
-    // Update order payment status
-    await prisma.order.update({
-      where: { id: payment.orderId },
-      data: {
-        paymentStatus: 'FAILED',
-      },
-    });
-
-    console.log('Payment failure recorded for order:', payment.orderId);
-
-    // TODO: Send notification to customer about failed payment
   } catch (error) {
     console.error('❌ Error handling payment failure:', error);
     console.error('   PaymentIntent ID:', paymentIntent.id);
@@ -336,6 +194,15 @@ async function handlePaymentIntentCanceled(paymentIntent: Stripe.PaymentIntent) 
         status: PaymentRecordStatus.CANCELED,
       },
     });
+
+    const order = await prisma.order.findUnique({
+      where: { id: payment.orderId },
+      select: { paymentStatus: true, status: true },
+    });
+
+    if (order && order.paymentStatus !== 'PAID' && order.status !== 'CANCELLED') {
+      await setOrderStatus(payment.orderId, 'CANCELLED', { sendEmail: false });
+    }
 
     console.log('Payment cancellation recorded for order:', payment.orderId);
   } catch (error) {

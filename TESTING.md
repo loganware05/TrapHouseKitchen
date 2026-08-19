@@ -26,7 +26,9 @@ Backend Vitest unit suite under `backend/tests/unit` — included in `npm run te
 
 Backend Vitest integration suite under `backend/tests/integration` — requires local Postgres (`traphouse-postgres`).
 
-Latest: **49/49 passed** (2026-08-15, Apple Pay-first branch).
+Latest: **55/55 passed** (2026-08-17, Slice 3 unpaid-order visibility).
+
+Notable file: `backend/tests/integration/unpaid-order-visibility.test.ts` — list filters, canceled webhook, abandoned cleanup.
 
 ## End-to-end tests
 
@@ -52,6 +54,12 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 - `e2e/chef-flow.spec.ts` (Chromium): **2/2 passed**
 - `e2e/mobile.spec.ts` chef bottom nav (iPhone 13): **1/1 passed**
 - Screenshot: `.agent/evidence/chef-nav-active-20260817/chef-orders-nav-active.png`
+
+### Slice 3 — payment-failure hardening
+
+- `backend/tests/integration/unpaid-order-visibility.test.ts`: **6/6 passed**
+- `npx tsx backend/scripts/test-order-filter.ts`: pass
+- `e2e/payment-flow.spec.ts`: unchanged checkout decline behavior (re-run with `PLAYWRIGHT_PAYMENT_TESTS=1` + sandbox keys when validating full Stripe path)
 
 ## Manual checks
 

@@ -3,6 +3,21 @@ import { OrderStatus } from '@prisma/client';
 import { sendOrderStatusEmail } from './emailService';
 import { AppError } from '../middleware/errorHandler';
 import { createPaymentIntentForOrder } from './payment.service';
+import {
+  ABANDONED_ORDER_MAX_AGE_MS,
+  ABANDONED_ORDER_PAYMENT_STATUSES,
+  ORDER_LIST_VISIBLE_PAYMENT_STATUSES,
+} from './orderVisibility';
+import {
+  reconcileRecentPendingOrdersForChef,
+  reconcileRecentPendingOrdersForUser,
+} from './paymentFinalization.service';
+
+export {
+  ABANDONED_ORDER_MAX_AGE_MS,
+  ABANDONED_ORDER_PAYMENT_STATUSES,
+  ORDER_LIST_VISIBLE_PAYMENT_STATUSES,
+} from './orderVisibility';
 
 export type OrderItemInput = {
   dishId: string;
@@ -145,10 +160,13 @@ export async function createUnpaidOrder(
 }
 
 export async function getCustomerOrdersWithItemReviews(userId: string) {
+  await reconcileRecentPendingOrdersForUser(userId);
+
   const orders = await prisma.order.findMany({
     where: {
       userId,
       isArchived: false,
+      paymentStatus: { in: ORDER_LIST_VISIBLE_PAYMENT_STATUSES },
     },
     include: {
       items: {
@@ -190,9 +208,11 @@ export async function getChefOrders(filters: {
   status?: string;
   includeArchived: boolean;
 }) {
+  await reconcileRecentPendingOrdersForChef();
+
   return prisma.order.findMany({
     where: {
-      paymentStatus: { in: ['PAID', 'PENDING'] },
+      paymentStatus: { in: ORDER_LIST_VISIBLE_PAYMENT_STATUSES },
       ...(filters.status && { status: filters.status as OrderStatus }),
       ...(!filters.includeArchived && { isArchived: false }),
     },
@@ -298,6 +318,25 @@ export async function archiveCompletedOrders() {
     },
     data: {
       isArchived: true,
+    },
+  });
+}
+
+/**
+ * Cancels checkout orders that never completed payment within the abandonment window.
+ */
+export async function cancelAbandonedUnpaidOrders(
+  maxAgeMs: number = ABANDONED_ORDER_MAX_AGE_MS
+) {
+  const cutoff = new Date(Date.now() - maxAgeMs);
+  return prisma.order.updateMany({
+    where: {
+      paymentStatus: { in: ABANDONED_ORDER_PAYMENT_STATUSES },
+      status: { not: 'CANCELLED' },
+      createdAt: { lt: cutoff },
+    },
+    data: {
+      status: 'CANCELLED',
     },
   });
 }

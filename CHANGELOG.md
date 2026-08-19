@@ -16,3 +16,4 @@
 
 - Removed the customer-facing “Build my meal under” experience and the Profile AI meal builder stats card, while retaining the backend AI endpoint for possible future use.
 - Chef sidebar/mobile nav no longer keeps Dashboard highlighted when viewing other Chef tabs (e.g. Orders).
+- Unpaid, pending, and failed-payment orders no longer appear in customer or chef order lists; abandoned checkouts auto-cancel after ~30 minutes; canceled PaymentIntents mark the order cancelled.
