@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Package, Clock, CheckCircle, XCircle, Star, ChevronRight } from 'lucide-react';
+import { Package, Clock, CheckCircle, XCircle, Star, ChevronRight, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { Order } from '../types';
 import OrderTracker from '../components/OrderTracker';
@@ -57,6 +57,12 @@ function OrderCard({
               {new Date(order.createdAt).toLocaleDateString()} at{' '}
               {new Date(order.createdAt).toLocaleTimeString()}
             </p>
+            {order.deliveryLocation ? (
+              <p className="mt-1 text-sm text-primary-700 flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                {order.deliveryLocation}
+              </p>
+            ) : null}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span

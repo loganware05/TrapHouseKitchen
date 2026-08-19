@@ -20,6 +20,11 @@ import PaymentForm from './PaymentForm';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent, trackOrderPlacedOnce, flushAnalytics } from '../stores/analyticsStore';
 import { invalidateCustomerOrders } from '../lib/customerOrders';
+import {
+  DELIVERY_DORMS,
+  canProceedToPayment,
+  dormRequiresRoom,
+} from '../lib/deliveryLocations';
 
 const TIP_PRESETS = [0, 1, 2, 3];
 
@@ -43,6 +48,8 @@ export default function CheckoutSheet() {
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponApplied, setCouponApplied] = useState(false);
+  const [deliveryDorm, setDeliveryDorm] = useState('');
+  const [deliveryRoomNumber, setDeliveryRoomNumber] = useState('');
   const checkoutStartTracked = useRef(false);
 
   const subtotal = getTotalPrice();
@@ -56,6 +63,8 @@ export default function CheckoutSheet() {
       setPrepTime(0);
       setCouponOpen(false);
       setCartExpanded(true);
+      setDeliveryDorm('');
+      setDeliveryRoomNumber('');
     }
   }, [isOpen]);
 
@@ -105,6 +114,14 @@ export default function CheckoutSheet() {
   };
 
   const startCheckout = async () => {
+    if (!canProceedToPayment(deliveryDorm, deliveryRoomNumber)) {
+      toast.error(
+        dormRequiresRoom(deliveryDorm)
+          ? 'Select a dorm and enter your room number'
+          : 'Select a delivery dorm before continuing'
+      );
+      return;
+    }
     try {
       setLoading(true);
       const response = await api.post('/orders/checkout', {
@@ -115,6 +132,8 @@ export default function CheckoutSheet() {
         })),
         specialInstructions: '',
         tipAmount,
+        deliveryDorm,
+        ...(deliveryRoomNumber.trim() && { deliveryRoomNumber: deliveryRoomNumber.trim() }),
         ...(couponApplied && { couponCode: couponCode.toUpperCase() }),
       });
 
@@ -187,6 +206,14 @@ export default function CheckoutSheet() {
       toast.error('Your cart is empty');
       return;
     }
+    if (!canProceedToPayment(deliveryDorm, deliveryRoomNumber)) {
+      toast.error(
+        dormRequiresRoom(deliveryDorm)
+          ? 'Select a dorm and enter your room number'
+          : 'Select a delivery dorm before continuing'
+      );
+      return;
+    }
     if (!clientSecret) {
       await startCheckout();
     }
@@ -217,6 +244,7 @@ export default function CheckoutSheet() {
   if (!isOpen) return null;
 
   const showCustomerCheckout = user?.role === 'CUSTOMER';
+  const canContinue = canProceedToPayment(deliveryDorm, deliveryRoomNumber);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-end">
@@ -324,6 +352,55 @@ export default function CheckoutSheet() {
                   ))}
                 </ul>
               )}
+
+              <div className="rounded-th-md border border-th-border p-3 space-y-3">
+                <div>
+                  <label htmlFor="delivery-dorm" className="text-sm font-semibold text-gray-900">
+                    Delivery dorm <span className="text-red-600">*</span>
+                  </label>
+                  <p className="mt-0.5 text-xs text-th-muted-fg">
+                    All orders are delivered to your dorm.
+                  </p>
+                  <select
+                    id="delivery-dorm"
+                    data-testid="delivery-dorm-select"
+                    value={deliveryDorm}
+                    onChange={(e) => {
+                      setDeliveryDorm(e.target.value);
+                      if (!dormRequiresRoom(e.target.value)) {
+                        setDeliveryRoomNumber('');
+                      }
+                    }}
+                    disabled={!!clientSecret}
+                    className="mt-2 w-full rounded-th-md border border-th-border px-3 py-2.5 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:bg-gray-100"
+                  >
+                    <option value="">Select a dorm…</option>
+                    {DELIVERY_DORMS.map((dorm) => (
+                      <option key={dorm} value={dorm}>
+                        {dorm}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {dormRequiresRoom(deliveryDorm) && (
+                  <div>
+                    <label htmlFor="delivery-room" className="text-sm font-semibold text-gray-900">
+                      Room number <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      id="delivery-room"
+                      data-testid="delivery-room-input"
+                      type="text"
+                      inputMode="text"
+                      value={deliveryRoomNumber}
+                      onChange={(e) => setDeliveryRoomNumber(e.target.value)}
+                      disabled={!!clientSecret}
+                      placeholder="e.g. 204"
+                      className="mt-2 w-full rounded-th-md border border-th-border px-3 py-2.5 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:bg-gray-100"
+                    />
+                  </div>
+                )}
+              </div>
 
               <div>
                 <p className="text-sm font-semibold text-gray-900 mb-2">Tip</p>
@@ -454,8 +531,9 @@ export default function CheckoutSheet() {
             {!clientSecret ? (
               <button
                 type="button"
+                data-testid="continue-to-payment"
                 onClick={() => void handlePayClick()}
-                disabled={loading}
+                disabled={loading || !canContinue}
                 className="w-full rounded-th-lg bg-gray-900 py-4 text-base font-bold text-white hover:bg-gray-800 disabled:opacity-50 transition-colors"
               >
                 {loading ? 'Preparing secure checkout…' : `Continue to payment · $${total.toFixed(2)}`}

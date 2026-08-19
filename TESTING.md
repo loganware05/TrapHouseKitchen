@@ -26,9 +26,9 @@ Backend Vitest unit suite under `backend/tests/unit` — included in `npm run te
 
 Backend Vitest integration suite under `backend/tests/integration` — requires local Postgres (`traphouse-postgres`).
 
-Latest: **55/55 passed** (2026-08-17, Slice 3 unpaid-order visibility).
+Latest: **59/59 passed** (2026-08-19, Slice 4 dorm delivery).
 
-Notable file: `backend/tests/integration/unpaid-order-visibility.test.ts` — list filters, canceled webhook, abandoned cleanup.
+Notable files: `unpaid-order-visibility.test.ts`, `delivery-location.test.ts`.
 
 ## End-to-end tests
 
@@ -60,6 +60,12 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 - `backend/tests/integration/unpaid-order-visibility.test.ts`: **6/6 passed**
 - `npx tsx backend/scripts/test-order-filter.ts`: pass
 - `e2e/payment-flow.spec.ts`: unchanged checkout decline behavior (re-run with `PLAYWRIGHT_PAYMENT_TESTS=1` + sandbox keys when validating full Stripe path)
+
+### Slice 4 — dorm delivery location
+
+- `backend/tests/integration/delivery-location.test.ts`: **4/4 passed**
+- `e2e/delivery-location.spec.ts`: dorm required + East room number gate
+- `e2e/order-flow.spec.ts`: updated to select dorm before continue
 
 ## Manual checks
 

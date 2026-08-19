@@ -77,16 +77,18 @@ Checklist item: "Ensure orders aren't placed when payment method fails."
 - [x] E2E/integration: failed-payment order never appears in Chef orders; abandoned order auto-cancels.
 - [x] Skill: `.cursor/skills/checkout-payments` (PaymentIntent lifecycle, webhook truth, abandoned-order cleanup).
 
-**Slice 3 execution:** branch `fix/local-unpaid-order-visibility`; rollback checkpoint `checkpoint/unpaid-order-visibility-2026-08-17` (`0b81dce`); PR pending.
+**Slice 3 execution:** branch `fix/local-unpaid-order-visibility`; rollback checkpoint `checkpoint/unpaid-order-visibility-2026-08-17` (`0b81dce`); PR [#17](https://github.com/loganware05/TrapHouseKitchen/pull/17) **merged**.
 
 ### Slice 4 — Delivery dorm location (`feature/local-dorm-delivery`)
 
-- [ ] Prisma: add `deliveryLocation` (string) to `Order`; migration.
-- [ ] Checkout sheet: required dorm/location dropdown using the Captain-approved list before "Continue to payment"; East, North, West, and Marable additionally require a room number.
-- [ ] Backend checkout validation requires a known location.
-- [ ] Chef orders + customer confirmation show the location; replace the hard-coded pickup address.
-- [ ] E2E: checkout blocked without a dorm; location visible on Chef order card.
-- Skill: update `postgres-prisma` (additive migration pattern on live data).
+- [x] Prisma: add `deliveryLocation` (string) to `Order`; migration.
+- [x] Checkout sheet: required dorm/location dropdown using the Captain-approved list before "Continue to payment"; East, North, West, and Marable additionally require a room number.
+- [x] Backend checkout validation requires a known location.
+- [x] Chef orders + customer confirmation show the location; replace the hard-coded pickup address.
+- [x] E2E/integration: checkout blocked without a dorm; room required for East; location visible on Chef order card (seed data).
+- [x] Skill: update `postgres-prisma` (additive migration pattern on live data).
+
+**Slice 4 execution:** branch `feature/local-dorm-delivery`; rollback checkpoint `checkpoint/dorm-delivery-2026-08-19` (`a855ed8`); PR pending.
 
 ### Slice 5 — Order status expansion (`feature/local-out-for-delivery`)
 

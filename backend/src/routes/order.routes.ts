@@ -56,6 +56,8 @@ router.post(
     body('couponCode').optional().isString(),
     body('specialInstructions').optional().isString(),
     body('savedPaymentMethodId').optional().isUUID(),
+    body('deliveryDorm').notEmpty().isString().trim(),
+    body('deliveryRoomNumber').optional().isString().trim(),
   ],
   async (req: AuthRequest, res: Response, next: any) => {
     try {
@@ -63,7 +65,15 @@ router.post(
       if (!errors.isEmpty()) {
         throw new AppError('Validation failed', 400);
       }
-      const { items, tipAmount = 0, couponCode, specialInstructions, savedPaymentMethodId } = req.body;
+      const {
+        items,
+        tipAmount = 0,
+        couponCode,
+        specialInstructions,
+        savedPaymentMethodId,
+        deliveryDorm,
+        deliveryRoomNumber,
+      } = req.body;
       const result = await createOrderAndPaymentIntent({
         userId: req.user!.id,
         items,
@@ -71,6 +81,8 @@ router.post(
         tipAmount,
         couponCode,
         savedPaymentMethodId,
+        deliveryDorm,
+        deliveryRoomNumber,
       });
       res.status(201).json({
         status: 'success',
@@ -109,6 +121,8 @@ router.post(
     body('items').isArray({ min: 1 }),
     body('items.*.dishId').notEmpty(),
     body('items.*.quantity').isInt({ min: 1 }),
+    body('deliveryDorm').notEmpty().isString().trim(),
+    body('deliveryRoomNumber').optional().isString().trim(),
   ],
   async (req: AuthRequest, res: Response, next: any) => {
     try {
@@ -116,8 +130,13 @@ router.post(
       if (!errors.isEmpty()) {
         throw new AppError('Validation failed', 400);
       }
-      const { items, specialInstructions } = req.body;
-      const order = await createUnpaidOrder(req.user!.id, items, specialInstructions ?? null);
+      const { items, specialInstructions, deliveryDorm, deliveryRoomNumber } = req.body;
+      const order = await createUnpaidOrder(
+        req.user!.id,
+        items,
+        specialInstructions ?? null,
+        { deliveryDorm, deliveryRoomNumber }
+      );
       res.status(201).json({
         status: 'success',
         data: { order },

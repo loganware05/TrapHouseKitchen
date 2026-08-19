@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Clock, Package, CheckCircle, Archive, RotateCcw } from 'lucide-react';
+import { Clock, Package, CheckCircle, Archive, RotateCcw, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { Order } from '../../types';
@@ -178,6 +178,15 @@ export default function ChefOrdersPage() {
                     <p className="text-sm text-gray-500">
                       {new Date(order.createdAt).toLocaleString()}
                     </p>
+                    {order.deliveryLocation ? (
+                      <p
+                        className="mt-2 text-sm font-medium text-primary-700 flex items-center gap-1.5"
+                        data-testid={`chef-order-delivery-${order.orderNumber}`}
+                      >
+                        <MapPin className="h-4 w-4 shrink-0" />
+                        {order.deliveryLocation}
+                      </p>
+                    ) : null}
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[order.status as keyof typeof statusColors]}`}>
                     {order.status}

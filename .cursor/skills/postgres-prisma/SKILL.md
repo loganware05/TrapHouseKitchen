@@ -36,3 +36,12 @@ Schema/migration files, seed updates if any, rollback notes, and validation evid
 - Do not run destructive production migrations without explicit Captain approval.
 - Do not delete columns/tables without a migration and rollback plan.
 - Do not store production connection strings in docs or commits.
+
+## TrapHouse Kitchen — additive column pattern
+
+When adding optional fields to live `Order` rows (e.g. `deliveryLocation`):
+
+1. Add nullable column in Prisma + migration SQL (`ALTER TABLE "Order" ADD COLUMN … TEXT`).
+2. Enforce required values in **application validation** on new checkout paths, not `NOT NULL` on existing rows.
+3. Rollback: `ALTER TABLE "Order" DROP COLUMN IF EXISTS "deliveryLocation";`
+4. CI applies migrations via `prisma migrate deploy` on a fresh Postgres service.
