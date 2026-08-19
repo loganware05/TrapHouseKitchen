@@ -2,7 +2,7 @@ import type Stripe from 'stripe';
 import stripe, { fromStripeAmount } from '../lib/stripe';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
-import { PaymentRecordStatus } from '@prisma/client';
+import { PaymentRecordStatus, Prisma } from '@prisma/client';
 import { setOrderStatus } from './order.service';
 import { finalizeCouponAfterPayment } from './payment.service';
 import {
@@ -28,8 +28,14 @@ async function loadPaymentByIntentId(paymentIntentId: string) {
   });
 }
 
+function paymentIntentHasExpandedCharges(
+  paymentIntent: Stripe.PaymentIntent
+): paymentIntent is Stripe.PaymentIntent & { charges: Stripe.ApiList<Stripe.Charge> } {
+  return 'charges' in paymentIntent && !!(paymentIntent as { charges?: Stripe.ApiList<Stripe.Charge> }).charges;
+}
+
 function extractChargeDetails(expandedPaymentIntent: Stripe.PaymentIntent) {
-  const paymentMethodDetails: Record<string, unknown> = {};
+  const paymentMethodDetails: { card?: { brand: string; last4: string; exp_month: number; exp_year: number } } = {};
   let receiptUrl: string | null = null;
   let chargeId: string | null = null;
 
@@ -73,7 +79,7 @@ export async function finalizeSuccessfulPayment(
 
   const wasPaid = payment.order.paymentStatus === 'PAID';
 
-  const expandedPaymentIntent = paymentIntent.charges
+  const expandedPaymentIntent = paymentIntentHasExpandedCharges(paymentIntent)
     ? paymentIntent
     : await stripe.paymentIntents.retrieve(paymentIntent.id, {
         expand: ['charges.data.payment_method_details'],
@@ -86,7 +92,7 @@ export async function finalizeSuccessfulPayment(
     where: { id: payment.id },
     data: {
       status: PaymentRecordStatus.SUCCEEDED,
-      paymentMethodDetails,
+      paymentMethodDetails: paymentMethodDetails as Prisma.InputJsonValue,
       receiptUrl,
     },
   });
@@ -258,9 +264,7 @@ export async function syncOrderPaymentFromStripe(
       where: { id: payment.id },
       data: { status: PaymentRecordStatus.CANCELED },
     });
-    if (order.paymentStatus !== 'PAID') {
-      await setOrderStatus(orderId, 'CANCELLED', { sendEmail: false });
-    }
+    await setOrderStatus(orderId, 'CANCELLED', { sendEmail: false });
     return {
       orderId,
       paymentStatus: order.paymentStatus,
