@@ -55,12 +55,12 @@ describe('Delivery location on checkout', () => {
   });
 
   it('accepts Harvey Hall without a room number', async () => {
+    // Use POST /api/orders (no Stripe) — checkout success path needs live/sandbox Stripe.
     const res = await request(app)
-      .post('/api/orders/checkout')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({
         items: [{ dishId, quantity: 1 }],
-        tipAmount: 0,
         deliveryDorm: 'Harvey Hall',
       });
 
@@ -72,11 +72,10 @@ describe('Delivery location on checkout', () => {
 
   it('formats East with room number', async () => {
     const res = await request(app)
-      .post('/api/orders/checkout')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({
         items: [{ dishId, quantity: 1 }],
-        tipAmount: 0,
         deliveryDorm: 'East',
         deliveryRoomNumber: '412',
       });
