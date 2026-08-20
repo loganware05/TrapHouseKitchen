@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from './stores/authStore';
 import UnauthorizedRedirect from './components/UnauthorizedRedirect';
 import Layout from './components/Layout';
@@ -26,25 +27,72 @@ import ChefOrdersPage from './pages/chef/ChefOrdersPage';
 import ChefRequestsPage from './pages/chef/ChefRequestsPage';
 import ChefReviewsPage from './pages/chef/ChefReviewsPage';
 
+function ProtectedRoute({
+  children,
+  chefOnly = false,
+  customerOnly = false,
+}: {
+  children: React.ReactNode;
+  chefOnly?: boolean;
+  customerOnly?: boolean;
+}) {
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const fetchUser = useAuthStore((s) => s.fetchUser);
+  const [hydrated, setHydrated] = useState(() => useAuthStore.persist.hasHydrated());
+  const [bootstrapping, setBootstrapping] = useState(false);
+
+  useEffect(() => {
+    const unsub = useAuthStore.persist.onFinishHydration(() => setHydrated(true));
+    setHydrated(useAuthStore.persist.hasHydrated());
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+    let cancelled = false;
+    const hasSession = Boolean(token || localStorage.getItem('token'));
+    if (!hasSession || user) {
+      setBootstrapping(false);
+      return;
+    }
+    setBootstrapping(true);
+    void fetchUser().finally(() => {
+      if (!cancelled) {
+        setBootstrapping(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, token, user, fetchUser]);
+
+  if (!hydrated || bootstrapping) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary-600" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (chefOnly && user.role !== 'CHEF' && user.role !== 'ADMIN') {
+    return <Navigate to="/" replace />;
+  }
+
+  if (customerOnly && user.role !== 'CUSTOMER') {
+    return <Navigate to="/chef" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function App() {
-  const { user } = useAuthStore();
-
-  const ProtectedRoute = ({ children, chefOnly = false, customerOnly = false }: { children: React.ReactNode; chefOnly?: boolean; customerOnly?: boolean }) => {
-    if (!user) {
-      return <Navigate to="/login" replace />;
-    }
-
-    if (chefOnly && user.role !== 'CHEF' && user.role !== 'ADMIN') {
-      return <Navigate to="/" replace />;
-    }
-
-    if (customerOnly && user.role !== 'CUSTOMER') {
-      return <Navigate to="/chef" replace />;
-    }
-
-    return <>{children}</>;
-  };
-
   return (
     <BrowserRouter>
       <UnauthorizedRedirect />

@@ -1,13 +1,13 @@
 ---
 name: order-lifecycle
-description: Order status machine, Prisma enum migrations, Chef transitions, and customer tracking labels
+description: Order status machine, Prisma enum migrations, Chef transitions, customer tracking labels, and live polling
 ---
 
 # Order lifecycle
 
 ## Use this Skill when
 
-Changing `OrderStatus`, Chef fulfillment buttons, customer status labels/trackers, status emails, or transition validation.
+Changing `OrderStatus`, Chef fulfillment buttons, customer status labels/trackers, status emails, transition validation, or customer order polling.
 
 ## Status machine (Slice 5+)
 
@@ -21,6 +21,17 @@ PENDING → PREPARING → READY → OUT_FOR_DELIVERY → COMPLETED
 - Server enforces transitions in `assertValidOrderStatusTransition` (`orderStatusTransitions.ts`), called from `setOrderStatus`
 - Same-status updates are allowed (payment sync may re-assert `PENDING`)
 - Reviews require `COMPLETED` + `PAID`
+
+## Client polling (Slice 6+)
+
+- Interval: `CUSTOMER_ORDER_POLL_MS` = **15s** (`frontend/src/lib/customerOrders.ts`)
+- **List** (`customerOrdersQueryOptions`): poll while any order is `isActiveCustomerOrder` (PAID && not COMPLETED/CANCELLED)
+- **Confirmation** (`customerOrderQueryOptions`): poll while `shouldPollCustomerOrder` (not COMPLETED/CANCELLED); includes unpaid settle path
+- Confirmation syncs into list cache via `syncCustomerOrderIntoListCache` so Home/Orders stay consistent
+- Use `refetchIntervalInBackground: true` so status keeps updating when the tab is not focused (Chef working in another window)
+- Do not flash full-page loading on background refetches (use React Query `isLoading` for initial only)
+- Prefer polling over websockets unless a later plan explicitly adds realtime transport
+- Protected routes should wait for zustand persist hydration + `fetchUser` when a token exists (otherwise refresh of `/orders/:id` bounces to login)
 
 ## Enum migration pattern
 
@@ -36,18 +47,20 @@ PENDING → PREPARING → READY → OUT_FOR_DELIVERY → COMPLETED
 | Transitions | `backend/src/services/orderStatusTransitions.ts` |
 | Writer | `backend/src/services/order.service.ts` → `setOrderStatus` |
 | Chef UI | `frontend/src/pages/chef/ChefOrdersPage.tsx` |
-| Labels | `frontend/src/lib/customerOrders.ts` |
+| Labels / polling | `frontend/src/lib/customerOrders.ts` |
 | Tracker | `frontend/src/components/OrderTracker.tsx` |
+| Confirmation | `frontend/src/pages/OrderConfirmationPage.tsx` |
 | Emails | `backend/src/services/emailService.ts` |
+| Live E2E | `e2e/order-tracking.spec.ts` |
 
 ## Validation
 
 - Unit: transition matrix
 - Integration: illegal skip returns 400; full walk to COMPLETED sets `completedAt`
-- E2E: Chef Start Preparing → Mark Ready → Out for delivery → Complete
+- E2E: Chef advances while customer confirmation stays open; status updates without reload (~25s poll window)
 
 ## Prohibited
 
 - Do not allow Chef to skip steps via API.
 - Do not set review-eligible status before `COMPLETED`.
-- Do not silently expand into live-polling work (Slice 6) without plan approval.
+- Do not introduce websockets without a new approved plan.

@@ -72,8 +72,12 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 - `backend/tests/unit/orderStatusTransitions.test.ts`: transition matrix
 - `backend/tests/integration/order-status-transitions.test.ts`: skip rejected; full walk to COMPLETED
 - `e2e/chef-flow.spec.ts`: Start Preparing → Mark Ready → Out for delivery → Complete
-- `e2e/order-tracking.spec.ts`: customer sees Preparing + Out for delivery tracker labels
 - Evidence: `.agent/evidence/out-for-delivery-20260820/validation.md`
+
+### Slice 6 — live order tracking
+
+- `e2e/order-tracking.spec.ts`: Chef advances while customer confirmation stays open; Preparing appears without reload (≤25s poll window)
+- Evidence: `.agent/evidence/live-order-tracking-20260820/validation.md`
 
 ## Manual checks
 
@@ -90,3 +94,5 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 `.agent/evidence/chef-nav-active-20260817/`
 
 `.agent/evidence/out-for-delivery-20260820/`
+
+`.agent/evidence/live-order-tracking-20260820/`

@@ -1,62 +1,49 @@
-# Implementation Plan — Slice 5: Out for delivery
+# Implementation Plan — Slice 6: Live order tracking
 
 ## Metadata
 
 - Status: **APPROVED**
-- Plan ID: `slice-5-out-for-delivery-2026-08-20`
-- Parent plan: `post-launch-ux-batch-2026-08-15` (Slices 1–4 complete; PR #18 merged)
-- Issue: [#19](https://github.com/loganware05/TrapHouseKitchen/issues/19)
-- Base: `origin/main` after PR #18 (`78845c2`)
-- Branch: `feature/local-out-for-delivery`
-- Rollback checkpoint: `checkpoint/out-for-delivery-2026-08-20` (`78845c2`)
+- Plan ID: `slice-6-live-order-tracking-2026-08-20`
+- Parent plan: `post-launch-ux-batch-2026-08-15` (Slices 1–5 complete; PR #20 merged)
+- Issue: `local/live-order-tracking`
+- Base: `origin/main` after PR #20 (`271cb65`)
+- Branch: `feature/local-live-order-tracking`
+- Rollback checkpoint: `checkpoint/live-order-tracking-2026-08-20`
 - Created: 2026-08-20
 - Last updated: 2026-08-20
 
 ## Request
 
-Continue the post-launch UX batch with **Slice 5 — Order status expansion**: add `OUT_FOR_DELIVERY` so every order flows Placed → Preparing → Ready → Out for delivery → Complete.
+Poll order status on confirmation (~15s) so Chef updates appear without reload.
 
 ## Captain decisions
 
 | Topic | Decision |
 |-------|----------|
-| Delivery model | Delivery only — all orders go through Out for delivery |
-| Customer PENDING label | “Placed” |
-| OrderTracker | **A** — expand to five steps in this slice |
-| Transitions | Strict linear forward-only (+ CANCELLED from non-terminal) |
-| Email | Yes — Out for delivery email when status advances |
+| Poll interval | **15s** (same as list) |
+| Chef auto-refresh | **No** in this slice |
+| Tracker | Five steps already shipped (Slice 5) |
 
 ## Scope
 
-### In scope
-
-- Prisma enum + additive migration for `OUT_FOR_DELIVERY`
-- Server transition validation used by Chef `PATCH`
-- Chef order actions + badge colors
-- Customer labels, badges, five-step OrderTracker
-- Email copy for `OUT_FOR_DELIVERY`
-- Fix READY label “Ready for pickup” → “Ready”
-- Tests, E2E, skill, docs, evidence
-
-### Out of scope
-
-- Live polling refinements (Slice 6)
-- Dynamic ETA (Slice 9)
-- Dorm validation-message polish (stashed separately)
+- Confirmation page React Query + 15s refetch while active
+- Sync detail → list cache
+- Live E2E without customer reload
+- Skill + docs + evidence
+- Auth hydrate fix so `/orders/:id` refresh stays logged in
 
 ## Acceptance criteria
 
-- [x] DB enum includes `OUT_FOR_DELIVERY`
-- [x] Chef advances PENDING → PREPARING → READY → OUT_FOR_DELIVERY → COMPLETED
-- [x] Illegal jumps return 400
-- [x] Customer labels: Placed, Preparing, Ready, Out for delivery, Completed
-- [x] Status emails include OUT_FOR_DELIVERY
-- [x] Reviews still require COMPLETED + PAID
-- [x] Validation green; evidence + docs updated
+- [x] Confirmation polls ~15s while active; stops on COMPLETED/CANCELLED
+- [x] Orders list continues to poll with tracker
+- [x] Chef change appears without customer reload
+- [x] Live E2E green (`aria-current` → Preparing within ~15s)
+- [x] Frontend tsc green
+- [x] Evidence + docs updated
 
 ## Approval Record
 
 - **Status:** APPROVED
 - **Approved by:** Captain (Logan)
 - **Approval date:** 2026-08-20
-- **Defaults accepted:** five-step tracker, strict linear transitions, out-for-delivery email
+- **Defaults accepted:** 15s interval; no Chef-side auto-refresh
