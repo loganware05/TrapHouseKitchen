@@ -9,6 +9,7 @@ const statusColors = {
   PENDING: 'bg-yellow-100 text-yellow-800',
   PREPARING: 'bg-blue-100 text-blue-800',
   READY: 'bg-green-100 text-green-800',
+  OUT_FOR_DELIVERY: 'bg-indigo-100 text-indigo-800',
   COMPLETED: 'bg-gray-100 text-gray-800',
   CANCELLED: 'bg-red-100 text-red-800',
 };
@@ -238,6 +239,15 @@ export default function ChefOrdersPage() {
                       </button>
                     )}
                     {order.status === 'READY' && (
+                      <button
+                        onClick={() => handleStatusChange(order.id, 'OUT_FOR_DELIVERY')}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                      >
+                        <MapPin className="h-4 w-4" />
+                        Out for delivery
+                      </button>
+                    )}
+                    {order.status === 'OUT_FOR_DELIVERY' && (
                       <button
                         onClick={() => handleStatusChange(order.id, 'COMPLETED')}
                         className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"

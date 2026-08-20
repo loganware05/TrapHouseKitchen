@@ -37,6 +37,7 @@ test.describe('Chef operations', () => {
     if (await startBtn.isVisible().catch(() => false)) {
       await startBtn.click();
       await page.getByRole('button', { name: /mark ready/i }).first().click();
+      await page.getByRole('button', { name: /out for delivery/i }).first().click();
       await page.getByRole('button', { name: /^complete$/i }).click();
     }
 

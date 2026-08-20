@@ -65,13 +65,14 @@ test.describe('Order tracking', () => {
     await loginCustomerUi(customerPage);
     await customerPage.goto('/orders');
     await expect(customerPage.getByRole('heading', { name: /my orders/i })).toBeVisible({ timeout: 20_000 });
-    await expect(customerPage.getByText('PREPARING').first()).toBeVisible({ timeout: 15_000 });
+    await expect(customerPage.getByText('Preparing').first()).toBeVisible({ timeout: 15_000 });
 
     await customerPage.goto(`/orders/${orderId}`);
     await expect(customerPage.getByRole('list', { name: /order progress/i })).toBeVisible({
       timeout: 20_000,
     });
     await expect(customerPage.getByText('Preparing').first()).toBeVisible();
+    await expect(customerPage.getByText('Out for delivery').first()).toBeVisible();
 
     await customerPage.close();
   });

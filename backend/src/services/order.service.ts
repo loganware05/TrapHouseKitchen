@@ -13,6 +13,7 @@ import {
   reconcileRecentPendingOrdersForUser,
 } from './paymentFinalization.service';
 import { resolveDeliveryLocation, type DeliveryInput } from './deliveryLocation.service';
+import { assertValidOrderStatusTransition } from './orderStatusTransitions';
 
 export {
   ABANDONED_ORDER_MAX_AGE_MS,
@@ -31,6 +32,8 @@ interface SetOrderStatusOptions {
   emailData?: {
     estimatedTime?: string;
   };
+  /** Skip linear transition checks (internal/payment paths only). */
+  skipTransitionCheck?: boolean;
 }
 
 /**
@@ -42,6 +45,18 @@ export async function setOrderStatus(
   status: OrderStatus,
   options?: SetOrderStatusOptions
 ) {
+  const existing = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { status: true },
+  });
+  if (!existing) {
+    throw new AppError('Order not found', 404);
+  }
+
+  if (!options?.skipTransitionCheck) {
+    assertValidOrderStatusTransition(existing.status, status);
+  }
+
   const order = await prisma.order.update({
     where: { id: orderId },
     data: {
@@ -58,7 +73,10 @@ export async function setOrderStatus(
     },
   });
 
-  if (options?.sendEmail && ['PREPARING', 'READY', 'COMPLETED', 'CANCELLED'].includes(status)) {
+  if (
+    options?.sendEmail &&
+    ['PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'COMPLETED', 'CANCELLED'].includes(status)
+  ) {
     sendOrderStatusEmail({
       customerName: order.user.name,
       customerEmail: order.user.email || '',

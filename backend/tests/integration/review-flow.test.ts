@@ -125,15 +125,14 @@ describe('Review Flow Integration Tests', () => {
 
   describe('Order Status and completedAt', () => {
     it('should set completedAt when chef marks order as COMPLETED', async () => {
-      // Update order status to COMPLETED
-      const response = await request(app)
-        .patch(`/api/orders/${orderId}/status`)
-        .set('Authorization', `Bearer ${chefToken}`)
-        .send({ status: 'COMPLETED' })
-        .expect(200);
-
-      expect(response.body.status).toBe('success');
-      expect(response.body.data.order.status).toBe('COMPLETED');
+      for (const status of ['PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'COMPLETED'] as const) {
+        const response = await request(app)
+          .patch(`/api/orders/${orderId}/status`)
+          .set('Authorization', `Bearer ${chefToken}`)
+          .send({ status })
+          .expect(200);
+        expect(response.body.data.order.status).toBe(status);
+      }
 
       // Verify completedAt is set in database
       const order = await prisma.order.findUnique({
