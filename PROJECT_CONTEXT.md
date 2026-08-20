@@ -54,7 +54,7 @@ Near-term operational success: complete pre-launch verification (soft launch alr
 ## Major Components
 
 - **Customer app:** Menu browse, allergens/dietary filters, cart, guest checkout, Stripe payment, order tracking, per-dish reviews, dish request voting, profile
-- **Chef app:** Dashboard, menu CRUD, order pipeline (Pending → Preparing → Ready → Completed), dish requests, review approve/reject (+ coupon issuance)
+- **Chef app:** Dashboard, menu CRUD, order pipeline (Pending → Preparing → Ready → Out for delivery → Completed), dish requests, review approve/reject (+ coupon issuance)
 - **Payments:** Stripe PaymentIntent + webhooks (hardening slice not yet on `main`)
 - **Auth:** JWT RBAC (customer vs Chef); password reset not yet on `main`
 - **Analytics / AI attribution:** Tip and order attribution features exist on feature branches; land after payment + iOS priorities

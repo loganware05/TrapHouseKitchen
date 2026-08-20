@@ -26,9 +26,9 @@ Backend Vitest unit suite under `backend/tests/unit` — included in `npm run te
 
 Backend Vitest integration suite under `backend/tests/integration` — requires local Postgres (`traphouse-postgres`).
 
-Latest: **59/59 passed** (2026-08-19, Slice 4 dorm delivery).
+Latest: **48/48 passed** in focused Slice 5 run (2026-08-20); full suite includes new `order-status-transitions.test.ts`.
 
-Notable files: `unpaid-order-visibility.test.ts`, `delivery-location.test.ts`.
+Notable files: `unpaid-order-visibility.test.ts`, `delivery-location.test.ts`, `order-status-transitions.test.ts`.
 
 ## End-to-end tests
 
@@ -67,6 +67,14 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 - `e2e/delivery-location.spec.ts`: dorm required + East room number gate
 - `e2e/order-flow.spec.ts`: updated to select dorm before continue
 
+### Slice 5 — out for delivery
+
+- `backend/tests/unit/orderStatusTransitions.test.ts`: transition matrix
+- `backend/tests/integration/order-status-transitions.test.ts`: skip rejected; full walk to COMPLETED
+- `e2e/chef-flow.spec.ts`: Start Preparing → Mark Ready → Out for delivery → Complete
+- `e2e/order-tracking.spec.ts`: customer sees Preparing + Out for delivery tracker labels
+- Evidence: `.agent/evidence/out-for-delivery-20260820/validation.md`
+
 ## Manual checks
 
 - Stripe Payment Method Domains: register `traphousekitchen-web.onrender.com` (sandbox + live)
@@ -80,3 +88,5 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 `.agent/evidence/cart-ux-polish-20260815/`
 
 `.agent/evidence/chef-nav-active-20260817/`
+
+`.agent/evidence/out-for-delivery-20260820/`

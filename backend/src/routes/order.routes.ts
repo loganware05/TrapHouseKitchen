@@ -158,7 +158,7 @@ router.patch(
   '/:id/status',
   authenticate,
   authorize('CHEF', 'ADMIN'),
-  [body('status').isIn(['PENDING', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED'])],
+  [body('status').isIn(['PENDING', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'COMPLETED', 'CANCELLED'])],
   async (req: AuthRequest, res: Response, next: any) => {
     try {
       const errors = validationResult(req);

@@ -19,7 +19,8 @@ export function isActiveCustomerOrder(order: Order): boolean {
 export const customerOrderStatusLabel: Record<OrderStatus, string> = {
   PENDING: 'Placed',
   PREPARING: 'Preparing',
-  READY: 'Ready for pickup',
+  READY: 'Ready',
+  OUT_FOR_DELIVERY: 'Out for delivery',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
 };

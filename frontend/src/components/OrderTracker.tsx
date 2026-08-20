@@ -2,17 +2,19 @@ import { OrderStatus } from '../types';
 import { Check } from 'lucide-react';
 
 const STEPS: { key: string; label: string }[] = [
-  { key: 'received', label: 'Received' },
+  { key: 'placed', label: 'Placed' },
   { key: 'preparing', label: 'Preparing' },
   { key: 'ready', label: 'Ready' },
-  { key: 'pickedup', label: 'Picked up' },
+  { key: 'out', label: 'Out for delivery' },
+  { key: 'complete', label: 'Complete' },
 ];
 
 const statusStepIndex: Record<Exclude<OrderStatus, 'CANCELLED'>, number> = {
   PENDING: 0,
   PREPARING: 1,
   READY: 2,
-  COMPLETED: 3,
+  OUT_FOR_DELIVERY: 3,
+  COMPLETED: 4,
 };
 
 interface OrderTrackerProps {
@@ -52,7 +54,7 @@ export default function OrderTracker({ status, className = '' }: OrderTrackerPro
                 {done ? <Check className="h-4 w-4" strokeWidth={3} /> : index + 1}
               </div>
               <span
-                className={`mt-2 text-center text-xs font-medium leading-tight ${
+                className={`mt-2 text-center text-[10px] sm:text-xs font-medium leading-tight ${
                   current ? 'text-gray-900' : done ? 'text-gray-600' : 'text-gray-400'
                 }`}
               >

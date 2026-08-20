@@ -183,15 +183,21 @@ function generateOrderStatusHTML(data: OrderStatusEmailData): string {
       icon: '👨‍🍳'
     },
     READY: {
-      title: 'Order is Ready for Pickup!',
+      title: 'Order is Ready',
       color: '#16a34a',
-      message: 'Your order is ready! Come pick it up whenever you\'re ready.',
+      message: 'Your order is ready and will head out for delivery shortly.',
       icon: '✅'
+    },
+    OUT_FOR_DELIVERY: {
+      title: 'Out for Delivery',
+      color: '#2563eb',
+      message: 'Your order is on the way to your dorm!',
+      icon: '🛵'
     },
     COMPLETED: {
       title: 'Order Completed',
       color: '#16a34a',
-      message: 'Thank you for picking up your order! We hope you enjoyed it.',
+      message: 'Your order has been delivered. We hope you enjoy it!',
       icon: '🎉'
     },
     CANCELLED: {
@@ -234,16 +240,23 @@ function generateOrderStatusHTML(data: OrderStatusEmailData): string {
 
         ${data.status === 'READY' && data.estimatedTime ? `
           <div style="background-color: #f0fdf4; border-radius: 8px; padding: 20px; margin-bottom: 25px; text-align: center;">
-            <h3 style="color: #16a34a; margin: 0 0 10px 0;">Ready for Pickup</h3>
-            <p style="margin: 0; color: #166534; font-size: 14px;">Come anytime to pick up your order</p>
+            <h3 style="color: #16a34a; margin: 0 0 10px 0;">Ready for Delivery</h3>
+            <p style="margin: 0; color: #166534; font-size: 14px;">Your meal will be out for delivery soon</p>
           </div>
         ` : ''}
 
-        <!-- Pickup Location -->
+        ${data.status === 'OUT_FOR_DELIVERY' ? `
+          <div style="background-color: #eff6ff; border-radius: 8px; padding: 20px; margin-bottom: 25px; text-align: center;">
+            <h3 style="color: #2563eb; margin: 0 0 10px 0;">On the way</h3>
+            <p style="margin: 0; color: #1e40af; font-size: 14px;">Watch for your delivery at your selected dorm</p>
+          </div>
+        ` : ''}
+
+        <!-- Delivery note -->
         <div style="background-color: #eff6ff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-          <h3 style="color: #1e40af; margin: 0 0 12px 0; font-size: 16px;">📍 Pickup Location</h3>
+          <h3 style="color: #1e40af; margin: 0 0 12px 0; font-size: 16px;">📍 Delivery</h3>
           <p style="margin: 0 0 5px 0; font-weight: bold; color: #1e3a8a;">${RESTAURANT_NAME}</p>
-          <p style="margin: 0; color: #3b82f6; font-size: 14px;">${RESTAURANT_ADDRESS}</p>
+          <p style="margin: 0; color: #3b82f6; font-size: 14px;">Orders are delivered to your selected dorm</p>
           <p style="margin: 10px 0 0 0; color: #1e3a8a; font-size: 14px;">
             📞 ${RESTAURANT_PHONE}
           </p>
