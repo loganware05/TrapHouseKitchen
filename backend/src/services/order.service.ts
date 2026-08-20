@@ -12,6 +12,7 @@ import {
   reconcileRecentPendingOrdersForChef,
   reconcileRecentPendingOrdersForUser,
 } from './paymentFinalization.service';
+import { resolveDeliveryLocation, type DeliveryInput } from './deliveryLocation.service';
 
 export {
   ABANDONED_ORDER_MAX_AGE_MS,
@@ -129,13 +130,15 @@ async function buildOrderItemsFromInput(items: OrderItemInput[]) {
 export async function createUnpaidOrder(
   userId: string,
   items: OrderItemInput[],
-  specialInstructions?: string | null
+  specialInstructions?: string | null,
+  delivery?: DeliveryInput
 ) {
   await assertNoAllergenConflicts(
     userId,
     items.map(i => i.dishId)
   );
   const { totalPrice, orderItems } = await buildOrderItemsFromInput(items);
+  const deliveryLocation = delivery ? resolveDeliveryLocation(delivery) : null;
 
   return prisma.order.create({
     data: {
@@ -144,6 +147,7 @@ export async function createUnpaidOrder(
       finalAmount: totalPrice,
       tipAmount: 0,
       specialInstructions: specialInstructions || null,
+      deliveryLocation,
       items: {
         create: orderItems,
       },
@@ -284,9 +288,23 @@ export async function createOrderAndPaymentIntent(params: {
   tipAmount?: number;
   couponCode?: string;
   savedPaymentMethodId?: string;
+  deliveryDorm: string;
+  deliveryRoomNumber?: string | null;
 }) {
-  const { userId, items, specialInstructions, tipAmount, couponCode, savedPaymentMethodId } = params;
-  const order = await createUnpaidOrder(userId, items, specialInstructions);
+  const {
+    userId,
+    items,
+    specialInstructions,
+    tipAmount,
+    couponCode,
+    savedPaymentMethodId,
+    deliveryDorm,
+    deliveryRoomNumber,
+  } = params;
+  const order = await createUnpaidOrder(userId, items, specialInstructions, {
+    deliveryDorm,
+    deliveryRoomNumber,
+  });
   try {
     const payment = await createPaymentIntentForOrder({
       userId,

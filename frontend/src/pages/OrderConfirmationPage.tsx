@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, Clock, MapPin, Phone, Mail, Package, ArrowRight } from 'lucide-react';
+import { CheckCircle, Clock, MapPin, Package, ArrowRight } from 'lucide-react';
 import api from '../lib/api';
 import { Order } from '../types';
 import OrderTracker from '../components/OrderTracker';
@@ -139,11 +139,11 @@ export default function OrderConfirmationPage() {
           </div>
         </div>
 
-        {/* Pickup Info */}
+        {/* Delivery timing */}
         <div className="bg-white rounded-th-xl shadow-th-card p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
             <Clock className="h-6 w-6 mr-2 text-primary-600" />
-            Estimated pickup
+            Estimated delivery
           </h2>
           <div className="bg-primary-50 border-2 border-primary-200 rounded-th-lg p-6 text-center">
             <p className="text-sm text-gray-600 mb-2">Ready around</p>
@@ -228,29 +228,18 @@ export default function OrderConfirmationPage() {
           )}
         </div>
 
-        {/* Pickup Location */}
+        {/* Delivery Location */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
             <MapPin className="h-6 w-6 mr-2 text-primary-600" />
-            Pickup Location
+            Delivery location
           </h2>
           <div className="space-y-3">
             <div>
-              <p className="text-lg font-semibold text-gray-900">TrapHouse Kitchen</p>
-              <p className="text-gray-600">123 Main Street</p>
-              <p className="text-gray-600">Birmingham, AL 35203</p>
-            </div>
-            <div className="flex items-center space-x-4 pt-3 border-t">
-              <div className="flex items-center text-gray-600">
-                <Phone className="h-5 w-5 mr-2" />
-                <a href="tel:+12055551234" className="hover:text-primary-600">(205) 555-1234</a>
-              </div>
-              <div className="flex items-center text-gray-600">
-                <Mail className="h-5 w-5 mr-2" />
-                <a href="mailto:info@traphousekitchen.com" className="hover:text-primary-600">
-                  info@traphousekitchen.com
-                </a>
-              </div>
+              <p className="text-lg font-semibold text-gray-900">
+                {order.deliveryLocation ?? 'Delivery location not recorded'}
+              </p>
+              <p className="text-gray-600">Campus dorm delivery</p>
             </div>
           </div>
         </div>
@@ -265,11 +254,11 @@ export default function OrderConfirmationPage() {
             </li>
             <li className="flex items-start">
               <span className="font-bold text-primary-600 mr-2">2.</span>
-              <span>We'll notify you when your order is ready for pickup</span>
+              <span>We&apos;ll notify you when your order is out for delivery to your dorm</span>
             </li>
             <li className="flex items-start">
               <span className="font-bold text-primary-600 mr-2">3.</span>
-              <span>Come to our location and show your order number</span>
+              <span>Meet your delivery at the location shown above</span>
             </li>
             {order.paymentStatus === 'UNPAID' && (
               <li className="flex items-start">

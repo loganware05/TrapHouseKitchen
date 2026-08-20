@@ -129,6 +129,7 @@ export interface Order {
   tipAmount: number;
   finalAmount: number;
   specialInstructions?: string;
+  deliveryLocation?: string | null;
   prepTime?: number;
   isArchived: boolean;
   appliedCouponId?: string;

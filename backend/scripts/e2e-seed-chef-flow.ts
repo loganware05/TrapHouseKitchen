@@ -89,6 +89,7 @@ async function main() {
         totalPrice: dish.price,
         tipAmount: 0,
         finalAmount: dish.price,
+        deliveryLocation: 'Harvey Hall',
         completedAt: new Date(),
         items: {
           create: [{ dishId: dish.id, quantity: 1, priceAtOrder: dish.price }],
@@ -159,6 +160,7 @@ async function main() {
         totalPrice: dish.price,
         tipAmount: 0,
         finalAmount: dish.price,
+        deliveryLocation: 'Tantum Hall',
         specialInstructions: 'E2E_ORDER_TRACKING',
         items: {
           create: [{ dishId: dish.id, quantity: 1, priceAtOrder: dish.price }],

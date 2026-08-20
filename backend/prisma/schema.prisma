@@ -237,6 +237,7 @@ model Order {
   tipAmount     Float         @default(0)
   finalAmount   Float
   specialInstructions String?
+  deliveryLocation  String?
   prepTime      Int?          // Estimated preparation time in minutes
   isArchived    Boolean       @default(false)
   appliedCouponId String?

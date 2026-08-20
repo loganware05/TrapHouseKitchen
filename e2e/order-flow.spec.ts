@@ -34,6 +34,7 @@ test.describe('Customer order flow', () => {
     await cartButton.click();
 
     await expect(page.getByRole('heading', { name: /your order/i })).toBeVisible();
+    await page.getByTestId('delivery-dorm-select').selectOption('Harvey Hall');
     await expect(page.getByRole('button', { name: /continue to payment/i })).toBeVisible();
   });
 });
