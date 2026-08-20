@@ -2,7 +2,7 @@
 
 ## Current status
 
-Slice 5 (`OUT_FOR_DELIVERY`) is implemented on `feature/local-out-for-delivery` (issue #19), locally validated; PR pending.
+Slice 6 (live order tracking) is implemented on `feature/local-live-order-tracking`, locally typechecked; PR pending.
 
 ## Completed
 
@@ -11,17 +11,17 @@ Slice 5 (`OUT_FOR_DELIVERY`) is implemented on `feature/local-out-for-delivery` 
 - Slice 2 Chef nav active-state shipped via PR #16
 - Slice 3 payment visibility + sync shipped via PR #17
 - Slice 4 dorm delivery shipped via PR #18
-- Slice 5: order status expansion with `OUT_FOR_DELIVERY`, strict transitions, five-step tracker
-- Slice 5 validation: backend unit 15/15; integration 48/48; frontend tsc pass
+- Slice 5 OUT_FOR_DELIVERY shipped via PR #20
+- Slice 6: confirmation-page 15s polling + live E2E; list polling retained
 
 ## In progress
 
-- Slice 5 PR open/review
+- Slice 6 PR open/review
 
 ## Next
 
-1. Merge Slice 5 PR
-2. Slice 6: live order tracking (polling polish)
+1. Merge Slice 6 PR
+2. Slice 7: pull-to-refresh
 
 ## Blockers
 

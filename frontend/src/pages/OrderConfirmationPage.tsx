@@ -1,66 +1,52 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Clock, MapPin, Package, ArrowRight } from 'lucide-react';
-import api from '../lib/api';
-import { Order } from '../types';
 import OrderTracker from '../components/OrderTracker';
-import { invalidateCustomerOrders } from '../lib/customerOrders';
+import {
+  customerOrderQueryOptions,
+  syncCustomerOrderIntoListCache,
+} from '../lib/customerOrders';
 
 export default function OrderConfirmationPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
   const [nowTick, setNowTick] = useState(() => Date.now());
 
   const paymentSuccess = location.state?.paymentSuccess || false;
-  const prepTime = location.state?.prepTime || order?.prepTime || 25;
 
   useEffect(() => {
     if (!orderId) {
       navigate('/orders');
+    }
+  }, [orderId, navigate]);
+
+  const {
+    data: order,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    ...customerOrderQueryOptions(orderId ?? '', !!orderId),
+  });
+
+  useEffect(() => {
+    if (!order) {
       return;
     }
-
-    fetchOrder();
-  }, [orderId]);
+    syncCustomerOrderIntoListCache(queryClient, order);
+  }, [order, queryClient]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNowTick(Date.now()), 30_000);
     return () => window.clearInterval(id);
   }, []);
 
-  const fetchOrder = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get(`/orders/${orderId}`);
-      let nextOrder = response.data.data.order;
+  const prepTime = location.state?.prepTime || order?.prepTime || 25;
 
-      if (nextOrder.paymentStatus !== 'PAID') {
-        try {
-          await api.post(`/payment/sync-order/${orderId}`);
-          const refreshed = await api.get(`/orders/${orderId}`);
-          nextOrder = refreshed.data.data.order;
-        } catch (syncError) {
-          console.warn('Order payment sync failed:', syncError);
-        }
-      }
-
-      setOrder(nextOrder);
-      invalidateCustomerOrders(queryClient);
-    } catch (error: any) {
-      console.error('Error fetching order:', error);
-      setError('Unable to load order details');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -71,7 +57,7 @@ export default function OrderConfirmationPage() {
     );
   }
 
-  if (error || !order) {
+  if (isError || !order) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center max-w-md mx-auto px-4">
@@ -80,7 +66,9 @@ export default function OrderConfirmationPage() {
               <Package className="h-16 w-16 mx-auto" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Not Found</h2>
-            <p className="text-gray-600 mb-6">{error || 'Unable to find this order'}</p>
+            <p className="text-gray-600 mb-6">
+              {(error as Error)?.message || 'Unable to find this order'}
+            </p>
             <button
               onClick={() => navigate('/orders')}
               className="w-full px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
@@ -120,7 +108,6 @@ export default function OrderConfirmationPage() {
           )}
         </div>
 
-        {/* Success Header */}
         <div className="bg-white rounded-th-xl shadow-th-card p-8 mb-6 text-center">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
             <CheckCircle className="h-12 w-12 text-green-600" />
@@ -129,7 +116,7 @@ export default function OrderConfirmationPage() {
             {paymentSuccess ? 'Order Confirmed!' : 'Order Received!'}
           </h1>
           <p className="text-lg text-gray-600 mb-4">
-            {paymentSuccess 
+            {paymentSuccess
               ? 'Your payment was successful and your order is being prepared.'
               : 'Your order has been placed successfully.'}
           </p>
@@ -139,7 +126,6 @@ export default function OrderConfirmationPage() {
           </div>
         </div>
 
-        {/* Delivery timing */}
         <div className="bg-white rounded-th-xl shadow-th-card p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
             <Clock className="h-6 w-6 mr-2 text-primary-600" />
@@ -148,10 +134,10 @@ export default function OrderConfirmationPage() {
           <div className="bg-primary-50 border-2 border-primary-200 rounded-th-lg p-6 text-center">
             <p className="text-sm text-gray-600 mb-2">Ready around</p>
             <p className="text-3xl font-bold text-primary-600 mb-2 tabular-nums">
-              {estimatedPickupTime.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
+              {estimatedPickupTime.toLocaleTimeString('en-US', {
+                hour: 'numeric',
                 minute: '2-digit',
-                hour12: true 
+                hour12: true,
               })}
             </p>
             <p className="text-sm text-gray-600">
@@ -165,7 +151,6 @@ export default function OrderConfirmationPage() {
           </div>
         </div>
 
-        {/* Payment Info */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Payment Details</h2>
           <div className="space-y-3">
@@ -185,20 +170,25 @@ export default function OrderConfirmationPage() {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Payment Status</span>
-              <span className={`font-medium ${
-                order.paymentStatus === 'PAID' ? 'text-green-600' : 
-                order.paymentStatus === 'UNPAID' ? 'text-yellow-600' : 
-                'text-gray-600'
-              }`}>
-                {order.paymentStatus === 'PAID' ? '✓ Paid' : 
-                 order.paymentStatus === 'UNPAID' ? 'Pay on Pickup' : 
-                 order.paymentStatus}
+              <span
+                className={`font-medium ${
+                  order.paymentStatus === 'PAID'
+                    ? 'text-green-600'
+                    : order.paymentStatus === 'UNPAID'
+                      ? 'text-yellow-600'
+                      : 'text-gray-600'
+                }`}
+              >
+                {order.paymentStatus === 'PAID'
+                  ? '✓ Paid'
+                  : order.paymentStatus === 'UNPAID'
+                    ? 'Pay on Pickup'
+                    : order.paymentStatus}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Order Items */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Order Items</h2>
           <div className="space-y-4">
@@ -228,7 +218,6 @@ export default function OrderConfirmationPage() {
           )}
         </div>
 
-        {/* Delivery Location */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
             <MapPin className="h-6 w-6 mr-2 text-primary-600" />
@@ -244,13 +233,12 @@ export default function OrderConfirmationPage() {
           </div>
         </div>
 
-        {/* What's Next */}
         <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-3">What's Next?</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-3">What&apos;s Next?</h2>
           <ol className="space-y-2 text-sm text-gray-700">
             <li className="flex items-start">
               <span className="font-bold text-primary-600 mr-2">1.</span>
-              <span>You'll receive a confirmation email with your order details</span>
+              <span>You&apos;ll receive a confirmation email with your order details</span>
             </li>
             <li className="flex items-start">
               <span className="font-bold text-primary-600 mr-2">2.</span>
@@ -269,7 +257,6 @@ export default function OrderConfirmationPage() {
           </ol>
         </div>
 
-        {/* Action Buttons */}
         <div className="grid md:grid-cols-2 gap-4">
           <button
             onClick={() => navigate('/orders')}
@@ -286,10 +273,12 @@ export default function OrderConfirmationPage() {
           </button>
         </div>
 
-        {/* Email Confirmation Notice */}
         <div className="mt-6 text-center text-sm text-gray-500">
           <p>A confirmation email has been sent to your email address.</p>
-          <p className="mt-1">Save this order number for your records: <span className="font-mono font-bold text-gray-700">#{order.orderNumber}</span></p>
+          <p className="mt-1">
+            Save this order number for your records:{' '}
+            <span className="font-mono font-bold text-gray-700">#{order.orderNumber}</span>
+          </p>
         </div>
       </div>
     </div>
