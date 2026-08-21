@@ -1,16 +1,17 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ChevronRight, Plus, RotateCcw } from 'lucide-react';
 import api from '../lib/api';
 import { Dish, Category, Allergen, Order } from '../types';
-import { customerOrdersQueryOptions } from '../lib/customerOrders';
+import { customerOrdersQueryKey, customerOrdersQueryOptions } from '../lib/customerOrders';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
 import { toast } from 'sonner';
 import { trackEvent } from '../stores/analyticsStore';
 import SpendTracker from '../components/SpendTracker';
+import PullToRefresh from '../components/PullToRefresh';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -66,9 +67,11 @@ function DishStripCard({
 }
 
 export default function HomePage() {
+  const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const addItem = useCartStore((s) => s.addItem);
   const openCheckout = useCheckoutSheetStore((s) => s.open);
+  const checkoutOpen = useCheckoutSheetStore((s) => s.isOpen);
   const [userAllergens, setUserAllergens] = useState<string[]>([]);
 
   const { data: categoriesData } = useQuery({
@@ -99,6 +102,21 @@ export default function HomePage() {
   const { data: ordersData } = useQuery(
     customerOrdersQueryOptions(!!user && user.role === 'CUSTOMER')
   );
+
+  const handlePullRefresh = useCallback(async () => {
+    const tasks = [
+      queryClient.invalidateQueries({ queryKey: ['categories'] }),
+      queryClient.invalidateQueries({ queryKey: ['dishes', 'home-all'] }),
+    ];
+    if (user) {
+      tasks.push(queryClient.invalidateQueries({ queryKey: ['userProfile'] }));
+    }
+    if (user?.role === 'CUSTOMER') {
+      tasks.push(queryClient.invalidateQueries({ queryKey: customerOrdersQueryKey }));
+      tasks.push(queryClient.invalidateQueries({ queryKey: ['orders', 'spend-tracker'] }));
+    }
+    await Promise.all(tasks);
+  }, [queryClient, user]);
 
   useEffect(() => {
     if (userProfile?.allergenProfile) {
@@ -213,6 +231,7 @@ export default function HomePage() {
   };
 
   return (
+    <PullToRefresh onRefresh={handlePullRefresh} enabled={!checkoutOpen}>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:ml-64 pb-28 md:pb-8">
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
@@ -317,5 +336,6 @@ export default function HomePage() {
         </section>
       )}
     </div>
+    </PullToRefresh>
   );
 }

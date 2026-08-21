@@ -79,6 +79,13 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 - `e2e/order-tracking.spec.ts`: Chef advances while customer confirmation stays open; Preparing appears without reload (≤25s poll window)
 - Evidence: `.agent/evidence/live-order-tracking-20260820/validation.md`
 
+### Slice 7 — pull-to-refresh
+
+- Logic selftest: `cd frontend && npx tsx src/lib/pullToRefreshLogic.selftest.ts`
+- Surfaces: Home, Menu, Orders, Chef dashboard, Chef orders via `PullToRefresh`
+- `e2e/mobile.spec.ts`: best-effort touch pull on Orders (iPhone 13 project)
+- Evidence: `.agent/evidence/pull-to-refresh-20260820/validation.md`
+
 ## Manual checks
 
 - Stripe Payment Method Domains: register `traphousekitchen-web.onrender.com` (sandbox + live)
@@ -96,3 +103,5 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 `.agent/evidence/out-for-delivery-20260820/`
 
 `.agent/evidence/live-order-tracking-20260820/`
+
+`.agent/evidence/pull-to-refresh-20260820/`

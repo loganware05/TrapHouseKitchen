@@ -20,3 +20,4 @@
 - Checkout requires a dorm delivery location; East/North/West/Marable also require a room number; location appears on customer and chef order views.
 - Orders advance Placed → Preparing → Ready → Out for delivery → Complete; Chef cannot skip steps; customer tracker shows five delivery-oriented steps.
 - Order confirmation (and active order lists) poll status about every 15 seconds so Chef updates appear without a manual reload.
+- Pull-to-refresh on Home, Menu, Orders, and Chef dashboard/orders (touch, at top of page).

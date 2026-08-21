@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   UtensilsCrossed,
   Package,
@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import api from '../../lib/api';
+import PullToRefresh from '../../components/PullToRefresh';
 
 type DashboardData = {
   period: string;
@@ -44,6 +45,7 @@ type DashboardData = {
 };
 
 export default function ChefDashboard() {
+  const queryClient = useQueryClient();
   const [analyticsPeriod, setAnalyticsPeriod] = useState<'7d' | '30d'>('7d');
 
   const { data: ordersData } = useQuery({
@@ -81,6 +83,15 @@ export default function ChefDashboard() {
     },
   });
 
+  const handlePullRefresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['allOrders'] }),
+      queryClient.invalidateQueries({ queryKey: ['dishes'] }),
+      queryClient.invalidateQueries({ queryKey: ['dishRequests'] }),
+      queryClient.invalidateQueries({ queryKey: ['analyticsDashboard'] }),
+    ]);
+  }, [queryClient]);
+
   const pendingOrders = ordersData?.filter((o: any) => o.status === 'PENDING').length || 0;
   const preparingOrders = ordersData?.filter((o: any) => o.status === 'PREPARING').length || 0;
   const totalDishes = dishesData?.length || 0;
@@ -98,6 +109,7 @@ export default function ChefDashboard() {
     : 1;
 
   return (
+    <PullToRefresh onRefresh={handlePullRefresh}>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Chef Dashboard</h1>
 
@@ -330,5 +342,6 @@ export default function ChefDashboard() {
         )}
       </div>
     </div>
+    </PullToRefresh>
   );
 }
