@@ -1,10 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Package, Clock, CheckCircle, XCircle, Star, ChevronRight, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { Order } from '../types';
 import OrderTracker from '../components/OrderTracker';
+import PullToRefresh from '../components/PullToRefresh';
+import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
 import {
   customerOrderStatusLabel,
   customerOrdersQueryOptions,
@@ -170,6 +172,7 @@ function OrderCard({
 export default function OrdersPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const checkoutOpen = useCheckoutSheetStore((s) => s.isOpen);
   const highlightOrderId = (location.state as { highlightOrderId?: string } | null)
     ?.highlightOrderId;
   const highlightRef = useRef<HTMLDivElement | null>(null);
@@ -178,6 +181,10 @@ export default function OrdersPage() {
   const { data: ordersData, isLoading, isError, refetch, isFetching } = useQuery(
     customerOrdersQueryOptions(true)
   );
+
+  const handlePullRefresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   useEffect(() => {
     if ((location.state as { paymentSuccess?: boolean } | null)?.paymentSuccess && !welcomedRef.current) {
@@ -214,6 +221,7 @@ export default function OrdersPage() {
   }
 
   return (
+    <PullToRefresh onRefresh={handlePullRefresh} enabled={!checkoutOpen}>
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
       <div className="flex items-center justify-between gap-4 mb-8">
         <div>
@@ -305,5 +313,6 @@ export default function OrdersPage() {
         </div>
       )}
     </div>
+    </PullToRefresh>
   );
 }

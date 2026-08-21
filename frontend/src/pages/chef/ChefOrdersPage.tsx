@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Clock, Package, CheckCircle, Archive, RotateCcw, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { Order } from '../../types';
+import PullToRefresh from '../../components/PullToRefresh';
 
 const statusColors = {
   PENDING: 'bg-yellow-100 text-yellow-800',
@@ -102,6 +103,10 @@ export default function ChefOrdersPage() {
     }
   };
 
+  const handlePullRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+  }, [queryClient]);
+
   const currentMaxOrderNumber = ordersData && ordersData.length > 0
     ? Math.max(...ordersData.map((o: Order) => o.orderNumber))
     : 0;
@@ -141,6 +146,7 @@ export default function ChefOrdersPage() {
   }
 
   return (
+    <PullToRefresh onRefresh={handlePullRefresh}>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -340,6 +346,7 @@ export default function ChefOrdersPage() {
         )}
       </div>
     </div>
+    </PullToRefresh>
   );
 }
 

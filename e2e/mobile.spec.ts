@@ -57,4 +57,62 @@ test.describe('Mobile (iPhone 13)', () => {
     await expect(bottomNav.getByRole('link', { name: /^dashboard$/i })).not.toHaveClass(/text-primary-600/);
     await expect(bottomNav.getByRole('link', { name: /^orders$/i })).toHaveClass(/text-primary-600/);
   });
+
+  test('pull-to-refresh on orders refetches list', async ({ page }) => {
+    await page.goto('/login');
+    await page.getByLabel(/email/i).fill(customerEmail);
+    await page.getByLabel(/^password$/i).fill(customerPassword);
+    await page.getByRole('button', { name: /sign in/i }).click();
+    await expect(page.getByRole('heading', { name: /good (morning|afternoon|evening)/i })).toBeVisible({
+      timeout: 25_000,
+    });
+
+    await page.getByRole('link', { name: /^orders$/i }).first().click();
+    await expect(page.getByRole('heading', { name: /my orders/i })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId('pull-to-refresh')).toBeVisible();
+
+    await page.evaluate(() => window.scrollTo(0, 0));
+
+    const ordersRequest = page.waitForResponse(
+      (res) => res.url().includes('/api/orders') && res.request().method() === 'GET',
+      { timeout: 15_000 }
+    );
+
+    // Synthetic touch drag (iPhone project). Falls back to logic selftest if this is flaky in CI.
+    const gestureOk = await page.evaluate(() => {
+      const target = document.querySelector('[data-testid="pull-to-refresh"]') || document.body;
+      if (typeof TouchEvent === 'undefined' || typeof Touch === 'undefined') {
+        return false;
+      }
+      const startY = 80;
+      const endY = 280;
+      const fire = (type: string, y: number, cancelable: boolean) => {
+        const touch = new Touch({
+          identifier: 1,
+          target: target as EventTarget,
+          clientX: 200,
+          clientY: y,
+          pageX: 200,
+          pageY: y,
+        });
+        target.dispatchEvent(
+          new TouchEvent(type, {
+            bubbles: true,
+            cancelable,
+            touches: type === 'touchend' ? [] : [touch],
+            changedTouches: [touch],
+          })
+        );
+      };
+      fire('touchstart', startY, false);
+      fire('touchmove', startY + 40, true);
+      fire('touchmove', startY + 120, true);
+      fire('touchmove', endY, true);
+      fire('touchend', endY, false);
+      return true;
+    });
+
+    test.skip(!gestureOk, 'TouchEvent/Touch constructors unavailable — logic selftest is the gate');
+    await ordersRequest;
+  });
 });
