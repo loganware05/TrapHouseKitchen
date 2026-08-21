@@ -21,3 +21,5 @@
 - Orders advance Placed → Preparing → Ready → Out for delivery → Complete; Chef cannot skip steps; customer tracker shows five delivery-oriented steps.
 - Order confirmation (and active order lists) poll status about every 15 seconds so Chef updates appear without a manual reload.
 - Pull-to-refresh on Home, Menu, Orders, and Chef dashboard/orders (touch, at top of page).
+- Completed paid orders show as receipts on Orders and Profile with per-dish leave-review; review form preselects dish from URL.
+- Chef review approval no longer issues $4 coupons (coupon checkout APIs retained for a later fix).

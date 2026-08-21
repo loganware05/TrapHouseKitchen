@@ -127,7 +127,7 @@ export default function MyReviewsPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">My Reviews</h1>
           <p className="text-gray-600 mt-1">
-            Manage your reviews and discount codes
+            Manage your dish reviews
           </p>
         </div>
         <Link
@@ -142,8 +142,11 @@ export default function MyReviewsPage() {
       {couponsData && couponsData.length > 0 && (
         <div className="mb-8 bg-gradient-to-r from-primary-50 to-primary-100 border border-primary-200 rounded-lg p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Your Discount Codes
+            Saved discount codes
           </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Codes from earlier promotions. Checkout coupon entry may still accept them.
+          </p>
           <div className="grid gap-4 md:grid-cols-2">
             {couponsData.map((coupon) => (
               <div
@@ -279,7 +282,7 @@ export default function MyReviewsPage() {
                   {!review.approved && (
                     <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <p className="text-sm text-yellow-800">
-                        Your review is pending approval. You'll receive a $4 discount code once it's approved!
+                        Your review is pending chef approval before it appears publicly.
                       </p>
                     </div>
                   )}
@@ -292,7 +295,7 @@ export default function MyReviewsPage() {
         <div className="text-center py-12 bg-white rounded-lg shadow-md">
           <p className="text-xl text-gray-600 mb-2">No reviews yet</p>
           <p className="text-gray-500 mb-6">
-            Share your experience and earn discount codes!
+            Share your experience from a recent receipt.
           </p>
           <Link
             to="/reviews/new"

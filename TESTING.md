@@ -86,6 +86,13 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 - `e2e/mobile.spec.ts`: best-effort touch pull on Orders (iPhone 13 project)
 - Evidence: `.agent/evidence/pull-to-refresh-20260820/validation.md`
 
+### Slice 8 — receipt-style dish reviews
+
+- Helpers: `cd frontend && npx tsx src/lib/orderReceipt.selftest.ts`
+- Integration: `cd backend && npx vitest run tests/integration/review-flow.test.ts` (approve does not create coupons)
+- E2E: `npm run e2e:seed && PLAYWRIGHT_SKIP_WEBSERVER=1 PLAYWRIGHT_BASE_URL=http://localhost:5173 npx playwright test e2e/review-receipts.spec.ts --project=chromium`
+- Evidence: `.agent/evidence/review-receipts-20260821/validation.md`
+
 ## Manual checks
 
 - Stripe Payment Method Domains: register `traphousekitchen-web.onrender.com` (sandbox + live)
@@ -105,3 +112,5 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 `.agent/evidence/live-order-tracking-20260820/`
 
 `.agent/evidence/pull-to-refresh-20260820/`
+
+`.agent/evidence/review-receipts-20260821/`

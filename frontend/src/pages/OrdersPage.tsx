@@ -1,10 +1,11 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Package, Clock, CheckCircle, XCircle, Star, ChevronRight, MapPin } from 'lucide-react';
+import { Package, Clock, CheckCircle, XCircle, ChevronRight, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { Order } from '../types';
 import OrderTracker from '../components/OrderTracker';
+import OrderReceipt from '../components/OrderReceipt';
 import PullToRefresh from '../components/PullToRefresh';
 import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
 import {
@@ -12,6 +13,7 @@ import {
   customerOrdersQueryOptions,
   isActiveCustomerOrder,
 } from '../lib/customerOrders';
+import { isCompletedPaidReceipt } from '../lib/orderReceipt';
 
 const statusColors = {
   PENDING: 'bg-yellow-100 text-yellow-800',
@@ -31,13 +33,11 @@ const statusIcons = {
   CANCELLED: XCircle,
 };
 
-function OrderCard({
+function ActiveOrderCard({
   order,
-  onWriteReview,
   emphasizeTracking = false,
 }: {
   order: Order;
-  onWriteReview: (orderId: string, dishId?: string) => void;
   emphasizeTracking?: boolean;
 }) {
   const navigate = useNavigate();
@@ -96,48 +96,19 @@ function OrderCard({
         )}
 
         <div className="space-y-3">
-          {order.items.slice(0, emphasizeTracking ? undefined : 3).map((item) => {
-            const review = item.reviews?.[0];
-            return (
-              <div key={item.id} className="flex justify-between items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900">{item.dish.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {item.quantity} × ${item.priceAtOrder.toFixed(2)}
-                  </p>
-                  {order.status === 'COMPLETED' && order.paymentStatus === 'PAID' && (
-                    <div className="mt-1">
-                      {review ? (
-                        review.approved ? (
-                          <span className="text-xs text-green-600 flex items-center gap-1">
-                            <CheckCircle className="h-3 w-3" /> Reviewed
-                          </span>
-                        ) : (
-                          <span className="text-xs text-yellow-600 flex items-center gap-1">
-                            <Clock className="h-3 w-3" /> Review pending approval
-                          </span>
-                        )
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onWriteReview(order.id, item.dishId);
-                          }}
-                          className="text-xs text-primary-600 hover:underline flex items-center gap-1"
-                        >
-                          <Star className="h-3 w-3" /> Leave a review
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <p className="font-semibold text-gray-900 tabular-nums">
-                  ${(item.priceAtOrder * item.quantity).toFixed(2)}
+          {order.items.slice(0, emphasizeTracking ? undefined : 3).map((item) => (
+            <div key={item.id} className="flex justify-between items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900">{item.dish.name}</p>
+                <p className="text-sm text-gray-500">
+                  {item.quantity} × ${item.priceAtOrder.toFixed(2)}
                 </p>
               </div>
-            );
-          })}
+              <p className="font-semibold text-gray-900 tabular-nums">
+                ${(item.priceAtOrder * item.quantity).toFixed(2)}
+              </p>
+            </div>
+          ))}
           {!emphasizeTracking && order.items.length > 3 && (
             <p className="text-sm text-gray-500">+ {order.items.length - 3} more items</p>
           )}
@@ -150,23 +121,21 @@ function OrderCard({
           </span>
         </div>
       </button>
-
-      {order.status === 'COMPLETED' &&
-        order.paymentStatus === 'PAID' &&
-        order.items.some((item) => !item.reviews?.length) && (
-          <div className="px-6 pb-6 pt-0">
-            <button
-              type="button"
-              onClick={() => onWriteReview(order.id)}
-              className="w-full py-3 px-4 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
-            >
-              <Star className="h-5 w-5" />
-              Write a review
-            </button>
-          </div>
-        )}
     </article>
   );
+}
+
+function HistoryOrderCard({
+  order,
+  onWriteReview,
+}: {
+  order: Order;
+  onWriteReview: (orderId: string, dishId?: string) => void;
+}) {
+  if (isCompletedPaidReceipt(order)) {
+    return <OrderReceipt order={order} onWriteReview={onWriteReview} />;
+  }
+  return <ActiveOrderCard order={order} />;
 }
 
 export default function OrdersPage() {
@@ -227,7 +196,7 @@ export default function OrdersPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Track active orders and browse your history.
+            Track active orders and review past receipts.
           </p>
         </div>
         {isFetching && !isLoading ? (
@@ -269,11 +238,7 @@ export default function OrdersPage() {
                         : undefined
                     }
                   >
-                    <OrderCard
-                      order={order}
-                      onWriteReview={handleWriteReview}
-                      emphasizeTracking
-                    />
+                    <ActiveOrderCard order={order} emphasizeTracking />
                   </div>
                 ))}
               </div>
@@ -283,11 +248,11 @@ export default function OrdersPage() {
           {historyOrders.length > 0 && (
             <section aria-labelledby="order-history-heading">
               <h2 id="order-history-heading" className="text-lg font-semibold text-gray-900 mb-4">
-                {activeOrders.length > 0 ? 'Order history' : 'Past orders'}
+                {activeOrders.length > 0 ? 'Receipts & history' : 'Past receipts'}
               </h2>
               <div className="space-y-6">
                 {historyOrders.map((order) => (
-                  <OrderCard
+                  <HistoryOrderCard
                     key={order.id}
                     order={order}
                     onWriteReview={handleWriteReview}

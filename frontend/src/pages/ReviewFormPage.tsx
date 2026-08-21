@@ -16,14 +16,6 @@ export default function ReviewFormPage() {
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [comment, setComment] = useState<string>('');
 
-  // Pre-select order from URL params
-  useEffect(() => {
-    const orderIdFromUrl = searchParams.get('orderId');
-    if (orderIdFromUrl) {
-      setSelectedOrderId(orderIdFromUrl);
-    }
-  }, [searchParams]);
-
   const { data: eligibleOrders, isLoading, isError, refetch } = useQuery({
     queryKey: ['eligibleOrders'],
     queryFn: async () => {
@@ -34,6 +26,26 @@ export default function ReviewFormPage() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  // Pre-select order + dish from URL (receipt deep-link)
+  useEffect(() => {
+    const orderIdFromUrl = searchParams.get('orderId');
+    if (orderIdFromUrl) {
+      setSelectedOrderId(orderIdFromUrl);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const dishIdFromUrl = searchParams.get('dishId');
+    if (!dishIdFromUrl || !selectedOrderId || !eligibleOrders?.length) {
+      return;
+    }
+    const order = eligibleOrders.find((o) => o.id === selectedOrderId);
+    const dishOnOrder = order?.items.some((item) => item.dishId === dishIdFromUrl);
+    if (dishOnOrder) {
+      setSelectedDishId(dishIdFromUrl);
+    }
+  }, [searchParams, selectedOrderId, eligibleOrders]);
+
   const createReviewMutation = useMutation({
     mutationFn: async (data: { orderId: string; dishId: string; rating: number; comment: string }) => {
       await api.post('/reviews', data);
@@ -42,7 +54,7 @@ export default function ReviewFormPage() {
       queryClient.invalidateQueries({ queryKey: ['eligibleOrders'] });
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
-      toast.success('Review submitted! Once approved by our chef, you\'ll receive a $4 discount code.');
+      toast.success('Review submitted! It will appear publicly once our chef approves it.');
       // Reset form but stay on page to review another dish
       setSelectedDishId('');
       setRating(0);
@@ -96,7 +108,7 @@ export default function ReviewFormPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-2">Write a Review</h1>
       <p className="text-gray-600 mb-8">
-        Share your experience and earn a $4 discount on your next order!
+        Share your experience with a dish from a recent receipt.
       </p>
 
       {isLoading ? (
@@ -193,11 +205,13 @@ export default function ReviewFormPage() {
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Rating <span className="text-red-500">*</span>
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" role="group" aria-label="Rating">
               {Array.from({ length: 5 }, (_, i) => i + 1).map((star) => (
                 <button
                   key={star}
                   type="button"
+                  aria-label={`${star} star${star === 1 ? '' : 's'}`}
+                  aria-pressed={rating === star}
                   onClick={() => setRating(star)}
                   onMouseEnter={() => setHoverRating(star)}
                   onMouseLeave={() => setHoverRating(0)}

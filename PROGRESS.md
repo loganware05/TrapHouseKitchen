@@ -2,22 +2,23 @@
 
 ## Current status
 
-Slice 7 (pull-to-refresh) is implemented on `feature/local-pull-to-refresh`; validation in progress / PR pending.
+Slice 8 (receipt-style dish reviews + stop review coupons) implemented on `feature/local-review-receipts`; validation passed; PR pending.
 
 ## Completed
 
-- Slices 1–6 shipped (PRs #15–#21)
-- Slice 7: touch pull-to-refresh on Home, Menu, Orders, Chef dashboard, Chef orders
+- Slices 1–7 shipped (PRs #15–#22)
+- Slice 8 implementation: receipts on Orders/Profile, `dishId` preselect, no $4 coupon on approve
 
 ## In progress
 
-- Slice 7 PR open/review
+- Slice 8 PR
 
 ## Next
 
-1. Merge Slice 7 PR
-2. Slice 8: receipt-style dish reviews
+1. Merge Slice 8 PR
+2. Slice 9: dynamic ETA (last in batch)
 
 ## Blockers
 
 - Apple Pay device/domain gate from PR #14 still open
+- Coupon apply-at-checkout reliability deferred (APIs kept; review no longer mints coupons)

@@ -175,7 +175,7 @@ describe('Review Flow Integration Tests', () => {
       expect(response.body.data.review.dishId).toBe(dishId);
       expect(response.body.data.review.rating).toBe(5);
       expect(response.body.data.review.approved).toBe(false);
-      expect(response.body.message).toContain('$4 discount code');
+      expect(response.body.message).toMatch(/submitted/i);
     });
 
     it('should not allow reviewing same dish twice', async () => {
@@ -301,7 +301,7 @@ describe('Review Flow Integration Tests', () => {
     });
   });
 
-  describe('Review Approval and Coupon Generation', () => {
+  describe('Review Approval', () => {
     let reviewId: string;
 
     beforeAll(async () => {
@@ -312,7 +312,9 @@ describe('Review Flow Integration Tests', () => {
       reviewId = review!.id;
     });
 
-    it('should allow chef to approve review and generate coupon', async () => {
+    it('should allow chef to approve review without creating a coupon', async () => {
+      const couponsBefore = await prisma.coupon.count({ where: { userId } });
+
       const response = await request(app)
         .post(`/api/reviews/${reviewId}/approve`)
         .set('Authorization', `Bearer ${chefToken}`)
@@ -320,10 +322,11 @@ describe('Review Flow Integration Tests', () => {
 
       expect(response.body.status).toBe('success');
       expect(response.body.data.review.approved).toBe(true);
-      expect(response.body.data.coupon).toBeDefined();
-      expect(response.body.data.coupon.discountAmount).toBe(4);
-      expect(response.body.data.coupon.userId).toBe(userId);
-      expect(response.body.message).toContain('$4 coupon created');
+      expect(response.body.data.coupon).toBeUndefined();
+      expect(response.body.message).toMatch(/approved/i);
+
+      const couponsAfter = await prisma.coupon.count({ where: { userId } });
+      expect(couponsAfter).toBe(couponsBefore);
     });
 
     it('should not allow approving already approved review', async () => {

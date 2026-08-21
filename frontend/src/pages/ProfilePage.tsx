@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Elements } from '@stripe/react-stripe-js';
 import { User, AlertTriangle, Save, CreditCard, Trash2, Star, PieChart, ChevronRight, MessageSquare } from 'lucide-react';
@@ -9,7 +9,10 @@ import stripePromise from '../lib/stripe';
 import { useAuthStore } from '../stores/authStore';
 import { Allergen } from '../types';
 import SavePaymentMethodForm from '../components/SavePaymentMethodForm';
+import OrderReceipt from '../components/OrderReceipt';
 import type { SavedCardSummary } from '../types';
+import { customerOrdersQueryOptions } from '../lib/customerOrders';
+import { selectRecentReceipts } from '../lib/orderReceipt';
 
 type UserSpendData = {
   period: string;
@@ -31,6 +34,7 @@ function formatBrand(brand: string) {
 
 export default function ProfilePage() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
@@ -79,6 +83,20 @@ export default function ProfilePage() {
     },
     enabled: !!user && !user.isGuest,
   });
+
+  const { data: ordersData } = useQuery({
+    ...customerOrdersQueryOptions(!!user && user.role === 'CUSTOMER'),
+  });
+
+  const recentReceipts = selectRecentReceipts(ordersData ?? [], 5);
+
+  const handleWriteReview = (orderId: string, dishId?: string) => {
+    if (dishId) {
+      navigate(`/reviews/new?orderId=${orderId}&dishId=${dishId}`);
+    } else {
+      navigate(`/reviews/new?orderId=${orderId}`);
+    }
+  };
 
   useEffect(() => {
     if (searchParams.get('setup_return') !== '1') return;
@@ -223,17 +241,54 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {user?.role === 'CUSTOMER' && recentReceipts.length > 0 && (
+        <section className="mb-6" aria-labelledby="recent-receipts-heading">
+          <div className="flex items-end justify-between gap-3 mb-4">
+            <div>
+              <h2 id="recent-receipts-heading" className="text-xl font-semibold text-gray-900">
+                Recent receipts
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Leave a review for dishes from recent completed orders.
+              </p>
+            </div>
+            <Link to="/orders" className="text-sm font-medium text-primary-600 hover:underline shrink-0">
+              All orders
+            </Link>
+          </div>
+          <div className="space-y-4">
+            {recentReceipts.map((order) => (
+              <OrderReceipt
+                key={order.id}
+                order={order}
+                onWriteReview={handleWriteReview}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       {user?.role === 'CUSTOMER' && (
         <div className="bg-white rounded-th-xl shadow-th-card p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">More</h2>
           <nav className="space-y-1" aria-label="Additional links">
+            <Link
+              to="/reviews/my"
+              className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-900 hover:bg-th-surface-muted transition-colors"
+            >
+              <span className="flex items-center gap-3 font-medium">
+                <Star className="h-5 w-5 text-primary-600" />
+                My reviews
+              </span>
+              <ChevronRight className="h-4 w-4 text-th-muted-fg" />
+            </Link>
             <Link
               to="/reviews"
               className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-900 hover:bg-th-surface-muted transition-colors"
             >
               <span className="flex items-center gap-3 font-medium">
                 <Star className="h-5 w-5 text-primary-600" />
-                Reviews
+                Community reviews
               </span>
               <ChevronRight className="h-4 w-4 text-th-muted-fg" />
             </Link>
