@@ -6,7 +6,7 @@
 
 **Related:** [QA_CHECKLIST.md](QA_CHECKLIST.md) · [SUPPORT_PLAYBOOKS.md](SUPPORT_PLAYBOOKS.md) · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md) · [AGENTS.md](AGENTS.md)
 
-**Current WIP:** Slice 8 receipt reviews on `feature/local-review-receipts` (validated; PR pending).
+**Current WIP:** Slice 8 receipt reviews — PR #23 open.
 
 ---
 
