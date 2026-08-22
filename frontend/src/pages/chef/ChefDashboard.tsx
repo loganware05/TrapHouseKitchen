@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import api from '../../lib/api';
 import PullToRefresh from '../../components/PullToRefresh';
+import KitchenQueueSummary, { type PrepIntelligenceData } from '../../components/chef/KitchenQueueSummary';
 
 type DashboardData = {
   period: string;
@@ -83,12 +84,21 @@ export default function ChefDashboard() {
     },
   });
 
+  const { data: prepIntel } = useQuery<PrepIntelligenceData>({
+    queryKey: ['prepIntelligence'],
+    queryFn: async () => {
+      const res = await api.get<{ data: PrepIntelligenceData }>('/orders/prep-intelligence');
+      return res.data.data;
+    },
+  });
+
   const handlePullRefresh = useCallback(async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['allOrders'] }),
       queryClient.invalidateQueries({ queryKey: ['dishes'] }),
       queryClient.invalidateQueries({ queryKey: ['dishRequests'] }),
       queryClient.invalidateQueries({ queryKey: ['analyticsDashboard'] }),
+      queryClient.invalidateQueries({ queryKey: ['prepIntelligence'] }),
     ]);
   }, [queryClient]);
 
@@ -163,6 +173,8 @@ export default function ChefDashboard() {
           </div>
         </div>
       </div>
+
+      {prepIntel ? <KitchenQueueSummary data={prepIntel} /> : null}
 
       {/* Analytics */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">

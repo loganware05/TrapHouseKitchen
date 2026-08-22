@@ -137,6 +137,8 @@ export interface Order {
   specialInstructions?: string;
   deliveryLocation?: string | null;
   prepTime?: number;
+  prepTimeSource?: 'AUTO' | 'CHEF_OVERRIDE';
+  prepTimeUpdatedAt?: string;
   isArchived: boolean;
   appliedCouponId?: string;
   createdAt: string;

@@ -30,6 +30,12 @@ Latest: **48/48 passed** in focused Slice 5 run (2026-08-20); full suite include
 
 Notable files: `unpaid-order-visibility.test.ts`, `delivery-location.test.ts`, `order-status-transitions.test.ts`.
 
+### Slice 9 — dynamic ETA + prep intelligence
+
+- `backend/tests/unit/prepTime.test.ts`: formula, queue weights, learning helpers
+- `backend/tests/integration/prep-time.test.ts`: prep-intelligence, chef override, observation on complete
+- Evidence: `.agent/evidence/dynamic-eta-20260822/validation.md`
+
 ## End-to-end tests
 
 `e2e/payment-flow.spec.ts`:

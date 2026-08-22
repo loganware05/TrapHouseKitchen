@@ -14,6 +14,7 @@ import {
 } from './paymentFinalization.service';
 import { resolveDeliveryLocation, type DeliveryInput } from './deliveryLocation.service';
 import { assertValidOrderStatusTransition } from './orderStatusTransitions';
+import { recordPrepTimeObservation } from './prepTimeLearning.service';
 
 export {
   ABANDONED_ORDER_MAX_AGE_MS,
@@ -84,6 +85,12 @@ export async function setOrderStatus(
       status,
       estimatedTime: options.emailData?.estimatedTime,
     }).catch(err => console.error('Status email error:', err));
+  }
+
+  if (status === 'COMPLETED') {
+    recordPrepTimeObservation(orderId).catch(err =>
+      console.error('Prep observation error:', err)
+    );
   }
 
   return order;
