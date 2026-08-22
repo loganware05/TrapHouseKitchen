@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Elements } from '@stripe/react-stripe-js';
 import { User, AlertTriangle, Save, CreditCard, Trash2, Star, PieChart, ChevronRight, MessageSquare } from 'lucide-react';
@@ -7,9 +7,30 @@ import { toast } from 'sonner';
 import api from '../lib/api';
 import stripePromise from '../lib/stripe';
 import { useAuthStore } from '../stores/authStore';
-import { Allergen } from '../types';
+import { Allergen, Review } from '../types';
 import SavePaymentMethodForm from '../components/SavePaymentMethodForm';
+import OrderReceipt from '../components/OrderReceipt';
 import type { SavedCardSummary } from '../types';
+import { customerOrdersQueryOptions } from '../lib/customerOrders';
+import { selectRecentReceipts } from '../lib/orderReceipt';
+
+const PROFILE_COMMUNITY_REVIEW_LIMIT = 3;
+
+function ReviewStars({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5" aria-label={`${rating} out of 5 stars`}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <Star
+          key={i}
+          className={`h-4 w-4 ${
+            i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+          }`}
+          aria-hidden
+        />
+      ))}
+    </div>
+  );
+}
 
 type UserSpendData = {
   period: string;
@@ -31,6 +52,7 @@ function formatBrand(brand: string) {
 
 export default function ProfilePage() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
@@ -79,6 +101,30 @@ export default function ProfilePage() {
     },
     enabled: !!user && !user.isGuest,
   });
+
+  const { data: ordersData } = useQuery({
+    ...customerOrdersQueryOptions(!!user && user.role === 'CUSTOMER'),
+  });
+
+  const { data: communityReviews = [] } = useQuery({
+    queryKey: ['reviews', 'newest', 'profile-preview'],
+    queryFn: async () => {
+      const res = await api.get<{ data: { reviews: Review[] } }>('/reviews?sortBy=newest');
+      return res.data.data.reviews.slice(0, PROFILE_COMMUNITY_REVIEW_LIMIT);
+    },
+    enabled: !!user && user.role === 'CUSTOMER',
+    staleTime: 60_000,
+  });
+
+  const recentReceipts = selectRecentReceipts(ordersData ?? [], 5);
+
+  const handleWriteReview = (orderId: string, dishId?: string) => {
+    if (dishId) {
+      navigate(`/reviews/new?orderId=${orderId}&dishId=${dishId}`);
+    } else {
+      navigate(`/reviews/new?orderId=${orderId}`);
+    }
+  };
 
   useEffect(() => {
     if (searchParams.get('setup_return') !== '1') return;
@@ -223,17 +269,111 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {user?.role === 'CUSTOMER' && recentReceipts.length > 0 && (
+        <section className="mb-6" aria-labelledby="recent-receipts-heading">
+          <div className="flex items-end justify-between gap-3 mb-4">
+            <div>
+              <h2 id="recent-receipts-heading" className="text-xl font-semibold text-gray-900">
+                Recent receipts
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Leave a review for dishes from recent completed orders.
+              </p>
+            </div>
+            <Link to="/orders" className="text-sm font-medium text-primary-600 hover:underline shrink-0">
+              All orders
+            </Link>
+          </div>
+          <div className="space-y-4">
+            {recentReceipts.map((order) => (
+              <OrderReceipt
+                key={order.id}
+                order={order}
+                onWriteReview={handleWriteReview}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {user?.role === 'CUSTOMER' && (
+        <section className="mb-6" aria-labelledby="community-reviews-heading">
+          <div className="flex items-end justify-between gap-3 mb-4">
+            <div>
+              <h2 id="community-reviews-heading" className="text-xl font-semibold text-gray-900">
+                Community reviews
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Recent chef-approved reviews from other customers.
+              </p>
+            </div>
+            <Link
+              to="/reviews"
+              className="text-sm font-medium text-primary-600 hover:underline shrink-0"
+            >
+              See all
+            </Link>
+          </div>
+          {communityReviews.length > 0 ? (
+            <ul className="space-y-3">
+              {communityReviews.map((review) => (
+                <li
+                  key={review.id}
+                  className="bg-white border border-th-border rounded-th-lg p-4"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <ReviewStars rating={review.rating} />
+                    <span className="text-xs text-gray-500 shrink-0">
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-800 line-clamp-3">{review.comment}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                    <span>by {review.user?.name?.split(' ')[0] || 'Customer'}</span>
+                    {(review.dishName || review.dish?.name) && (
+                      <span className="px-2 py-0.5 rounded-full bg-primary-50 text-primary-700">
+                        {review.dishName || review.dish?.name}
+                      </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="bg-white border border-dashed border-th-border rounded-th-lg p-5 text-center">
+              <p className="text-sm text-gray-600 mb-3">No public reviews yet.</p>
+              <Link
+                to="/reviews"
+                className="text-sm font-medium text-primary-600 hover:underline"
+              >
+                Open reviews page
+              </Link>
+            </div>
+          )}
+        </section>
+      )}
+
       {user?.role === 'CUSTOMER' && (
         <div className="bg-white rounded-th-xl shadow-th-card p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">More</h2>
           <nav className="space-y-1" aria-label="Additional links">
             <Link
-              to="/reviews"
+              to="/reviews/my"
               className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-900 hover:bg-th-surface-muted transition-colors"
             >
               <span className="flex items-center gap-3 font-medium">
                 <Star className="h-5 w-5 text-primary-600" />
-                Reviews
+                My reviews
+              </span>
+              <ChevronRight className="h-4 w-4 text-th-muted-fg" />
+            </Link>
+            <Link
+              to="/reviews"
+              className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-900 hover:bg-th-surface-muted transition-colors"
+            >
+              <span className="flex items-center gap-3 font-medium">
+                <MessageSquare className="h-5 w-5 text-primary-600" />
+                All community reviews
               </span>
               <ChevronRight className="h-4 w-4 text-th-muted-fg" />
             </Link>

@@ -33,7 +33,7 @@ Historical “READY / COMPLETE” write-ups live under [docs/archive/snapshots/]
 - **Allergen Safety** - Set allergen profile and get automatic warnings for incompatible dishes
 - **Dietary Preferences** - Filter menu based on dietary restrictions (Vegan, Vegetarian, Gluten-Free, etc.)
 - **Order Management** - Place orders and track their status in real-time
-- **Per-Dish Reviews** - Review each dish separately from completed orders; earn a $4 discount code when approved
+- **Per-Dish Reviews** - Review each dish separately from completed order receipts; chef approval publishes them
 - **Dish Requests** - Suggest new dishes and vote on community requests (Reddit-style voting)
 - **Guest Checkout** - Order without creating an account
 
@@ -42,7 +42,7 @@ Historical “READY / COMPLETE” write-ups live under [docs/archive/snapshots/]
 - **Menu Management** - Full CRUD operations for dishes, ingredients, and allergens (soft delete for dishes)
 - **Order Processing** - View and update order statuses (Pending → Preparing → Ready → Completed); see paid and pending orders
 - **Requests** - View and manage dish requests from customers
-- **Review Management** - Approve or reject dish reviews; approved reviews generate discount codes for customers
+- **Review Management** - Approve or reject dish reviews for the public feed
 
 ### Technical Features
 - **Stripe Payments** - Credit cards, Apple Pay, Cash App Pay via Stripe
@@ -207,7 +207,7 @@ Key entities:
 - **Ingredients** - Components of dishes
 - **Allergens** - Allergen information with severity levels
 - **Orders** - Customer orders with status tracking
-- **Reviews** - Per-dish reviews (one per dish per order); chef approval generates discount codes
+- **Reviews** - Per-dish reviews (one per dish per order); chef approval publishes to the public feed
 - **DishRequests** - Community dish suggestions
 - **Votes** - Upvote/downvote system for requests
 
@@ -250,7 +250,7 @@ See [docs/features/authentication.md](docs/features/authentication.md).
 - `GET /api/orders/all` - View all orders (paid and pending)
 - `PATCH /api/orders/:id/status` - Update order status
 - `GET /api/reviews/pending` - View pending reviews
-- `POST /api/reviews/:id/approve` - Approve review (creates discount code)
+- `POST /api/reviews/:id/approve` - Approve review (publishes publicly)
 - `POST /api/reviews/:id/reject` - Reject review
 
 ## 🧪 Testing

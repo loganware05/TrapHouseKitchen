@@ -3,8 +3,6 @@ import { validationResult } from 'express-validator';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
-import { generateCouponCode } from '../utils/couponGenerator';
-
 // Get all approved reviews (public)
 export const getAllReviews = async (req: AuthRequest, res: Response, next: any) => {
   try {
@@ -286,7 +284,7 @@ export const createReview = async (req: AuthRequest, res: Response, next: any) =
     res.status(201).json({
       status: 'success',
       data: { review },
-      message: 'Review submitted! Once approved by our chef, you\'ll receive a $4 discount code.',
+      message: 'Review submitted! It will appear publicly once approved by our chef.',
     });
   } catch (error) {
     next(error);
@@ -380,7 +378,7 @@ export const deleteReview = async (req: AuthRequest, res: Response, next: any) =
   }
 };
 
-// Approve review and create coupon (chef only)
+// Approve review (chef only). Coupon rewards are deferred — approve only.
 export const approveReview = async (req: AuthRequest, res: Response, next: any) => {
   try {
     const { id } = req.params;
@@ -400,34 +398,15 @@ export const approveReview = async (req: AuthRequest, res: Response, next: any) 
       throw new AppError('Review is already approved', 400);
     }
 
-    // Generate unique coupon code
-    const couponCode = generateCouponCode();
-
-    // Start transaction to approve review and create coupon
-    const result = await prisma.$transaction(async (tx) => {
-      // Approve review
-      const approvedReview = await tx.review.update({
-        where: { id },
-        data: { approved: true },
-      });
-
-      // Create coupon
-      const coupon = await tx.coupon.create({
-        data: {
-          code: couponCode,
-          userId: review.userId,
-          discountAmount: 4.00,
-          used: false,
-        },
-      });
-
-      return { review: approvedReview, coupon };
+    const approvedReview = await prisma.review.update({
+      where: { id },
+      data: { approved: true },
     });
 
     res.json({
       status: 'success',
-      data: result,
-      message: `Review approved and $4 coupon created for ${review.user.name}`,
+      data: { review: approvedReview },
+      message: `Review approved for ${review.user.name}`,
     });
   } catch (error) {
     next(error);

@@ -51,7 +51,7 @@ test.describe('Chef operations', () => {
     if (await approve.isVisible().catch(() => false)) {
       page.once('dialog', (dialog) => dialog.accept());
       await approve.click();
-      await expect(page.getByText(/discount code created|approved/i).first()).toBeVisible({
+      await expect(page.getByText(/review approved|approved/i).first()).toBeVisible({
         timeout: 15_000,
       });
     }

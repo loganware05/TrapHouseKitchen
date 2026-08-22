@@ -1,12 +1,12 @@
 # Project status
 
-**Last updated:** 2026-08-15
-**Production / shared baseline:** `d54bec0` (`origin/main` — PR #14 Apple Pay-first checkout)
+**Last updated:** 2026-08-21
+**Production / shared baseline:** `88d6523` (`origin/main` — PR #22 pull-to-refresh)
 **Canonical rule:** This file is the only place that asserts Shipped / WIP / Broken. Do not add new root `*_COMPLETE.md` / `*_READY.md` snapshots — update this file instead.
 
 **Related:** [QA_CHECKLIST.md](QA_CHECKLIST.md) · [SUPPORT_PLAYBOOKS.md](SUPPORT_PLAYBOOKS.md) · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md) · [AGENTS.md](AGENTS.md)
 
-**Current WIP:** Slice 2 chef nav active-state on `fix/local-chef-nav-active` (locally validated; PR pending).
+**Current WIP:** Slice 8 receipt reviews — PR #23 open.
 
 ---
 
@@ -33,7 +33,7 @@ On `origin/main` and considered the live product surface:
 | Menu / cart / guest checkout | Soft-delete dishes; guest cart |
 | Chef order pipeline | Pending → Preparing → Ready → Completed |
 | Stripe payments | PaymentIntent + `automatic_payment_methods` |
-| Per-dish reviews + $4 coupons | Chef approve/reject |
+| Per-dish reviews (receipt UX) | Chef approve/reject; **no** auto $4 coupon (deferred) |
 | Allergens / dietary filters | Customer profile warnings |
 | Dish requests + voting | Customer + chef management |
 | Auth (customer / chef login) | JWT RBAC |

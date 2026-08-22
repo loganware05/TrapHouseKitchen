@@ -180,6 +180,47 @@ async function main() {
     });
   }
 
+  // Completed receipt with no reviews — Slice 8 leave-review E2E
+  let receiptOrder = await prisma.order.findFirst({
+    where: { userId: customer.id, specialInstructions: 'E2E_REVIEW_RECEIPT' },
+    include: { items: true },
+  });
+
+  if (!receiptOrder) {
+    receiptOrder = await prisma.order.create({
+      data: {
+        userId: customer.id,
+        status: 'COMPLETED',
+        paymentStatus: 'PAID',
+        totalPrice: dish.price,
+        tipAmount: 0,
+        finalAmount: dish.price,
+        deliveryLocation: 'East Hall 214',
+        specialInstructions: 'E2E_REVIEW_RECEIPT',
+        completedAt: new Date(),
+        items: {
+          create: [{ dishId: dish.id, quantity: 1, priceAtOrder: dish.price }],
+        },
+      },
+      include: { items: true },
+    });
+  } else {
+    await prisma.review.deleteMany({ where: { orderId: receiptOrder.id } });
+    receiptOrder = await prisma.order.update({
+      where: { id: receiptOrder.id },
+      data: {
+        status: 'COMPLETED',
+        paymentStatus: 'PAID',
+        completedAt: new Date(),
+        totalPrice: dish.price,
+        finalAmount: dish.price,
+        tipAmount: 0,
+        deliveryLocation: 'East Hall 214',
+      },
+      include: { items: true },
+    });
+  }
+
   console.log(
     JSON.stringify(
       {
@@ -189,6 +230,8 @@ async function main() {
         reviewId: pendingReview!.id,
         dishId: dish.id,
         trackingOrderId: trackingOrder.id,
+        receiptOrderId: receiptOrder.id,
+        receiptOrderNumber: receiptOrder.orderNumber,
       },
       null,
       2

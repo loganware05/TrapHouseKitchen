@@ -1,32 +1,43 @@
-# Implementation Plan — Slice 7: Pull-to-refresh
+# Implementation Plan — Slice 8: Receipt-style dish reviews
 
 ## Metadata
 
 - Status: **APPROVED**
-- Plan ID: `slice-7-pull-to-refresh-2026-08-20`
-- Parent plan: `post-launch-ux-batch-2026-08-15` (Slices 1–6 complete; PR #21 merged)
-- Issue: `local/pull-to-refresh`
-- Base: `origin/main` after PR #21 (`35d91ae`)
-- Branch: `feature/local-pull-to-refresh`
-- Rollback checkpoint: `checkpoint/pull-to-refresh-2026-08-20`
-- Created: 2026-08-20
-- Last updated: 2026-08-20
+- Plan ID: `slice-8-review-receipts-2026-08-21`
+- Parent plan: `post-launch-ux-batch-2026-08-15` (Slices 1–7 complete; PR #22 merged)
+- Issue: `local/review-receipts`
+- Base: `origin/main` after PR #22 (`88d6523`)
+- Branch: `feature/local-review-receipts`
+- Rollback checkpoint: `checkpoint/review-receipts-2026-08-21`
+- Created: 2026-08-21
+- Last updated: 2026-08-21
 
 ## Request
 
-Touch pull-to-refresh on Home, Menu, Orders, Chef dashboard, and Chef orders.
+Polish customer dish-review UX around receipt-style completed orders; fix `dishId` preselect; **stop issuing $4 coupons on review approval** (coupon apply path deferred — Captain: never reliably reduced order price; revisit later). Keep chef approve/reject moderation without coupon creation.
 
 ## Captain decisions
 
 | Topic | Decision |
 |-------|----------|
-| Indicator | Subtle spinner under header |
-| Input | Touch-only (no mouse-drag) |
-| Surfaces | Home, Menu, Orders, Chef dashboard, Chef orders |
+| Receipt UX | Keep / polish (already relatively working) |
+| Surfaces | Orders + Profile |
+| Form preselect | Honor `orderId` + `dishId` |
+| Review → $4 coupon | **Remove** — approve only; no coupon create |
+| Existing coupon APIs / checkout apply | Leave in place for a later slice; do not wire new review rewards |
+
+## Open-question defaults (accepted)
+
+1. Deep-link to existing form (not inline stars)
+2. Profile: last 5 COMPLETED+PAID within review window
+3. Receipt treatment for COMPLETED+PAID only
+4. No confirmation-page review prompt
 
 ## Approval Record
 
 - **Status:** APPROVED
 - **Approved by:** Captain (Logan)
-- **Approval date:** 2026-08-20
-- **Defaults accepted:** subtle spinner; touch-only
+- **Approval date:** 2026-08-21
+- **Defaults accepted:** form deep-link; Profile last 5; completed-only receipts; no confirmation prompt
+- **Scope override:** Remove $4 coupon issuance on review approve; defer coupon-on-order work
+- **Scope add (2026-08-21):** Profile shows a visible **Community reviews** preview (not only a buried More link) linking to `/reviews`

@@ -34,7 +34,7 @@ export default function ChefReviewsPage() {
       queryClient.invalidateQueries({ queryKey: ['pendingReviews'] });
       queryClient.invalidateQueries({ queryKey: ['approvedReviews'] });
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
-      toast.success('Review approved and discount code created!');
+      toast.success('Review approved');
     },
     onError: () => {
       toast.error('Failed to approve review');
@@ -69,7 +69,7 @@ export default function ChefReviewsPage() {
   });
 
   const handleApprove = (id: string) => {
-    if (confirm('Approve this review? The customer will receive a $4 discount code.')) {
+    if (confirm('Approve this review? It will appear on the public reviews page.')) {
       approveReviewMutation.mutate(id);
     }
   };
@@ -213,7 +213,7 @@ export default function ChefReviewsPage() {
               {activeTab === 'pending' && (
                 <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-sm text-yellow-800">
-                    Approving this review will create a $4 discount code for {review.user?.name}
+                    Approving publishes this review from {review.user?.name} to the public reviews page.
                   </p>
                 </div>
               )}
