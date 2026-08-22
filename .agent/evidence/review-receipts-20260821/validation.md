@@ -11,6 +11,7 @@
 - Review form honors `orderId` + `dishId` query params
 - Chef approve no longer creates $4 coupons; review copy updated
 - Checkout coupon APIs left intact for a later slice
+- Profile **Community reviews** preview (latest 3 approved) with See all → `/reviews`
 
 ## Validation
 

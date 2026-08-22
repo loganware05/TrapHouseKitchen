@@ -40,3 +40,4 @@ Polish customer dish-review UX around receipt-style completed orders; fix `dishI
 - **Approval date:** 2026-08-21
 - **Defaults accepted:** form deep-link; Profile last 5; completed-only receipts; no confirmation prompt
 - **Scope override:** Remove $4 coupon issuance on review approve; defer coupon-on-order work
+- **Scope add (2026-08-21):** Profile shows a visible **Community reviews** preview (not only a buried More link) linking to `/reviews`

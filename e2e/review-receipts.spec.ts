@@ -55,15 +55,21 @@ test.describe('Receipt-style dish reviews', () => {
     });
   });
 
-  test('profile shows recent receipts', async ({ page }) => {
+  test('profile shows recent receipts and community reviews', async ({ page }) => {
     await page.getByRole('link', { name: /^profile$/i }).first().click();
     await expect(page).toHaveURL(/\/profile/);
     await expect(page.getByRole('heading', { name: /my profile/i })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole('heading', { name: /recent receipts/i })).toBeVisible({
       timeout: 20_000,
     });
+    await expect(page.getByRole('heading', { name: /community reviews/i })).toBeVisible();
+    await page.getByRole('link', { name: /^see all$/i }).click();
+    await expect(page).toHaveURL(/\/reviews$/);
+    await expect(page.getByRole('heading', { name: /customer reviews/i })).toBeVisible({
+      timeout: 15_000,
+    });
     await page.screenshot({
-      path: '.agent/evidence/review-receipts-20260821/profile-recent-receipts.png',
+      path: '.agent/evidence/review-receipts-20260821/profile-community-reviews.png',
     });
   });
 });
