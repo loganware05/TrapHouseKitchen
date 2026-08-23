@@ -34,6 +34,7 @@ Notable files: `unpaid-order-visibility.test.ts`, `delivery-location.test.ts`, `
 
 - `backend/tests/unit/prepTime.test.ts`: formula, queue weights, learning helpers
 - `backend/tests/integration/prep-time.test.ts`: prep-intelligence, chef override, observation on complete
+- Chef live poll: `frontend/src/lib/chefKitchen.ts` (`CHEF_KITCHEN_POLL_MS` = 15s, shared with customer)
 - Evidence: `.agent/evidence/dynamic-eta-20260822/validation.md`
 
 ## End-to-end tests

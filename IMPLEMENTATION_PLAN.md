@@ -10,7 +10,7 @@
 - Proposed branch: `feature/local-dynamic-eta`
 - Proposed rollback checkpoint: `checkpoint/dynamic-eta-2026-08-22`
 - Created: 2026-08-22
-- Last updated: 2026-08-22
+- Last updated: 2026-08-22 (Captain follow-up: chef kitchen 15s live poll)
 
 ## Request
 
@@ -91,6 +91,7 @@ Persist on `Order.prepTime` at payment; customer UI unchanged (confirmation / Or
 - Show current **projected ready** time per active order.
 - Inline control: adjust minutes (+/− or number input) + Save.
 - **Queue summary:** counts by status + estimated queue load minutes (transparency for the orchestrator role).
+- **Live poll (Captain follow-up 2026-08-22):** Chef Orders + Dashboard refresh `allOrders` and `prep-intelligence` every **15s** (`CHEF_KITCHEN_POLL_MS`, same as customer status poll) so queue counts and order statuses stay current without reload.
 
 **Non-goals for 9B:** Do not auto-change status from override alone.
 

@@ -12,7 +12,11 @@ import {
 } from 'lucide-react';
 import api from '../../lib/api';
 import PullToRefresh from '../../components/PullToRefresh';
-import KitchenQueueSummary, { type PrepIntelligenceData } from '../../components/chef/KitchenQueueSummary';
+import KitchenQueueSummary from '../../components/chef/KitchenQueueSummary';
+import {
+  chefAllOrdersQueryOptions,
+  prepIntelligenceQueryOptions,
+} from '../../lib/chefKitchen';
 
 type DashboardData = {
   period: string;
@@ -49,13 +53,7 @@ export default function ChefDashboard() {
   const queryClient = useQueryClient();
   const [analyticsPeriod, setAnalyticsPeriod] = useState<'7d' | '30d'>('7d');
 
-  const { data: ordersData } = useQuery({
-    queryKey: ['allOrders'],
-    queryFn: async () => {
-      const res = await api.get('/orders/all');
-      return res.data.data.orders;
-    },
-  });
+  const { data: ordersData } = useQuery(chefAllOrdersQueryOptions(false));
 
   const { data: dishesData } = useQuery({
     queryKey: ['dishes'],
@@ -84,13 +82,7 @@ export default function ChefDashboard() {
     },
   });
 
-  const { data: prepIntel } = useQuery<PrepIntelligenceData>({
-    queryKey: ['prepIntelligence'],
-    queryFn: async () => {
-      const res = await api.get<{ data: PrepIntelligenceData }>('/orders/prep-intelligence');
-      return res.data.data;
-    },
-  });
+  const { data: prepIntel } = useQuery(prepIntelligenceQueryOptions());
 
   const handlePullRefresh = useCallback(async () => {
     await Promise.all([

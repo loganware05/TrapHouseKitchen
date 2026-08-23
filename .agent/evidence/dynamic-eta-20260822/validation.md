@@ -15,6 +15,7 @@
 - `npm run build --prefix frontend` — pass (tsc + vite build)
 - Chef Orders: kitchen queue summary + per-order prep editor
 - Chef Dashboard: prep intelligence panel with learning status + dish suggestions
+- Chef Orders + Dashboard: `allOrders` and `prepIntelligence` poll every 15s (`CHEF_KITCHEN_POLL_MS` via `frontend/src/lib/chefKitchen.ts`) so queue/status stay live
 
 ## Production notes
 
