@@ -5,6 +5,12 @@ import { toast } from 'sonner';
 import api from '../../lib/api';
 import { Order } from '../../types';
 import PullToRefresh from '../../components/PullToRefresh';
+import PrepTimeEditor from '../../components/chef/PrepTimeEditor';
+import KitchenQueueSummary from '../../components/chef/KitchenQueueSummary';
+import {
+  chefAllOrdersQueryOptions,
+  prepIntelligenceQueryOptions,
+} from '../../lib/chefKitchen';
 
 const statusColors = {
   PENDING: 'bg-yellow-100 text-yellow-800',
@@ -19,14 +25,9 @@ export default function ChefOrdersPage() {
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
 
-  const { data: ordersData, isLoading, error } = useQuery<Order[]>({
-    queryKey: ['allOrders', showArchived],
-    queryFn: async () => {
-      const params = showArchived ? '?includeArchived=true' : '';
-      const res = await api.get<{ data: { orders: Order[] } }>(`/orders/all${params}`);
-      return res.data.data.orders;
-    },
-  });
+  const { data: ordersData, isLoading, error } = useQuery(chefAllOrdersQueryOptions(showArchived));
+
+  const { data: prepIntel } = useQuery(prepIntelligenceQueryOptions());
 
   // Handle errors with useEffect
   useEffect(() => {
@@ -42,6 +43,7 @@ export default function ChefOrdersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['prepIntelligence'] });
       toast.success('Order status updated!');
     },
     onError: () => {
@@ -79,6 +81,20 @@ export default function ChefOrdersPage() {
     },
   });
 
+  const prepTimeMutation = useMutation({
+    mutationFn: async ({ id, prepTimeMinutes }: { id: string; prepTimeMinutes: number }) => {
+      await api.patch(`/orders/${id}/prep-time`, { prepTimeMinutes });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['prepIntelligence'] });
+      toast.success('Prep time updated');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to update prep time');
+    },
+  });
+
   const activeOrders = ordersData?.filter(
     (order) => !['COMPLETED', 'CANCELLED'].includes(order.status)
   ) || [];
@@ -104,7 +120,10 @@ export default function ChefOrdersPage() {
   };
 
   const handlePullRefresh = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['allOrders'] }),
+      queryClient.invalidateQueries({ queryKey: ['prepIntelligence'] }),
+    ]);
   }, [queryClient]);
 
   const currentMaxOrderNumber = ordersData && ordersData.length > 0
@@ -167,6 +186,8 @@ export default function ChefOrdersPage() {
         </div>
       </div>
 
+      {prepIntel ? <KitchenQueueSummary data={prepIntel} compact /> : null}
+
       {/* Active Orders */}
       <div className="mb-12">
         <h2 className="text-2xl font-semibold text-gray-900 mb-4">Active Orders</h2>
@@ -220,6 +241,12 @@ export default function ChefOrdersPage() {
                     <p className="text-sm text-yellow-800">{order.specialInstructions}</p>
                   </div>
                 )}
+
+                <PrepTimeEditor
+                  order={order}
+                  onSave={(id, minutes) => prepTimeMutation.mutate({ id, prepTimeMinutes: minutes })}
+                  isSaving={prepTimeMutation.isPending}
+                />
 
                 <div className="flex justify-between items-center pt-4 border-t">
                   <p className="text-xl font-bold text-gray-900">

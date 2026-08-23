@@ -13,6 +13,10 @@ import {
   resetOrderNumberSequence,
   setOrderStatus,
 } from '../services/order.service';
+import {
+  getPrepIntelligenceSummary,
+  setOrderPrepTimeOverride,
+} from '../services/prepTimeLearning.service';
 
 const router = Router();
 
@@ -23,6 +27,15 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next: any)
       status: 'success',
       data: { orders },
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/prep-intelligence', authenticate, authorize('CHEF', 'ADMIN'), async (_req: AuthRequest, res: Response, next: any) => {
+  try {
+    const summary = await getPrepIntelligenceSummary();
+    res.json({ status: 'success', data: summary });
   } catch (error) {
     next(error);
   }
@@ -149,6 +162,25 @@ router.post(
       if (error.code === 'P2003') {
         return next(new AppError('Invalid reference in order data.', 400));
       }
+      next(error);
+    }
+  }
+);
+
+router.patch(
+  '/:id/prep-time',
+  authenticate,
+  authorize('CHEF', 'ADMIN'),
+  [body('prepTimeMinutes').isInt({ min: 15, max: 120 })],
+  async (req: AuthRequest, res: Response, next: any) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new AppError('Validation failed', 400);
+      }
+      const order = await setOrderPrepTimeOverride(req.params.id, req.body.prepTimeMinutes);
+      res.json({ status: 'success', data: { order } });
+    } catch (error) {
       next(error);
     }
   }

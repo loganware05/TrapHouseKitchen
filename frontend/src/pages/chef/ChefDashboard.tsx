@@ -12,6 +12,11 @@ import {
 } from 'lucide-react';
 import api from '../../lib/api';
 import PullToRefresh from '../../components/PullToRefresh';
+import KitchenQueueSummary from '../../components/chef/KitchenQueueSummary';
+import {
+  chefAllOrdersQueryOptions,
+  prepIntelligenceQueryOptions,
+} from '../../lib/chefKitchen';
 
 type DashboardData = {
   period: string;
@@ -48,13 +53,7 @@ export default function ChefDashboard() {
   const queryClient = useQueryClient();
   const [analyticsPeriod, setAnalyticsPeriod] = useState<'7d' | '30d'>('7d');
 
-  const { data: ordersData } = useQuery({
-    queryKey: ['allOrders'],
-    queryFn: async () => {
-      const res = await api.get('/orders/all');
-      return res.data.data.orders;
-    },
-  });
+  const { data: ordersData } = useQuery(chefAllOrdersQueryOptions(false));
 
   const { data: dishesData } = useQuery({
     queryKey: ['dishes'],
@@ -83,12 +82,15 @@ export default function ChefDashboard() {
     },
   });
 
+  const { data: prepIntel } = useQuery(prepIntelligenceQueryOptions());
+
   const handlePullRefresh = useCallback(async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['allOrders'] }),
       queryClient.invalidateQueries({ queryKey: ['dishes'] }),
       queryClient.invalidateQueries({ queryKey: ['dishRequests'] }),
       queryClient.invalidateQueries({ queryKey: ['analyticsDashboard'] }),
+      queryClient.invalidateQueries({ queryKey: ['prepIntelligence'] }),
     ]);
   }, [queryClient]);
 
@@ -163,6 +165,8 @@ export default function ChefDashboard() {
           </div>
         </div>
       </div>
+
+      {prepIntel ? <KitchenQueueSummary data={prepIntel} /> : null}
 
       {/* Analytics */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">

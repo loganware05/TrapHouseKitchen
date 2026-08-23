@@ -45,6 +45,19 @@ CHEF_EMAIL=chef@traphousekitchen.com
 # Environment
 NODE_ENV=production
 PORT=10000
+
+# Prep intelligence (Slice 9) — keep learning OFF until Captain enables after volume
+PREP_LEARNING_ENABLED=0
+# Optional tuning (defaults shown):
+# PREP_DEFAULT_DISH_MINUTES=15
+# PREP_BASE_BUFFER_MINUTES=5
+# PREP_MIN_ETA_MINUTES=15
+# PREP_MAX_ETA_MINUTES=120
+# PREP_QUEUE_PENDING_MINUTES=8
+# PREP_QUEUE_PREPARING_MINUTES=8
+# PREP_QUEUE_READY_MINUTES=2
+# PREP_LEARNING_MIN_SAMPLES=20
+# PREP_LEARNING_WINDOW=30
 ```
 
 ## Frontend Static Site (`traphousekitchen-web`)

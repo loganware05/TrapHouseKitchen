@@ -22,6 +22,15 @@ PENDING → PREPARING → READY → OUT_FOR_DELIVERY → COMPLETED
 - Same-status updates are allowed (payment sync may re-assert `PENDING`)
 - Reviews require `COMPLETED` + `PAID`
 
+## Dynamic prep time (Slice 9+)
+
+- Checkout ETA: `5 + Σ(dish.prepTime × qty) + queue load + learning bias` (clamped 15–120 min)
+- Queue counts paid, non-archived PENDING/PREPARING/READY (excluding current order); READY weighted lower (2 min vs 8)
+- `Order.prepTime` snapshot at PaymentIntent; `prepTimeSource` = `AUTO` | `CHEF_OVERRIDE`
+- Chef: `GET /api/orders/prep-intelligence`, `PATCH /api/orders/:id/prep-time`
+- Learning: observations on COMPLETED; bias applies only when `PREP_LEARNING_ENABLED=1` and ≥ min samples
+- Chef kitchen board + prep intelligence poll every **15s** (`CHEF_KITCHEN_POLL_MS` = `CUSTOMER_ORDER_POLL_MS`) via `frontend/src/lib/chefKitchen.ts` so queue counts and order statuses stay live without reload
+
 ## Client polling (Slice 6+)
 
 - Interval: `CUSTOMER_ORDER_POLL_MS` = **15s** (`frontend/src/lib/customerOrders.ts`)
@@ -46,6 +55,10 @@ PENDING → PREPARING → READY → OUT_FOR_DELIVERY → COMPLETED
 | Schema | `backend/prisma/schema.prisma` |
 | Transitions | `backend/src/services/orderStatusTransitions.ts` |
 | Writer | `backend/src/services/order.service.ts` → `setOrderStatus` |
+| Dynamic ETA | `backend/src/services/prepTime.service.ts` |
+| Prep learning | `backend/src/services/prepTimeLearning.service.ts` |
+| Chef prep UI | `frontend/src/components/chef/PrepTimeEditor.tsx`, `KitchenQueueSummary.tsx` |
+| Chef kitchen poll | `frontend/src/lib/chefKitchen.ts` |
 | Chef UI | `frontend/src/pages/chef/ChefOrdersPage.tsx` |
 | Labels / polling | `frontend/src/lib/customerOrders.ts` |
 | Tracker | `frontend/src/components/OrderTracker.tsx` |

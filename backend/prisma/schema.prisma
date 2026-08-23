@@ -74,6 +74,11 @@ enum OrderSource {
   TRENDING @map("trending")
 }
 
+enum PrepTimeSource {
+  AUTO
+  CHEF_OVERRIDE
+}
+
 model User {
   id                String              @id @default(uuid())
   email             String?             @unique
@@ -240,6 +245,8 @@ model Order {
   specialInstructions String?
   deliveryLocation  String?
   prepTime      Int?          // Estimated preparation time in minutes
+  prepTimeSource PrepTimeSource @default(AUTO)
+  prepTimeUpdatedAt DateTime?
   isArchived    Boolean       @default(false)
   appliedCouponId String?
   createdAt     DateTime      @default(now())
@@ -252,6 +259,7 @@ model Order {
   reviews    Review[]
   appliedCoupon Coupon?   @relation("AppliedCoupon", fields: [appliedCouponId], references: [id])
   aiInteractions AIInteraction[]
+  prepTimeObservation PrepTimeObservation?
 
   @@unique([orderNumber])
   @@index([userId])
@@ -451,4 +459,29 @@ model SavedPaymentMethod {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Completed-order actual vs projected prep (learning orchestrator input).
+model PrepTimeObservation {
+  id                   String   @id @default(uuid())
+  orderId              String   @unique
+  projectedPrepMinutes Int
+  actualPrepMinutes    Int
+  deltaMinutes         Int
+  dishIds              String[]
+  createdAt            DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
+
+/// Singleton calibration state for prep learning (id = "singleton").
+model PrepCalibration {
+  id                 String   @id @default("singleton")
+  globalBiasMinutes  Int      @default(0)
+  sampleCount        Int      @default(0)
+  dishSuggestions    Json?
+  lastCalculatedAt   DateTime?
+  updatedAt          DateTime @updatedAt
 }

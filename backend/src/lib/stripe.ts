@@ -39,14 +39,10 @@ const stripe = new Stripe(stripeSecretKey, {
 
 export default stripe;
 
-// Helper function to calculate prep time based on order items
-export const calculatePrepTime = (itemCount: number): number => {
-  // Base time: 15 minutes
-  // Add 5 minutes per item
-  const baseTime = 15;
-  const timePerItem = 5;
-  return baseTime + (itemCount * timePerItem);
-};
+import { legacyPrepTimeFromItemCount } from '../services/prepTime.service';
+
+/** @deprecated Use prepTime.service dynamic formula at checkout. Kept for backward compatibility. */
+export const calculatePrepTime = legacyPrepTimeFromItemCount;
 
 // Helper function to format currency amount for Stripe
 // Stripe requires amounts in cents

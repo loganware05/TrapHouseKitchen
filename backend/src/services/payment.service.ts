@@ -1,6 +1,5 @@
 import stripe, {
   toStripeAmount,
-  calculatePrepTime,
   paymentIntentStatusToRecordStatus,
 } from '../lib/stripe';
 import prisma from '../lib/prisma';
@@ -8,6 +7,11 @@ import { AppError } from '../middleware/errorHandler';
 import type { Coupon, Order, User, Dish, OrderItem } from '@prisma/client';
 import { PaymentRecordStatus } from '@prisma/client';
 import type Stripe from 'stripe';
+import {
+  computeOrderPrepMinutes,
+  getKitchenQueueCounts,
+} from './prepTime.service';
+import { getGlobalLearningBias } from './prepTimeLearning.service';
 
 type OrderWithRelations = Order & {
   items: (OrderItem & { dish: Dish })[];
@@ -264,7 +268,13 @@ export async function createPaymentIntentForOrder(params: {
   const subtotal = order.totalPrice;
   const tip = parseFloat(String(tipAmount)) || 0;
   const total = Math.max(0, subtotal + tip - discount);
-  const prepTime = calculatePrepTime(order.items.length);
+  const queueCounts = await getKitchenQueueCounts(order.id);
+  const learningBias = await getGlobalLearningBias();
+  const prepTime = computeOrderPrepMinutes({
+    items: order.items,
+    queueCounts,
+    learningBiasMinutes: learningBias,
+  });
 
   const metadata: Record<string, string> = {
     orderId: order.id,
@@ -339,6 +349,7 @@ export async function createPaymentIntentForOrder(params: {
         tipAmount: tip,
         finalAmount: total,
         prepTime,
+        prepTimeSource: 'AUTO',
         paymentStatus: paymentIntent.status === 'succeeded' ? 'PAID' : 'PENDING',
         ...(coupon && { appliedCouponId: coupon.id }),
       },

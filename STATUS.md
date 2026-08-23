@@ -6,7 +6,7 @@
 
 **Related:** [QA_CHECKLIST.md](QA_CHECKLIST.md) · [SUPPORT_PLAYBOOKS.md](SUPPORT_PLAYBOOKS.md) · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md) · [AGENTS.md](AGENTS.md)
 
-**Current WIP:** Slice 8 receipt reviews — PR #23 open.
+**Current WIP:** Slice 9 dynamic ETA — plan awaiting approval.
 
 ---
 
