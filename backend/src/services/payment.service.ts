@@ -18,7 +18,11 @@ type OrderWithRelations = Order & {
   user: User;
 };
 
-export async function resolveCouponForCheckout(userId: string, couponCode?: string) {
+export async function resolveCouponForCheckout(
+  userId: string,
+  couponCode?: string,
+  options?: { excludeOrderId?: string }
+) {
   if (!couponCode?.trim()) {
     return null;
   }
@@ -37,7 +41,54 @@ export async function resolveCouponForCheckout(userId: string, couponCode?: stri
   if (coupon.expiresAt && coupon.expiresAt < new Date()) {
     throw new AppError('This coupon has expired', 400);
   }
+
+  // Soft reservation: block if another open unpaid/pending order already holds this coupon
+  const heldByOther = await prisma.order.findFirst({
+    where: {
+      appliedCouponId: coupon.id,
+      paymentStatus: { in: ['UNPAID', 'PENDING'] },
+      status: { not: 'CANCELLED' },
+      ...(options?.excludeOrderId ? { id: { not: options.excludeOrderId } } : {}),
+    },
+    select: { id: true },
+  });
+  if (heldByOther) {
+    throw new AppError('This coupon is already reserved on another checkout', 400);
+  }
+
   return coupon;
+}
+
+async function resolveCouponForPaymentIntent(params: {
+  userId: string;
+  orderId: string;
+  couponCode?: string;
+  existingAppliedCouponId?: string | null;
+}) {
+  const { userId, orderId, couponCode, existingAppliedCouponId } = params;
+
+  if (couponCode?.trim()) {
+    return resolveCouponForCheckout(userId, couponCode, { excludeOrderId: orderId });
+  }
+
+  if (existingAppliedCouponId) {
+    const coupon = await prisma.coupon.findUnique({ where: { id: existingAppliedCouponId } });
+    if (!coupon) {
+      throw new AppError('Applied coupon not found', 404);
+    }
+    if (coupon.userId !== userId) {
+      throw new AppError('This coupon does not belong to you', 403);
+    }
+    if (coupon.used) {
+      throw new AppError('This coupon has already been used', 400);
+    }
+    if (coupon.expiresAt && coupon.expiresAt < new Date()) {
+      throw new AppError('This coupon has expired', 400);
+    }
+    return coupon;
+  }
+
+  return null;
 }
 
 export type PaymentIntentResult = {
@@ -258,11 +309,14 @@ export async function createPaymentIntentForOrder(params: {
 
   let coupon: Coupon | null = null;
   let discount = 0;
-  if (couponCode) {
-    coupon = await resolveCouponForCheckout(userId, couponCode);
-    if (coupon) {
-      discount = coupon.discountAmount;
-    }
+  coupon = await resolveCouponForPaymentIntent({
+    userId,
+    orderId,
+    couponCode,
+    existingAppliedCouponId: order.appliedCouponId,
+  });
+  if (coupon) {
+    discount = coupon.discountAmount;
   }
 
   const subtotal = order.totalPrice;

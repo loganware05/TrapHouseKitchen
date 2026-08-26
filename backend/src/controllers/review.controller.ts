@@ -3,6 +3,7 @@ import { validationResult } from 'express-validator';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
+import { approveReviewWithOptionalCoupon } from '../services/couponGateway.service';
 // Get all approved reviews (public)
 export const getAllReviews = async (req: AuthRequest, res: Response, next: any) => {
   try {
@@ -39,6 +40,54 @@ export const getAllReviews = async (req: AuthRequest, res: Response, next: any) 
         } as any,
       } as any,
       orderBy,
+    });
+
+    res.json({
+      status: 'success',
+      data: { reviews },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Approved reviews for chef management (includes award coupon metadata)
+export const getManagementReviews = async (_req: AuthRequest, res: Response, next: any) => {
+  try {
+    const reviews = await prisma.review.findMany({
+      where: { approved: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            createdAt: true,
+          },
+        },
+        dish: {
+          select: {
+            id: true,
+            name: true,
+          },
+        } as any,
+        awardCoupon: {
+          select: {
+            id: true,
+            code: true,
+            discountAmount: true,
+            used: true,
+            createdAt: true,
+          },
+        },
+      } as any,
+      orderBy: { createdAt: 'desc' },
     });
 
     res.json({
@@ -378,35 +427,20 @@ export const deleteReview = async (req: AuthRequest, res: Response, next: any) =
   }
 };
 
-// Approve review (chef only). Coupon rewards are deferred — approve only.
+// Approve review (chef only). Mints coupon when REVIEW_APPROVE gateway is enabled.
 export const approveReview = async (req: AuthRequest, res: Response, next: any) => {
   try {
     const { id } = req.params;
-
-    const review = await prisma.review.findUnique({
-      where: { id },
-      include: {
-        user: true,
-      },
-    });
-
-    if (!review) {
-      throw new AppError('Review not found', 404);
-    }
-
-    if (review.approved) {
-      throw new AppError('Review is already approved', 400);
-    }
-
-    const approvedReview = await prisma.review.update({
-      where: { id },
-      data: { approved: true },
-    });
+    const result = await approveReviewWithOptionalCoupon(id);
 
     res.json({
       status: 'success',
-      data: { review: approvedReview },
-      message: `Review approved for ${review.user.name}`,
+      data: {
+        review: result.review,
+        ...(result.coupon && { coupon: result.coupon }),
+        gatewayEnabled: result.gatewayEnabled,
+      },
+      message: result.message,
     });
   } catch (error) {
     next(error);

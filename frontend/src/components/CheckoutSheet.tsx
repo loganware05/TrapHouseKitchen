@@ -48,12 +48,15 @@ export default function CheckoutSheet() {
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponApplied, setCouponApplied] = useState(false);
+  /** Server-charged total when PI exists (authoritative over local math). */
+  const [chargedTotal, setChargedTotal] = useState<number | null>(null);
   const [deliveryDorm, setDeliveryDorm] = useState('');
   const [deliveryRoomNumber, setDeliveryRoomNumber] = useState('');
   const checkoutStartTracked = useRef(false);
 
   const subtotal = getTotalPrice();
-  const total = Math.max(0, subtotal + tipAmount - couponDiscount);
+  const localTotal = Math.max(0, subtotal + tipAmount - couponDiscount);
+  const total = chargedTotal ?? localTotal;
 
   useEffect(() => {
     if (!isOpen) {
@@ -65,6 +68,10 @@ export default function CheckoutSheet() {
       setCartExpanded(true);
       setDeliveryDorm('');
       setDeliveryRoomNumber('');
+      setChargedTotal(null);
+      setCouponCode('');
+      setCouponDiscount(0);
+      setCouponApplied(false);
     }
   }, [isOpen]);
 
@@ -137,7 +144,7 @@ export default function CheckoutSheet() {
         ...(couponApplied && { couponCode: couponCode.toUpperCase() }),
       });
 
-      const { order, clientSecret: secret, prepTime: time } = response.data.data;
+      const { order, clientSecret: secret, prepTime: time, amount } = response.data.data;
 
       if (!order?.id || !secret) {
         throw new Error('Checkout failed — missing order or payment session');
@@ -146,6 +153,9 @@ export default function CheckoutSheet() {
       setOrderId(order.id);
       setClientSecret(secret);
       setPrepTime(time);
+      if (typeof amount === 'number') {
+        setChargedTotal(amount);
+      }
     } catch (error: any) {
       console.error('Error starting checkout:', error);
       const errorMessage =
@@ -156,18 +166,22 @@ export default function CheckoutSheet() {
     }
   };
 
-  const createPaymentIntent = async () => {
+  const createPaymentIntent = async (tipOverride?: number) => {
     if (!orderId) return;
+    const tip = tipOverride ?? tipAmount;
     try {
       setLoading(true);
       const response = await api.post('/payment/create-payment-intent', {
         orderId,
-        tipAmount,
+        tipAmount: tip,
         ...(couponApplied && { couponCode: couponCode.toUpperCase() }),
       });
-      const { clientSecret: secret, prepTime: time } = response.data.data;
+      const { clientSecret: secret, prepTime: time, amount } = response.data.data;
       setClientSecret(secret);
       setPrepTime(time);
+      if (typeof amount === 'number') {
+        setChargedTotal(amount);
+      }
     } catch (error: any) {
       console.error('Error creating payment intent:', error);
       toast.error(error.response?.data?.message || 'Failed to update payment');
@@ -180,7 +194,7 @@ export default function CheckoutSheet() {
     setTipAmount(amount);
     setCustomTip('');
     if (clientSecret) {
-      void createPaymentIntent();
+      void createPaymentIntent(amount);
     }
   };
 
@@ -190,7 +204,7 @@ export default function CheckoutSheet() {
     if (amount >= 0) {
       setTipAmount(amount);
       if (clientSecret) {
-        void createPaymentIntent();
+        void createPaymentIntent(amount);
       }
     }
   };

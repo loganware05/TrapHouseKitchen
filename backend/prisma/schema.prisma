@@ -369,9 +369,10 @@ model Review {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  dish  Dish  @relation(fields: [dishId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  dish        Dish     @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  awardCoupon Coupon?  @relation("ReviewAwardCoupon")
   
   @@unique([orderId, dishId]) // One review per dish per order
   @@index([userId])
@@ -387,15 +388,26 @@ model Coupon {
   discountAmount  Float     @default(4.00)
   used            Boolean   @default(false)
   usedOrderId     String?
+  sourceReviewId  String?   @unique
   createdAt       DateTime  @default(now())
   expiresAt       DateTime?
   
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   appliedToOrders Order[] @relation("AppliedCoupon")
+  sourceReview  Review? @relation("ReviewAwardCoupon", fields: [sourceReviewId], references: [id], onDelete: SetNull)
   
   @@index([userId])
   @@index([code])
   @@index([used])
+}
+
+/// Chef-controlled award sources (e.g. mint coupon when approving a review).
+model CouponAwardGateway {
+  key            String   @id
+  enabled        Boolean  @default(true)
+  discountAmount Float    @default(4.00)
+  updatedAt      DateTime @updatedAt
+  updatedBy      String?
 }
 
 model UserBudget {

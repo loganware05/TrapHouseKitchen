@@ -380,6 +380,7 @@ export async function cancelAbandonedUnpaidOrders(
     },
     data: {
       status: 'CANCELLED',
+      appliedCouponId: null,
     },
   });
 }

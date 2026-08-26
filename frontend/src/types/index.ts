@@ -220,6 +220,14 @@ export interface Review {
     id: string;
     name: string;
   };
+  /** Present on chef management list when a review-approve coupon was minted. */
+  awardCoupon?: {
+    id: string;
+    code: string;
+    discountAmount: number;
+    used: boolean;
+    createdAt: string;
+  };
 }
 
 export interface Coupon {
