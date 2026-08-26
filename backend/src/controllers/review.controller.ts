@@ -51,6 +51,54 @@ export const getAllReviews = async (req: AuthRequest, res: Response, next: any) 
   }
 };
 
+// Approved reviews for chef management (includes award coupon metadata)
+export const getManagementReviews = async (_req: AuthRequest, res: Response, next: any) => {
+  try {
+    const reviews = await prisma.review.findMany({
+      where: { approved: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            createdAt: true,
+          },
+        },
+        dish: {
+          select: {
+            id: true,
+            name: true,
+          },
+        } as any,
+        awardCoupon: {
+          select: {
+            id: true,
+            code: true,
+            discountAmount: true,
+            used: true,
+            createdAt: true,
+          },
+        },
+      } as any,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({
+      status: 'success',
+      data: { reviews },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get user's own reviews
 export const getMyReviews = async (req: AuthRequest, res: Response, next: any) => {
   try {

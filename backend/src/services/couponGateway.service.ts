@@ -131,6 +131,7 @@ export async function approveReviewWithOptionalCoupon(reviewId: string) {
             userId: review.userId,
             discountAmount: gateway.discountAmount,
             used: false,
+            sourceReviewId: reviewId,
           },
         });
         break;

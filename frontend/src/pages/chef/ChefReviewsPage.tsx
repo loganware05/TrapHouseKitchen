@@ -27,7 +27,7 @@ export default function ChefReviewsPage() {
   const { data: approvedReviews } = useQuery({
     queryKey: ['approvedReviews'],
     queryFn: async () => {
-      const res = await api.get<{ data: { reviews: Review[] } }>('/reviews');
+      const res = await api.get<{ data: { reviews: Review[] } }>('/reviews/management');
       return res.data.data.reviews;
     },
     enabled: activeTab === 'approved',
@@ -319,6 +319,23 @@ export default function ChefReviewsPage() {
                     {reviewGateway?.enabled
                       ? `Approving publishes this review and awards a $${(reviewGateway.discountAmount ?? 4).toFixed(2)} coupon to ${review.user?.name}.`
                       : `Approving publishes this review from ${review.user?.name}. Coupon awards are currently off.`}
+                  </p>
+                </div>
+              )}
+
+              {activeTab === 'approved' && review.awardCoupon && (
+                <div
+                  className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg"
+                  data-testid={`review-coupon-award-${review.id}`}
+                >
+                  <p className="text-sm font-medium text-emerald-900">
+                    Coupon awarded
+                  </p>
+                  <p className="text-sm text-emerald-800 mt-1">
+                    <span className="font-mono font-semibold">{review.awardCoupon.code}</span>
+                    {' · '}${review.awardCoupon.discountAmount.toFixed(2)} off
+                    {' · '}
+                    {review.awardCoupon.used ? 'Used' : 'Unused'}
                   </p>
                 </div>
               )}

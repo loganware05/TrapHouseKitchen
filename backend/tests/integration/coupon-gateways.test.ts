@@ -164,6 +164,19 @@ describe('Coupon gateways + checkout discount', () => {
       where: { code: res.body.data.coupon.code },
     });
     expect(coupon?.userId).toBe(customerId);
+    expect(coupon?.sourceReviewId).toBe(pendingReviewId);
+  });
+
+  it('management list includes award coupon for approved review', async () => {
+    const res = await request(app)
+      .get('/api/reviews/management')
+      .set('Authorization', `Bearer ${chefToken}`)
+      .expect(200);
+
+    const row = res.body.data.reviews.find((r: { id: string }) => r.id === pendingReviewId);
+    expect(row?.awardCoupon).toBeTruthy();
+    expect(row.awardCoupon.code).toMatch(/^TRAP-/);
+    expect(row.awardCoupon.discountAmount).toBe(5.5);
   });
 
   it('does not mint when gateway disabled', async () => {

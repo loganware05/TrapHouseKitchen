@@ -5,6 +5,7 @@ import {
   getAllReviews,
   getMyReviews,
   getPendingReviews,
+  getManagementReviews,
   getEligibleOrders,
   createReview,
   updateReview,
@@ -47,6 +48,7 @@ router.patch(
 router.delete('/:id', authenticate, deleteReview);
 
 // Chef-only routes
+router.get('/management', authenticate, authorize('CHEF', 'ADMIN'), getManagementReviews);
 router.get('/pending', authenticate, authorize('CHEF', 'ADMIN'), getPendingReviews);
 router.post('/:id/approve', authenticate, authorize('CHEF', 'ADMIN'), approveReview);
 router.post('/:id/reject', authenticate, authorize('CHEF', 'ADMIN'), rejectReview);
