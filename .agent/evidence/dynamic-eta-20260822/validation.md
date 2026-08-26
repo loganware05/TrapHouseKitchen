@@ -22,3 +22,10 @@
 - Deploy with `PREP_LEARNING_ENABLED=0` (default)
 - Optional tuning: `PREP_QUEUE_*`, `PREP_LEARNING_MIN_SAMPLES`, etc. (see `DEPLOYMENT_ENV_VARS.md`)
 - Run migration `20260822120000_add_prep_intelligence` on Render Postgres before API deploy
+
+## Production verification (2026-08-23)
+
+- **Captain confirmed:** Render deploy green (API + web)
+- Migration applied via build (`prisma migrate deploy`)
+- Learning disabled in production (`PREP_LEARNING_ENABLED=0`)
+- **Slice 9 ops:** CLOSED

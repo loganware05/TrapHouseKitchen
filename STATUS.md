@@ -1,12 +1,12 @@
 # Project status
 
-**Last updated:** 2026-08-21
-**Production / shared baseline:** `88d6523` (`origin/main` — PR #22 pull-to-refresh)
+**Last updated:** 2026-08-23
+**Production / shared baseline:** `4af3519` (`origin/main` — PR #24 dynamic ETA)
 **Canonical rule:** This file is the only place that asserts Shipped / WIP / Broken. Do not add new root `*_COMPLETE.md` / `*_READY.md` snapshots — update this file instead.
 
 **Related:** [QA_CHECKLIST.md](QA_CHECKLIST.md) · [SUPPORT_PLAYBOOKS.md](SUPPORT_PLAYBOOKS.md) · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md) · [AGENTS.md](AGENTS.md)
 
-**Current WIP:** Slice 9 dynamic ETA — plan awaiting approval.
+**Current WIP:** None. Post-launch UX batch (Slices 1–9) complete. Next: coupons / Apple Pay / Slice 10 TBD.
 
 ---
 
@@ -31,7 +31,8 @@ On `origin/main` and considered the live product surface:
 | Area | Notes |
 |------|--------|
 | Menu / cart / guest checkout | Soft-delete dishes; guest cart |
-| Chef order pipeline | Pending → Preparing → Ready → Completed |
+| Chef order pipeline | Pending → Preparing → Ready → Out for delivery → Completed; 15s live poll |
+| Dynamic ETA / prep intelligence | Dish+queue weighted ETA; chef override; learning env-gated (`PREP_LEARNING_ENABLED`) |
 | Stripe payments | PaymentIntent + `automatic_payment_methods` |
 | Per-dish reviews (receipt UX) | Chef approve/reject; **no** auto $4 coupon (deferred) |
 | Allergens / dietary filters | Customer profile warnings |

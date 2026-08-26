@@ -36,6 +36,7 @@ Notable files: `unpaid-order-visibility.test.ts`, `delivery-location.test.ts`, `
 - `backend/tests/integration/prep-time.test.ts`: prep-intelligence, chef override, observation on complete
 - Chef live poll: `frontend/src/lib/chefKitchen.ts` (`CHEF_KITCHEN_POLL_MS` = 15s, shared with customer)
 - Evidence: `.agent/evidence/dynamic-eta-20260822/validation.md`
+- Production: Render verified green 2026-08-23 (Captain); ops closed
 
 ## End-to-end tests
 

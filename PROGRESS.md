@@ -2,25 +2,25 @@
 
 ## Current status
 
-Slice 9 (dynamic ETA + chef prep intelligence) implemented on `feature/local-dynamic-eta` — validation green; PR pending.
+Slice 9 (dynamic ETA + chef prep intelligence) **closed** — PR #24 merged (`4af3519`); Render production verified green by Captain (2026-08-23).
 
-Slice 8 (receipt-style dish reviews + community preview) merged via PR #23 (`37a7470`).
+Post-launch UX batch (Slices 1–9) is complete.
 
 ## Completed
 
-- Slices 1–8 shipped (PRs #15–#23)
-- Post-launch UX batch: cart, chef nav, payments, dorm delivery, OUT_FOR_DELIVERY, live tracking, pull-to-refresh, receipt reviews
-- Slice 9 implementation: dynamic checkout ETA, chef override, learning orchestrator (env-gated), chef UI
+- Slices 1–9 shipped and ops-verified (PRs #15–#24)
+- Post-launch UX batch: cart, chef nav, payments, dorm delivery, OUT_FOR_DELIVERY, live tracking, pull-to-refresh, receipt reviews, dynamic ETA / prep intelligence (incl. 15s chef kitchen poll)
+- Slice 9 production: migration applied, `PREP_LEARNING_ENABLED=0`, Render deploy green
 
 ## In progress
 
-- Open PR for Slice 9 from `feature/local-dynamic-eta`
+- None (awaiting next slice selection)
 
 ## Next
 
-1. Captain review + merge Slice 9 PR
-2. Render: apply migration + deploy API; keep `PREP_LEARNING_ENABLED=0` until soft-launch volume
-3. Post-batch: coupon apply-at-checkout fix, Apple Pay domain gate, Slice 10+ TBD
+1. Coupon apply-at-checkout fix (deferred from Slice 8)
+2. Apple Pay domain gate (PR #14 follow-up)
+3. Slice 10+ TBD — operating hours, webhook emails, or Captain priority
 
 ## Blockers
 
