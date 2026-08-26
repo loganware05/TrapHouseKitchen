@@ -398,6 +398,15 @@ model Coupon {
   @@index([used])
 }
 
+/// Chef-controlled award sources (e.g. mint coupon when approving a review).
+model CouponAwardGateway {
+  key            String   @id
+  enabled        Boolean  @default(true)
+  discountAmount Float    @default(4.00)
+  updatedAt      DateTime @updatedAt
+  updatedBy      String?
+}
+
 model UserBudget {
   id           String   @id @default(uuid())
   userId       String   @unique

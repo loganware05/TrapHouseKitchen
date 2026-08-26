@@ -2,7 +2,13 @@ import { Router, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
-import { AuthRequest, authenticate } from '../middleware/auth';
+import { AuthRequest, authenticate, authorize } from '../middleware/auth';
+import {
+  GATEWAY_AMOUNT_MAX,
+  GATEWAY_AMOUNT_MIN,
+  listCouponAwardGateways,
+  updateCouponAwardGateway,
+} from '../services/couponGateway.service';
 
 const router = Router();
 
@@ -29,6 +35,45 @@ router.get('/my', authenticate, async (req: AuthRequest, res: Response, next: an
     next(error);
   }
 });
+
+router.get('/gateways', authenticate, authorize('CHEF', 'ADMIN'), async (_req: AuthRequest, res: Response, next: any) => {
+  try {
+    const gateways = await listCouponAwardGateways();
+    res.json({ status: 'success', data: { gateways } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch(
+  '/gateways/:key',
+  authenticate,
+  authorize('CHEF', 'ADMIN'),
+  [
+    body('enabled').optional().isBoolean(),
+    body('discountAmount').optional().isFloat({ min: GATEWAY_AMOUNT_MIN, max: GATEWAY_AMOUNT_MAX }),
+  ],
+  async (req: AuthRequest, res: Response, next: any) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new AppError('Validation failed', 400);
+      }
+      if (req.body.enabled === undefined && req.body.discountAmount === undefined) {
+        throw new AppError('Provide enabled and/or discountAmount', 400);
+      }
+      const gateway = await updateCouponAwardGateway({
+        key: req.params.key,
+        enabled: req.body.enabled,
+        discountAmount: req.body.discountAmount,
+        updatedBy: req.user!.id,
+      });
+      res.json({ status: 'success', data: { gateway } });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 // Validate coupon code
 router.post(
@@ -131,6 +176,18 @@ router.post(
 
       if (order.appliedCouponId) {
         throw new AppError('A coupon has already been applied to this order', 400);
+      }
+
+      const heldByOther = await prisma.order.findFirst({
+        where: {
+          appliedCouponId: coupon.id,
+          paymentStatus: { in: ['UNPAID', 'PENDING'] },
+          status: { not: 'CANCELLED' },
+          id: { not: orderId },
+        },
+      });
+      if (heldByOther) {
+        throw new AppError('This coupon is already reserved on another checkout', 400);
       }
 
       // Conditional update so concurrent applies cannot both win

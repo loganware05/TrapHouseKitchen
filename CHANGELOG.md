@@ -25,3 +25,4 @@
 - Chef review approval no longer issues $4 coupons (coupon checkout APIs retained for a later fix).
 - Checkout ETA uses dish prep × quantity + status-weighted kitchen queue (READY weighted lower than PENDING/PREPARING); chef can override per-order prep time; learning bias is env-gated (`PREP_LEARNING_ENABLED`).
 - Chef kitchen queue and order list auto-refresh every 15 seconds (same cadence as customer order status polling).
+- Coupons: chef-gated review-approve awards (toggle + amount); checkout discounts reserve against concurrent open checkouts and tip updates keep Stripe amount in sync.

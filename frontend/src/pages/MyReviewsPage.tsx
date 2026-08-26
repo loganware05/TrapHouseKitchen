@@ -145,7 +145,7 @@ export default function MyReviewsPage() {
             Saved discount codes
           </h2>
           <p className="text-sm text-gray-600 mb-4">
-            Codes from earlier promotions. Checkout coupon entry may still accept them.
+            Enter a code at checkout to reduce your order total. Copy a code below when you have one.
           </p>
           <div className="grid gap-4 md:grid-cols-2">
             {couponsData.map((coupon) => (

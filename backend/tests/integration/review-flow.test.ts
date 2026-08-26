@@ -312,7 +312,7 @@ describe('Review Flow Integration Tests', () => {
       reviewId = review!.id;
     });
 
-    it('should allow chef to approve review without creating a coupon', async () => {
+    it('should allow chef to approve review and mint coupon when gateway enabled', async () => {
       const couponsBefore = await prisma.coupon.count({ where: { userId } });
 
       const response = await request(app)
@@ -322,11 +322,13 @@ describe('Review Flow Integration Tests', () => {
 
       expect(response.body.status).toBe('success');
       expect(response.body.data.review.approved).toBe(true);
-      expect(response.body.data.coupon).toBeUndefined();
+      expect(response.body.data.coupon).toBeTruthy();
+      expect(response.body.data.coupon.code).toMatch(/^TRAP-/);
+      expect(response.body.data.gatewayEnabled).toBe(true);
       expect(response.body.message).toMatch(/approved/i);
 
       const couponsAfter = await prisma.coupon.count({ where: { userId } });
-      expect(couponsAfter).toBe(couponsBefore);
+      expect(couponsAfter).toBe(couponsBefore + 1);
     });
 
     it('should not allow approving already approved review', async () => {

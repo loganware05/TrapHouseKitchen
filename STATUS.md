@@ -6,7 +6,7 @@
 
 **Related:** [QA_CHECKLIST.md](QA_CHECKLIST.md) · [SUPPORT_PLAYBOOKS.md](SUPPORT_PLAYBOOKS.md) · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md) · [AGENTS.md](AGENTS.md)
 
-**Current WIP:** None. Post-launch UX batch (Slices 1–9) complete. Next: coupons / Apple Pay / Slice 10 TBD.
+**Current WIP:** Slice 10 coupon gateways on `feature/local-coupon-gateways` (PR pending).
 
 ---
 

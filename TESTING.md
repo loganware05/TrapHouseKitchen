@@ -101,6 +101,12 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 - E2E: `npm run e2e:seed && PLAYWRIGHT_SKIP_WEBSERVER=1 PLAYWRIGHT_BASE_URL=http://localhost:5173 npx playwright test e2e/review-receipts.spec.ts --project=chromium`
 - Evidence: `.agent/evidence/review-receipts-20260821/validation.md`
 
+### Slice 10 — coupon gateways
+
+- `backend/tests/integration/coupon-gateways.test.ts`: gateway toggle/amount, mint on approve, no mint when off, soft reservation
+- `backend/tests/integration/review-flow.test.ts`: approve mints coupon when gateway enabled
+- Evidence: `.agent/evidence/coupon-gateways-20260826/validation.md`
+
 ## Manual checks
 
 - Stripe Payment Method Domains: register `traphousekitchen-web.onrender.com` (sandbox + live)

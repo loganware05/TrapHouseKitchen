@@ -1,13 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Star, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { Review } from '../../types';
 
+type CouponGateway = {
+  key: string;
+  enabled: boolean;
+  discountAmount: number;
+};
+
 export default function ChefReviewsPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'pending' | 'approved'>('pending');
+  const [amountDraft, setAmountDraft] = useState('4.00');
 
   const { data: pendingReviews } = useQuery({
     queryKey: ['pendingReviews'],
@@ -26,15 +33,55 @@ export default function ChefReviewsPage() {
     enabled: activeTab === 'approved',
   });
 
+  const { data: gateways } = useQuery({
+    queryKey: ['couponGateways'],
+    queryFn: async () => {
+      const res = await api.get<{ data: { gateways: CouponGateway[] } }>('/coupons/gateways');
+      return res.data.data.gateways;
+    },
+  });
+
+  const reviewGateway = gateways?.find((g) => g.key === 'REVIEW_APPROVE');
+
+  useEffect(() => {
+    if (reviewGateway) {
+      setAmountDraft(reviewGateway.discountAmount.toFixed(2));
+    }
+  }, [reviewGateway?.discountAmount]);
+
+  const gatewayMutation = useMutation({
+    mutationFn: async (patch: { enabled?: boolean; discountAmount?: number }) => {
+      const res = await api.patch<{ data: { gateway: CouponGateway } }>(
+        '/coupons/gateways/REVIEW_APPROVE',
+        patch
+      );
+      return res.data.data.gateway;
+    },
+    onSuccess: (gateway) => {
+      queryClient.invalidateQueries({ queryKey: ['couponGateways'] });
+      toast.success(
+        gateway.enabled
+          ? `Review coupons ON · $${gateway.discountAmount.toFixed(2)}`
+          : 'Review coupons OFF'
+      );
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to update coupon gateway');
+    },
+  });
+
   const approveReviewMutation = useMutation({
     mutationFn: async (id: string) => {
-      await api.post(`/reviews/${id}/approve`);
+      const res = await api.post<{ message?: string; data?: { coupon?: { code: string } } }>(
+        `/reviews/${id}/approve`
+      );
+      return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['pendingReviews'] });
       queryClient.invalidateQueries({ queryKey: ['approvedReviews'] });
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
-      toast.success('Review approved');
+      toast.success(data.message || 'Review approved');
     },
     onError: () => {
       toast.error('Failed to approve review');
@@ -69,7 +116,11 @@ export default function ChefReviewsPage() {
   });
 
   const handleApprove = (id: string) => {
-    if (confirm('Approve this review? It will appear on the public reviews page.')) {
+    const amount = reviewGateway?.discountAmount ?? 4;
+    const msg = reviewGateway?.enabled
+      ? `Approve this review and award a $${amount.toFixed(2)} coupon?`
+      : 'Approve this review? (Coupon awards are currently off.)';
+    if (confirm(msg)) {
       approveReviewMutation.mutate(id);
     }
   };
@@ -84,6 +135,15 @@ export default function ChefReviewsPage() {
     if (confirm('Delete this review? This action cannot be undone.')) {
       deleteReviewMutation.mutate(id);
     }
+  };
+
+  const saveAmount = () => {
+    const value = parseFloat(amountDraft);
+    if (!Number.isFinite(value) || value < 1 || value > 50) {
+      toast.error('Amount must be between $1 and $50');
+      return;
+    }
+    gatewayMutation.mutate({ discountAmount: value });
   };
 
   const renderStars = (rating: number) => {
@@ -107,7 +167,52 @@ export default function ChefReviewsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Review Management</h1>
 
-      {/* Tabs */}
+      <div
+        className="mb-8 bg-white rounded-lg shadow-md p-6 border border-slate-100"
+        data-testid="coupon-award-gateway"
+      >
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">Coupon award gateway</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          When enabled, approving a review mints a personal discount code for that customer
+          (previous distribution method). Messaging delivery of codes is on the waiting list.
+        </p>
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="flex items-center gap-2 text-sm text-gray-800">
+            <input
+              type="checkbox"
+              checked={reviewGateway?.enabled ?? true}
+              disabled={!reviewGateway || gatewayMutation.isPending}
+              onChange={(e) => gatewayMutation.mutate({ enabled: e.target.checked })}
+              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            Award coupon on review approve
+          </label>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Coupon amount ($)</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min={1}
+                max={50}
+                step={0.5}
+                value={amountDraft}
+                onChange={(e) => setAmountDraft(e.target.value)}
+                className="w-28 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                aria-label="Coupon discount amount"
+              />
+              <button
+                type="button"
+                onClick={saveAmount}
+                disabled={gatewayMutation.isPending}
+                className="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
+              >
+                Save amount
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="mb-6 border-b border-gray-200">
         <div className="flex gap-4">
           <button
@@ -138,7 +243,6 @@ export default function ChefReviewsPage() {
         </div>
       </div>
 
-      {/* Reviews List */}
       {reviews && reviews.length > 0 ? (
         <div className="space-y-6">
           {reviews.map((review) => (
@@ -190,7 +294,6 @@ export default function ChefReviewsPage() {
 
               <p className="text-gray-800 mb-3">{review.comment}</p>
 
-              {/* Show dish name (single dish per review) */}
               {(review.dishName || (review.dishNames && review.dishNames.length > 0)) && (
                 <div className="flex flex-wrap gap-2">
                   {review.dishName ? (
@@ -213,7 +316,9 @@ export default function ChefReviewsPage() {
               {activeTab === 'pending' && (
                 <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-sm text-yellow-800">
-                    Approving publishes this review from {review.user?.name} to the public reviews page.
+                    {reviewGateway?.enabled
+                      ? `Approving publishes this review and awards a $${(reviewGateway.discountAmount ?? 4).toFixed(2)} coupon to ${review.user?.name}.`
+                      : `Approving publishes this review from ${review.user?.name}. Coupon awards are currently off.`}
                   </p>
                 </div>
               )}
