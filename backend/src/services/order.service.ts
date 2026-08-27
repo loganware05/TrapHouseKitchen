@@ -207,6 +207,15 @@ export async function getCustomerOrdersWithItemReviews(userId: string) {
           },
         },
       },
+      appliedCoupon: {
+        select: {
+          id: true,
+          code: true,
+          discountAmount: true,
+          used: true,
+          usedOrderId: true,
+        },
+      },
       reviews: {
         where: { userId },
         select: {
@@ -214,6 +223,15 @@ export async function getCustomerOrdersWithItemReviews(userId: string) {
           approved: true,
           createdAt: true,
           dishId: true,
+          awardCoupon: {
+            select: {
+              id: true,
+              code: true,
+              discountAmount: true,
+              used: true,
+              usedOrderId: true,
+            },
+          },
         },
       },
     },
@@ -228,7 +246,12 @@ export async function getCustomerOrdersWithItemReviews(userId: string) {
       ...item,
       reviews: order.reviews
         .filter(r => r.dishId === item.dishId)
-        .map(({ id, approved, createdAt }) => ({ id, approved, createdAt })),
+        .map(({ id, approved, createdAt, awardCoupon }) => ({
+          id,
+          approved,
+          createdAt,
+          ...(awardCoupon ? { awardCoupon } : {}),
+        })),
     })),
   }));
 }
@@ -251,6 +274,15 @@ export async function getChefOrders(filters: {
           id: true,
           name: true,
           email: true,
+        },
+      },
+      appliedCoupon: {
+        select: {
+          id: true,
+          code: true,
+          discountAmount: true,
+          used: true,
+          usedOrderId: true,
         },
       },
       items: {
@@ -280,6 +312,15 @@ export async function getOrderByIdForUser(orderId: string, userId: string, userR
           email: true,
         },
       },
+      appliedCoupon: {
+        select: {
+          id: true,
+          code: true,
+          discountAmount: true,
+          used: true,
+          usedOrderId: true,
+        },
+      },
       items: {
         include: {
           dish: {
@@ -294,6 +335,24 @@ export async function getOrderByIdForUser(orderId: string, userId: string, userR
           },
         },
       },
+      reviews: {
+        ...(!['CHEF', 'ADMIN'].includes(userRole) ? { where: { userId } } : {}),
+        select: {
+          id: true,
+          approved: true,
+          createdAt: true,
+          dishId: true,
+          awardCoupon: {
+            select: {
+              id: true,
+              code: true,
+              discountAmount: true,
+              used: true,
+              usedOrderId: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -303,7 +362,21 @@ export async function getOrderByIdForUser(orderId: string, userId: string, userR
   if (order.userId !== userId && !['CHEF', 'ADMIN'].includes(userRole)) {
     throw new AppError('Not authorized', 403);
   }
-  return order;
+
+  return {
+    ...order,
+    items: order.items.map(item => ({
+      ...item,
+      reviews: order.reviews
+        .filter(r => r.dishId === item.dishId)
+        .map(({ id, approved, createdAt, awardCoupon }) => ({
+          id,
+          approved,
+          createdAt,
+          ...(awardCoupon ? { awardCoupon } : {}),
+        })),
+    })),
+  };
 }
 
 export async function createOrderAndPaymentIntent(params: {

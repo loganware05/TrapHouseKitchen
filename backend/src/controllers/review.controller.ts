@@ -118,6 +118,15 @@ export const getMyReviews = async (req: AuthRequest, res: Response, next: any) =
             name: true,
           },
         } as any,
+        awardCoupon: {
+          select: {
+            id: true,
+            code: true,
+            discountAmount: true,
+            used: true,
+            usedOrderId: true,
+          },
+        },
       } as any,
       orderBy: { createdAt: 'desc' },
     });

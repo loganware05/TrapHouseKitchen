@@ -164,6 +164,16 @@ export default function OrderConfirmationPage() {
                 <span className="font-medium">${order.tipAmount.toFixed(2)}</span>
               </div>
             )}
+            {order.appliedCoupon && (
+              <div className="flex justify-between text-sm text-primary-700">
+                <span>
+                  Coupon <span className="font-mono">{order.appliedCoupon.code}</span>
+                </span>
+                <span className="font-medium tabular-nums">
+                  −${order.appliedCoupon.discountAmount.toFixed(2)}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between text-sm border-t pt-3">
               <span className="text-gray-900 font-semibold">Total Paid</span>
               <span className="text-lg font-bold text-primary-600">${order.finalAmount.toFixed(2)}</span>

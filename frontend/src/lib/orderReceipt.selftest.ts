@@ -5,6 +5,8 @@ import {
   isCompletedPaidReceipt,
   isWithinReviewWindow,
   receiptHasUnreviewedDishes,
+  receiptCouponAwards,
+  receiptUsedCoupon,
   selectRecentReceipts,
 } from './orderReceipt';
 import type { Order, OrderItem } from '../types';
@@ -70,6 +72,41 @@ assert(
   ),
   'reviewed dishes hide leave-review need'
 );
+
+const withUsed = baseOrder({
+  appliedCoupon: {
+    id: 'c1',
+    code: 'TRAP-USED-TEST',
+    discountAmount: 4,
+    used: true,
+    usedOrderId: 'o1',
+  },
+  finalAmount: 6,
+});
+assert(receiptUsedCoupon(withUsed)?.code === 'TRAP-USED-TEST', 'used coupon on receipt');
+
+const withEarned = baseOrder({
+  items: [
+    {
+      ...baseOrder().items[0],
+      reviews: [
+        {
+          id: 'r2',
+          approved: true,
+          createdAt: '2026-08-11T12:00:00.000Z',
+          awardCoupon: {
+            id: 'c2',
+            code: 'TRAP-EARN-TEST',
+            discountAmount: 5,
+            used: false,
+          },
+        },
+      ],
+    },
+  ],
+});
+assert(receiptCouponAwards(withEarned).length === 1, 'earned coupon on receipt');
+assert(receiptCouponAwards(withEarned)[0].code === 'TRAP-EARN-TEST', 'earned code');
 
 const recent = selectRecentReceipts(
   [

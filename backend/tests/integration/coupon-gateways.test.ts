@@ -261,4 +261,22 @@ describe('Coupon gateways + checkout discount', () => {
     });
     expect(ok?.id).toBe(coupon.id);
   });
+
+  it('rejects validating an already-used coupon', async () => {
+    const coupon = await prisma.coupon.create({
+      data: {
+        code: `USED${runId}`.toUpperCase().slice(0, 12),
+        userId: customerId,
+        discountAmount: 3,
+        used: true,
+        usedOrderId: '00000000-0000-4000-8000-000000000001',
+      },
+    });
+
+    await request(app)
+      .post('/api/coupons/validate')
+      .set('Authorization', `Bearer ${customerToken}`)
+      .send({ code: coupon.code })
+      .expect(400);
+  });
 });

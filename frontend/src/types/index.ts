@@ -122,7 +122,22 @@ export interface OrderItem {
     id: string;
     approved: boolean;
     createdAt: string;
+    awardCoupon?: {
+      id: string;
+      code: string;
+      discountAmount: number;
+      used: boolean;
+      usedOrderId?: string | null;
+    };
   }[];
+}
+
+export interface OrderCouponSummary {
+  id: string;
+  code: string;
+  discountAmount: number;
+  used: boolean;
+  usedOrderId?: string | null;
 }
 
 export interface Order {
@@ -141,6 +156,7 @@ export interface Order {
   prepTimeUpdatedAt?: string;
   isArchived: boolean;
   appliedCouponId?: string;
+  appliedCoupon?: OrderCouponSummary | null;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;

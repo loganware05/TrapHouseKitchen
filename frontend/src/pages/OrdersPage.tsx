@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Order } from '../types';
 import OrderTracker from '../components/OrderTracker';
 import OrderReceipt from '../components/OrderReceipt';
+import OrderCouponBanner from '../components/OrderCouponBanner';
 import PullToRefresh from '../components/PullToRefresh';
 import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
 import {
@@ -112,6 +113,10 @@ function ActiveOrderCard({
           {!emphasizeTracking && order.items.length > 3 && (
             <p className="text-sm text-gray-500">+ {order.items.length - 3} more items</p>
           )}
+        </div>
+
+        <div className="mt-4">
+          <OrderCouponBanner order={order} />
         </div>
 
         <div className="border-t mt-4 pt-4 flex justify-between items-center">
