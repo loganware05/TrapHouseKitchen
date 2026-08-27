@@ -276,6 +276,15 @@ export async function getChefOrders(filters: {
           email: true,
         },
       },
+      appliedCoupon: {
+        select: {
+          id: true,
+          code: true,
+          discountAmount: true,
+          used: true,
+          usedOrderId: true,
+        },
+      },
       items: {
         include: {
           dish: {

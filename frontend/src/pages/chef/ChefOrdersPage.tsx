@@ -7,6 +7,7 @@ import { Order } from '../../types';
 import PullToRefresh from '../../components/PullToRefresh';
 import PrepTimeEditor from '../../components/chef/PrepTimeEditor';
 import KitchenQueueSummary from '../../components/chef/KitchenQueueSummary';
+import OrderCouponBanner from '../../components/OrderCouponBanner';
 import {
   chefAllOrdersQueryOptions,
   prepIntelligenceQueryOptions,
@@ -242,6 +243,10 @@ export default function ChefOrdersPage() {
                   </div>
                 )}
 
+                <div className="mb-4">
+                  <OrderCouponBanner order={order} />
+                </div>
+
                 <PrepTimeEditor
                   order={order}
                   onSave={(id, minutes) => prepTimeMutation.mutate({ id, prepTimeMinutes: minutes })}
@@ -249,9 +254,17 @@ export default function ChefOrdersPage() {
                 />
 
                 <div className="flex justify-between items-center pt-4 border-t">
-                  <p className="text-xl font-bold text-gray-900">
-                    Total: ${order.totalPrice.toFixed(2)}
-                  </p>
+                  <div>
+                    <p className="text-xl font-bold text-gray-900">
+                      Total: ${(order.finalAmount ?? order.totalPrice).toFixed(2)}
+                    </p>
+                    {order.appliedCoupon ? (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Subtotal ${order.totalPrice.toFixed(2)}
+                        {(order.tipAmount ?? 0) > 0 ? ` · tip $${order.tipAmount.toFixed(2)}` : ''}
+                      </p>
+                    ) : null}
+                  </div>
                   <div className="flex gap-2">
                     {order.status === 'PENDING' && (
                       <button
@@ -353,13 +366,14 @@ export default function ChefOrdersPage() {
                     <p className="text-sm text-gray-500">
                       {new Date(order.createdAt).toLocaleDateString()}
                     </p>
+                    <OrderCouponBanner order={order} compact className="mt-1" />
                   </div>
                   <div className="text-right">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[order.status as keyof typeof statusColors]}`}>
                       {order.status}
                     </span>
                     <p className="mt-2 text-lg font-bold text-gray-900">
-                      ${order.totalPrice.toFixed(2)}
+                      ${(order.finalAmount ?? order.totalPrice).toFixed(2)}
                     </p>
                   </div>
                 </div>
