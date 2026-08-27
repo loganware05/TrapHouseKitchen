@@ -21,13 +21,17 @@ export default function MyReviewsPage() {
     },
   });
 
-  const { data: couponsData } = useQuery({
+  const { data: couponsBundle } = useQuery({
     queryKey: ['myCoupons'],
     queryFn: async () => {
-      const res = await api.get<{ data: { coupons: Coupon[] } }>('/coupons/my');
-      return res.data.data.coupons;
+      const res = await api.get<{ data: { coupons: Coupon[]; usedCoupons: Coupon[] } }>(
+        '/coupons/my'
+      );
+      return res.data.data;
     },
   });
+  const couponsData = couponsBundle?.coupons;
+  const usedCouponsData = couponsBundle?.usedCoupons;
 
   const updateReviewMutation = useMutation({
     mutationFn: async ({ id, rating, comment }: { id: string; rating: number; comment: string }) => {
@@ -145,7 +149,7 @@ export default function MyReviewsPage() {
             Saved discount codes
           </h2>
           <p className="text-sm text-gray-600 mb-4">
-            Enter a code at checkout to reduce your order total. Copy a code below when you have one.
+            Each code works once. Enter it at checkout — after payment it cannot be reused.
           </p>
           <div className="grid gap-4 md:grid-cols-2">
             {couponsData.map((coupon) => (
@@ -173,7 +177,31 @@ export default function MyReviewsPage() {
                   </button>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Use at checkout • No expiration
+                  One-time use at checkout • No expiration
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {usedCouponsData && usedCouponsData.length > 0 && (
+        <div className="mb-8 bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Used codes</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            These codes were redeemed and cannot be applied again.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {usedCouponsData.map((coupon) => (
+              <div
+                key={coupon.id}
+                className="rounded-lg p-4 border border-gray-200 bg-gray-50 opacity-90"
+              >
+                <p className="text-lg font-mono font-semibold text-gray-500 line-through">
+                  {coupon.code}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  ${coupon.discountAmount.toFixed(2)} off · Redeemed
                 </p>
               </div>
             ))}
@@ -283,6 +311,17 @@ export default function MyReviewsPage() {
                     <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <p className="text-sm text-yellow-800">
                         Your review is pending chef approval before it appears publicly.
+                      </p>
+                    </div>
+                  )}
+
+                  {review.awardCoupon && (
+                    <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                      <p className="text-sm font-medium text-emerald-900">Coupon earned</p>
+                      <p className="text-sm text-emerald-800 mt-1">
+                        <span className="font-mono font-semibold">{review.awardCoupon.code}</span>
+                        {' · '}${review.awardCoupon.discountAmount.toFixed(2)} off
+                        {review.awardCoupon.used ? ' · already redeemed' : ' · ready to use at checkout'}
                       </p>
                     </div>
                   )}

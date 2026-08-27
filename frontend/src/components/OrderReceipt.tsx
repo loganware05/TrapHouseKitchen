@@ -1,9 +1,11 @@
-import { CheckCircle, Clock, Star } from 'lucide-react';
-import type { Order, OrderItem } from '../types';
+import { CheckCircle, Clock, Star, Ticket } from 'lucide-react';
+import type { Order, OrderItem, OrderCouponSummary } from '../types';
 import {
   formatReceiptDateTime,
   isCompletedPaidReceipt,
   itemHasReview,
+  receiptCouponAwards,
+  receiptUsedCoupon,
 } from '../lib/orderReceipt';
 
 type OrderReceiptProps = {
@@ -34,6 +36,9 @@ function LineReviewStatus({
         <span className="text-xs text-green-700 flex items-center gap-1">
           <CheckCircle className="h-3 w-3" aria-hidden />
           Reviewed
+          {review.awardCoupon ? (
+            <span className="text-emerald-700">· coupon earned</span>
+          ) : null}
         </span>
       );
     }
@@ -57,6 +62,39 @@ function LineReviewStatus({
   );
 }
 
+function CouponNote({
+  kind,
+  coupon,
+}: {
+  kind: 'earned' | 'used';
+  coupon: OrderCouponSummary;
+}) {
+  const isEarned = kind === 'earned';
+  return (
+    <div
+      className={`flex items-start gap-2 rounded-md border px-3 py-2 text-sm ${
+        isEarned
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+          : 'border-primary-200 bg-primary-50 text-primary-900'
+      }`}
+      data-testid={`receipt-coupon-${kind}`}
+    >
+      <Ticket className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
+      <div>
+        <p className="font-medium">{isEarned ? 'Coupon earned' : 'Coupon used'}</p>
+        <p className="text-xs mt-0.5 opacity-90">
+          <span className="font-mono font-semibold">{coupon.code}</span>
+          {isEarned
+            ? ` · $${coupon.discountAmount.toFixed(2)} off${
+                coupon.used ? ' · already redeemed' : ' · ready to use'
+              }`
+            : ` · −$${coupon.discountAmount.toFixed(2)} on this order`}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Receipt-style presentation for a completed paid order with per-dish review actions.
  */
@@ -69,6 +107,12 @@ export default function OrderReceipt({
   const when = formatReceiptDateTime(order.completedAt || order.createdAt);
   const total = order.finalAmount ?? order.totalPrice;
   const hasUnreviewed = order.items.some((item) => !itemHasReview(item));
+  const usedCoupon = receiptUsedCoupon(order);
+  const earnedCoupons = receiptCouponAwards(order);
+  const discount =
+    usedCoupon != null
+      ? usedCoupon.discountAmount
+      : Math.max(0, order.totalPrice + (order.tipAmount || 0) - total);
 
   return (
     <article
@@ -111,6 +155,36 @@ export default function OrderReceipt({
       </ul>
 
       <footer className="px-5 pb-5 pt-3 border-t border-dashed border-th-border space-y-3">
+        {(usedCoupon || earnedCoupons.length > 0) && (
+          <div className="space-y-2">
+            {usedCoupon ? <CouponNote kind="used" coupon={usedCoupon} /> : null}
+            {earnedCoupons.map((coupon) => (
+              <CouponNote key={coupon.id} kind="earned" coupon={coupon} />
+            ))}
+          </div>
+        )}
+
+        <div className="space-y-1 text-sm">
+          <div className="flex justify-between text-gray-600">
+            <span>Subtotal</span>
+            <span className="tabular-nums">${order.totalPrice.toFixed(2)}</span>
+          </div>
+          {(order.tipAmount ?? 0) > 0 ? (
+            <div className="flex justify-between text-gray-600">
+              <span>Tip</span>
+              <span className="tabular-nums">${order.tipAmount.toFixed(2)}</span>
+            </div>
+          ) : null}
+          {usedCoupon || discount > 0.009 ? (
+            <div className="flex justify-between text-primary-700">
+              <span>Coupon discount</span>
+              <span className="tabular-nums">
+                −${(usedCoupon?.discountAmount ?? discount).toFixed(2)}
+              </span>
+            </div>
+          ) : null}
+        </div>
+
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium text-gray-600">Total</span>
           <span className="text-xl font-bold text-primary-600 tabular-nums">

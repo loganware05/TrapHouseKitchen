@@ -1,4 +1,4 @@
-import type { Order, OrderItem } from '../types';
+import type { Order, OrderItem, OrderCouponSummary } from '../types';
 
 /** Default review eligibility window (matches backend REVIEW_WINDOW_DAYS). */
 export const REVIEW_WINDOW_DAYS = 30;
@@ -32,6 +32,27 @@ export function itemHasReview(item: OrderItem): boolean {
 
 export function receiptHasUnreviewedDishes(order: Order): boolean {
   return order.items.some((item) => !itemHasReview(item));
+}
+
+/** Coupon redeemed on this order (one-time use). */
+export function receiptUsedCoupon(order: Order): OrderCouponSummary | null {
+  if (order.appliedCoupon) {
+    return order.appliedCoupon;
+  }
+  return null;
+}
+
+/** Coupons minted from approved reviews on this order. */
+export function receiptCouponAwards(order: Order): OrderCouponSummary[] {
+  const byId = new Map<string, OrderCouponSummary>();
+  for (const item of order.items) {
+    for (const review of item.reviews ?? []) {
+      if (review.awardCoupon) {
+        byId.set(review.awardCoupon.id, review.awardCoupon);
+      }
+    }
+  }
+  return Array.from(byId.values());
 }
 
 /** Newest completed+paid receipts first, capped for Profile. */

@@ -17,6 +17,8 @@
 - `npm run build --prefix frontend` — pass
 - Chef Reviews: gateway toggle + amount
 - CheckoutSheet: chargedTotal from server; tip recreate with tip override
+- Customer receipts: Coupon earned / Coupon used notes; My Reviews lists used codes as redeemed-only
+- Used coupon validate rejected (one-time use)
 
 ## Waiting list
 

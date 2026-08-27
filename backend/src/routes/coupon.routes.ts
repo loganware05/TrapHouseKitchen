@@ -12,24 +12,29 @@ import {
 
 const router = Router();
 
-// Get user's available coupons
+// Get user's coupons (available + used history)
 router.get('/my', authenticate, async (req: AuthRequest, res: Response, next: any) => {
   try {
     const coupons = await prisma.coupon.findMany({
       where: {
         userId: req.user!.id,
-        used: false,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gte: new Date() } },
-        ],
       },
       orderBy: { createdAt: 'desc' },
     });
 
+    const available = coupons.filter(
+      (c) =>
+        !c.used &&
+        (!c.expiresAt || c.expiresAt >= new Date())
+    );
+    const used = coupons.filter((c) => c.used);
+
     res.json({
       status: 'success',
-      data: { coupons },
+      data: {
+        coupons: available,
+        usedCoupons: used,
+      },
     });
   } catch (error) {
     next(error);
