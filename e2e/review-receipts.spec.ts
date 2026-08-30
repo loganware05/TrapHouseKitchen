@@ -55,21 +55,22 @@ test.describe('Receipt-style dish reviews', () => {
     });
   });
 
-  test('profile shows recent receipts and community reviews', async ({ page }) => {
+  test('profile receipts dropdown expands to show recent orders', async ({ page }) => {
     await page.getByRole('link', { name: /^profile$/i }).first().click();
     await expect(page).toHaveURL(/\/profile/);
     await expect(page.getByRole('heading', { name: /my profile/i })).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByRole('heading', { name: /recent receipts/i })).toBeVisible({
-      timeout: 20_000,
-    });
-    await expect(page.getByRole('heading', { name: /community reviews/i })).toBeVisible();
-    await page.getByRole('link', { name: /^see all$/i }).click();
+
+    const receiptsToggle = page.getByRole('button', { name: /^receipts$/i });
+    await expect(receiptsToggle).toBeVisible({ timeout: 20_000 });
+    await receiptsToggle.click();
+    await expect(page.getByRole('link', { name: /view all orders/i })).toBeVisible();
+
+    await page.getByRole('link', { name: /^reviews$/i }).first().click();
     await expect(page).toHaveURL(/\/reviews$/);
-    await expect(page.getByRole('heading', { name: /customer reviews/i })).toBeVisible({
+    await expect(page.getByRole('heading', { name: /^reviews$/i })).toBeVisible({
       timeout: 15_000,
     });
-    await page.screenshot({
-      path: '.agent/evidence/review-receipts-20260821/profile-community-reviews.png',
-    });
+    await expect(page.getByRole('heading', { name: /community reviews/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /your reviews/i })).toBeVisible();
   });
 });

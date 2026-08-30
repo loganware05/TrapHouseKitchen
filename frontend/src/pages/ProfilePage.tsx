@@ -1,36 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Elements } from '@stripe/react-stripe-js';
-import { User, AlertTriangle, Save, CreditCard, Trash2, Star, PieChart, ChevronRight, MessageSquare } from 'lucide-react';
+import { User, AlertTriangle, Save, CreditCard, Trash2, Star, PieChart, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import stripePromise from '../lib/stripe';
 import { useAuthStore } from '../stores/authStore';
-import { Allergen, Review } from '../types';
+import { Allergen } from '../types';
 import SavePaymentMethodForm from '../components/SavePaymentMethodForm';
 import OrderReceipt from '../components/OrderReceipt';
 import type { SavedCardSummary } from '../types';
 import { customerOrdersQueryOptions } from '../lib/customerOrders';
 import { selectRecentReceipts } from '../lib/orderReceipt';
+import { useRegisterPullToRefresh } from '../contexts/PullToRefreshContext';
 
-const PROFILE_COMMUNITY_REVIEW_LIMIT = 3;
-
-function ReviewStars({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-0.5" aria-label={`${rating} out of 5 stars`}>
-      {Array.from({ length: 5 }, (_, i) => (
-        <Star
-          key={i}
-          className={`h-4 w-4 ${
-            i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
-          }`}
-          aria-hidden
-        />
-      ))}
-    </div>
-  );
-}
+const PROFILE_RECEIPT_LIMIT = 3;
 
 type UserSpendData = {
   period: string;
@@ -59,6 +44,7 @@ export default function ProfilePage() {
   const [dietaryPrefs, setDietaryPrefs] = useState<string[]>([]);
   const [addCardClientSecret, setAddCardClientSecret] = useState<string | null>(null);
   const [addCardLoading, setAddCardLoading] = useState(false);
+  const [receiptsOpen, setReceiptsOpen] = useState(false);
 
   const { data: userProfile } = useQuery({
     queryKey: ['userProfile'],
@@ -106,17 +92,19 @@ export default function ProfilePage() {
     ...customerOrdersQueryOptions(!!user && user.role === 'CUSTOMER'),
   });
 
-  const { data: communityReviews = [] } = useQuery({
-    queryKey: ['reviews', 'newest', 'profile-preview'],
-    queryFn: async () => {
-      const res = await api.get<{ data: { reviews: Review[] } }>('/reviews?sortBy=newest');
-      return res.data.data.reviews.slice(0, PROFILE_COMMUNITY_REVIEW_LIMIT);
-    },
-    enabled: !!user && user.role === 'CUSTOMER',
-    staleTime: 60_000,
-  });
+  const recentReceipts = selectRecentReceipts(ordersData ?? [], PROFILE_RECEIPT_LIMIT);
 
-  const recentReceipts = selectRecentReceipts(ordersData ?? [], 5);
+  const handlePullRefresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] }),
+      queryClient.invalidateQueries({ queryKey: ['allergens'] }),
+      queryClient.invalidateQueries({ queryKey: ['userSpend'] }),
+      queryClient.invalidateQueries({ queryKey: ['savedPaymentMethods'] }),
+      queryClient.invalidateQueries({ queryKey: ['orders'] }),
+    ]);
+  }, [queryClient]);
+
+  useRegisterPullToRefresh(handlePullRefresh);
 
   const handleWriteReview = (orderId: string, dishId?: string) => {
     if (dishId) {
@@ -271,83 +259,39 @@ export default function ProfilePage() {
 
       {user?.role === 'CUSTOMER' && recentReceipts.length > 0 && (
         <section className="mb-6" aria-labelledby="recent-receipts-heading">
-          <div className="flex items-end justify-between gap-3 mb-4">
-            <div>
-              <h2 id="recent-receipts-heading" className="text-xl font-semibold text-gray-900">
-                Recent receipts
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Leave a review for dishes from recent completed orders.
-              </p>
-            </div>
-            <Link to="/orders" className="text-sm font-medium text-primary-600 hover:underline shrink-0">
-              All orders
-            </Link>
-          </div>
-          <div className="space-y-4">
-            {recentReceipts.map((order) => (
-              <OrderReceipt
-                key={order.id}
-                order={order}
-                onWriteReview={handleWriteReview}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {user?.role === 'CUSTOMER' && (
-        <section className="mb-6" aria-labelledby="community-reviews-heading">
-          <div className="flex items-end justify-between gap-3 mb-4">
-            <div>
-              <h2 id="community-reviews-heading" className="text-xl font-semibold text-gray-900">
-                Community reviews
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Recent chef-approved reviews from other customers.
-              </p>
-            </div>
-            <Link
-              to="/reviews"
-              className="text-sm font-medium text-primary-600 hover:underline shrink-0"
-            >
-              See all
-            </Link>
-          </div>
-          {communityReviews.length > 0 ? (
-            <ul className="space-y-3">
-              {communityReviews.map((review) => (
-                <li
-                  key={review.id}
-                  className="bg-white border border-th-border rounded-th-lg p-4"
-                >
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <ReviewStars rating={review.rating} />
-                    <span className="text-xs text-gray-500 shrink-0">
-                      {new Date(review.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-800 line-clamp-3">{review.comment}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600">
-                    <span>by {review.user?.name?.split(' ')[0] || 'Customer'}</span>
-                    {(review.dishName || review.dish?.name) && (
-                      <span className="px-2 py-0.5 rounded-full bg-primary-50 text-primary-700">
-                        {review.dishName || review.dish?.name}
-                      </span>
-                    )}
-                  </div>
-                </li>
+          <button
+            type="button"
+            id="recent-receipts-heading"
+            onClick={() => setReceiptsOpen((open) => !open)}
+            aria-expanded={receiptsOpen}
+            className="w-full flex items-center justify-between gap-3 rounded-th-lg border border-th-border bg-white px-4 py-3 text-left shadow-th-card hover:bg-th-surface-muted transition-colors"
+          >
+            <span>
+              <span className="block text-xl font-semibold text-gray-900">Receipts</span>
+              <span className="block text-sm text-gray-600 mt-0.5">
+                Up to {PROFILE_RECEIPT_LIMIT} recent completed orders (30-day window)
+              </span>
+            </span>
+            {receiptsOpen ? (
+              <ChevronDown className="h-5 w-5 text-th-muted-fg shrink-0" aria-hidden />
+            ) : (
+              <ChevronRight className="h-5 w-5 text-th-muted-fg shrink-0" aria-hidden />
+            )}
+          </button>
+          {receiptsOpen && (
+            <div className="mt-4 space-y-4">
+              {recentReceipts.map((order) => (
+                <OrderReceipt
+                  key={order.id}
+                  order={order}
+                  onWriteReview={handleWriteReview}
+                />
               ))}
-            </ul>
-          ) : (
-            <div className="bg-white border border-dashed border-th-border rounded-th-lg p-5 text-center">
-              <p className="text-sm text-gray-600 mb-3">No public reviews yet.</p>
-              <Link
-                to="/reviews"
-                className="text-sm font-medium text-primary-600 hover:underline"
-              >
-                Open reviews page
-              </Link>
+              <div className="text-center">
+                <Link to="/orders" className="text-sm font-medium text-primary-600 hover:underline">
+                  View all orders
+                </Link>
+              </div>
             </div>
           )}
         </section>
@@ -355,38 +299,8 @@ export default function ProfilePage() {
 
       {user?.role === 'CUSTOMER' && (
         <div className="bg-white rounded-th-xl shadow-th-card p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">More</h2>
-          <nav className="space-y-1" aria-label="Additional links">
-            <Link
-              to="/reviews/my"
-              className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-900 hover:bg-th-surface-muted transition-colors"
-            >
-              <span className="flex items-center gap-3 font-medium">
-                <Star className="h-5 w-5 text-primary-600" />
-                My reviews
-              </span>
-              <ChevronRight className="h-4 w-4 text-th-muted-fg" />
-            </Link>
-            <Link
-              to="/reviews"
-              className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-900 hover:bg-th-surface-muted transition-colors"
-            >
-              <span className="flex items-center gap-3 font-medium">
-                <MessageSquare className="h-5 w-5 text-primary-600" />
-                All community reviews
-              </span>
-              <ChevronRight className="h-4 w-4 text-th-muted-fg" />
-            </Link>
-            <Link
-              to="/dish-requests"
-              className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-900 hover:bg-th-surface-muted transition-colors"
-            >
-              <span className="flex items-center gap-3 font-medium">
-                <MessageSquare className="h-5 w-5 text-primary-600" />
-                Dish requests
-              </span>
-              <ChevronRight className="h-4 w-4 text-th-muted-fg" />
-            </Link>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Legal</h2>
+          <nav className="space-y-1" aria-label="Legal links">
             <Link
               to="/privacy"
               className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-700 hover:bg-th-surface-muted transition-colors text-sm"

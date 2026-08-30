@@ -21,8 +21,9 @@ description: Implements and reviews mobile-first navigation, cart actions, touch
 |-------|------|
 | Logic | `frontend/src/lib/pullToRefreshLogic.ts` |
 | Hook | `frontend/src/hooks/usePullToRefresh.ts` |
-| Wrapper | `frontend/src/components/PullToRefresh.tsx` |
-| Surfaces | Home, Menu, Orders, Chef Dashboard, Chef Orders |
+| Wrapper | `frontend/src/components/PullToRefresh.tsx` (Layout-level) |
+| Registry | `frontend/src/contexts/PullToRefreshContext.tsx` — pages call `useRegisterPullToRefresh` |
+| Surfaces | Customer: Home, Reviews, Requests, Orders, Profile, Menu (off-tab). Chef: Dashboard, Menu, Orders, Reviews, Requests |
 
 Validate with `npx tsx src/lib/pullToRefreshLogic.selftest.ts` from `frontend/`. Prefer hook/logic tests over flaky Playwright touch-drag.
 

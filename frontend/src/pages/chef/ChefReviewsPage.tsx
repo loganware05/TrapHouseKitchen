@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Star, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { Review } from '../../types';
+import { useRegisterPullToRefresh } from '../../contexts/PullToRefreshContext';
 
 type CouponGateway = {
   key: string;
@@ -42,6 +43,16 @@ export default function ChefReviewsPage() {
   });
 
   const reviewGateway = gateways?.find((g) => g.key === 'REVIEW_APPROVE');
+
+  const handlePullRefresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['pendingReviews'] }),
+      queryClient.invalidateQueries({ queryKey: ['approvedReviews'] }),
+      queryClient.invalidateQueries({ queryKey: ['couponGateways'] }),
+    ]);
+  }, [queryClient]);
+
+  useRegisterPullToRefresh(handlePullRefresh);
 
   useEffect(() => {
     if (reviewGateway) {

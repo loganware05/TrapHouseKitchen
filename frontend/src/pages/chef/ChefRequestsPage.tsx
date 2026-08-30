@@ -1,9 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { ThumbsUp, ThumbsDown, MessageSquare, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { DishRequest } from '../../types';
 import { useAuthStore } from '../../stores/authStore';
+import { useRegisterPullToRefresh } from '../../contexts/PullToRefreshContext';
 
 export default function ChefRequestsPage() {
   const { user } = useAuthStore();
@@ -16,6 +18,12 @@ export default function ChefRequestsPage() {
       return res.data.data.dishRequests;
     },
   });
+
+  const handlePullRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['dishRequests'] });
+  }, [queryClient]);
+
+  useRegisterPullToRefresh(handlePullRefresh);
 
   const voteMutation = useMutation({
     mutationFn: async ({ id, isUpvote }: { id: string; isUpvote: boolean }) => {

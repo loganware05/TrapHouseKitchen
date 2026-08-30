@@ -11,7 +11,7 @@ import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
 import { toast } from 'sonner';
 import { trackEvent } from '../stores/analyticsStore';
 import SpendTracker from '../components/SpendTracker';
-import PullToRefresh from '../components/PullToRefresh';
+import { useRegisterPullToRefresh } from '../contexts/PullToRefreshContext';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -71,7 +71,6 @@ export default function HomePage() {
   const { user } = useAuthStore();
   const addItem = useCartStore((s) => s.addItem);
   const openCheckout = useCheckoutSheetStore((s) => s.open);
-  const checkoutOpen = useCheckoutSheetStore((s) => s.isOpen);
   const [userAllergens, setUserAllergens] = useState<string[]>([]);
 
   const { data: categoriesData } = useQuery({
@@ -117,6 +116,8 @@ export default function HomePage() {
     }
     await Promise.all(tasks);
   }, [queryClient, user]);
+
+  useRegisterPullToRefresh(handlePullRefresh);
 
   useEffect(() => {
     if (userProfile?.allergenProfile) {
@@ -231,7 +232,6 @@ export default function HomePage() {
   };
 
   return (
-    <PullToRefresh onRefresh={handlePullRefresh} enabled={!checkoutOpen}>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:ml-64 pb-28 md:pb-8">
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
@@ -336,6 +336,5 @@ export default function HomePage() {
         </section>
       )}
     </div>
-    </PullToRefresh>
   );
 }

@@ -4,11 +4,15 @@
 
 ### Added
 
+- Customer bottom nav: Home, Reviews, Requests, Orders (Menu via Home browse links).
+- Unified Reviews tab: community reviews first, then your approved and pending reviews with coupons.
+- App-wide pull-to-refresh via layout registry; `ios-pull-to-refresh` Captain's Compass skill.
 - Apple Pay-first checkout via Stripe Express Checkout Element, with card/other-method fallback and Chromium E2E coverage for success, decline, and unsupported-Apple-Pay clients.
 
 ### Changed
 
-- Checkout primary CTA is now review-first: “Continue to payment · $X.XX”.
+- Profile receipts: collapsible dropdown showing up to 3 recent completed orders (30-day window).
+- Editing an approved review sends it back to chef for re-approval (no duplicate coupon on re-approve).
 - Dish Add actions now update the cart without opening checkout; customers open checkout from the cart button in the top header.
 - Mobile cart access moved from a floating overlay to the header beside Profile.
 

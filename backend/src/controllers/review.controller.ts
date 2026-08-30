@@ -373,11 +373,16 @@ export const updateReview = async (req: AuthRequest, res: Response, next: any) =
       throw new AppError('Not authorized to update this review', 403);
     }
 
+    const contentChanged =
+      rating !== review.rating || (comment && comment.trim() !== review.comment);
+    const requiresReapproval = review.approved && contentChanged;
+
     const updatedReview = await prisma.review.update({
       where: { id },
       data: {
         rating,
         comment,
+        ...(requiresReapproval ? { approved: false } : {}),
         updatedAt: new Date(),
       },
       include: {
@@ -399,6 +404,9 @@ export const updateReview = async (req: AuthRequest, res: Response, next: any) =
     res.json({
       status: 'success',
       data: { review: updatedReview },
+      message: requiresReapproval
+        ? 'Review updated and sent back for chef approval.'
+        : 'Review updated successfully.',
     });
   } catch (error) {
     next(error);

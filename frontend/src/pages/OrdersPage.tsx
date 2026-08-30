@@ -7,8 +7,7 @@ import { Order } from '../types';
 import OrderTracker from '../components/OrderTracker';
 import OrderReceipt from '../components/OrderReceipt';
 import OrderCouponBanner from '../components/OrderCouponBanner';
-import PullToRefresh from '../components/PullToRefresh';
-import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
+import { useRegisterPullToRefresh } from '../contexts/PullToRefreshContext';
 import {
   customerOrderStatusLabel,
   customerOrdersQueryOptions,
@@ -146,7 +145,6 @@ function HistoryOrderCard({
 export default function OrdersPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const checkoutOpen = useCheckoutSheetStore((s) => s.isOpen);
   const highlightOrderId = (location.state as { highlightOrderId?: string } | null)
     ?.highlightOrderId;
   const highlightRef = useRef<HTMLDivElement | null>(null);
@@ -159,6 +157,8 @@ export default function OrdersPage() {
   const handlePullRefresh = useCallback(async () => {
     await refetch();
   }, [refetch]);
+
+  useRegisterPullToRefresh(handlePullRefresh);
 
   useEffect(() => {
     if ((location.state as { paymentSuccess?: boolean } | null)?.paymentSuccess && !welcomedRef.current) {
@@ -195,7 +195,6 @@ export default function OrdersPage() {
   }
 
   return (
-    <PullToRefresh onRefresh={handlePullRefresh} enabled={!checkoutOpen}>
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
       <div className="flex items-center justify-between gap-4 mb-8">
         <div>
@@ -283,6 +282,5 @@ export default function OrdersPage() {
         </div>
       )}
     </div>
-    </PullToRefresh>
   );
 }

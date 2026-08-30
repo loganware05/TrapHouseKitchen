@@ -38,6 +38,13 @@ Notable files: `unpaid-order-visibility.test.ts`, `delivery-location.test.ts`, `
 - Evidence: `.agent/evidence/dynamic-eta-20260822/validation.md`
 - Production: Render verified green 2026-08-23 (Captain); ops closed
 
+### Slice 11 — customer nav, unified reviews, PTR
+
+- Layout-level pull-to-refresh via `PullToRefreshContext`
+- Skill: `.cursor/skills/ios-pull-to-refresh/SKILL.md`
+- Integration: `review-flow.test.ts` edit re-approval cases
+- Evidence: `.agent/evidence/customer-nav-reviews-ptr-20260830/validation.md`
+
 ## End-to-end tests
 
 `e2e/payment-flow.spec.ts`:

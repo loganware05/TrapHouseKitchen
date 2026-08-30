@@ -4,7 +4,7 @@ import { Clock, Package, CheckCircle, Archive, RotateCcw, MapPin } from 'lucide-
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { Order } from '../../types';
-import PullToRefresh from '../../components/PullToRefresh';
+import { useRegisterPullToRefresh } from '../../contexts/PullToRefreshContext';
 import PrepTimeEditor from '../../components/chef/PrepTimeEditor';
 import KitchenQueueSummary from '../../components/chef/KitchenQueueSummary';
 import OrderCouponBanner from '../../components/OrderCouponBanner';
@@ -127,6 +127,8 @@ export default function ChefOrdersPage() {
     ]);
   }, [queryClient]);
 
+  useRegisterPullToRefresh(handlePullRefresh);
+
   const currentMaxOrderNumber = ordersData && ordersData.length > 0
     ? Math.max(...ordersData.map((o: Order) => o.orderNumber))
     : 0;
@@ -166,7 +168,6 @@ export default function ChefOrdersPage() {
   }
 
   return (
-    <PullToRefresh onRefresh={handlePullRefresh}>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -387,7 +388,6 @@ export default function ChefOrdersPage() {
         )}
       </div>
     </div>
-    </PullToRefresh>
   );
 }
 

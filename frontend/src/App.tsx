@@ -19,7 +19,6 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
 import ReviewsPage from './pages/ReviewsPage';
 import ReviewFormPage from './pages/ReviewFormPage';
-import MyReviewsPage from './pages/MyReviewsPage';
 import ChefLoginPage from './pages/chef/ChefLoginPage';
 import ChefDashboard from './pages/chef/ChefDashboard';
 import ChefMenuPage from './pages/chef/ChefMenuPage';
@@ -134,11 +133,7 @@ function App() {
           />
           <Route
             path="reviews/my"
-            element={
-              <ProtectedRoute>
-                <MyReviewsPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/reviews" replace />}
           />
           
           {/* Cart and Checkout - Customer Only */}

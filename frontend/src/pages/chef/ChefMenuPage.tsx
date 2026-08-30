@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { Dish, Category, Ingredient, Allergen } from '../../types';
+import { useRegisterPullToRefresh } from '../../contexts/PullToRefreshContext';
 
 interface DishForm {
   name: string;
@@ -60,6 +61,17 @@ export default function ChefMenuPage() {
       return res.data.data.allergens;
     },
   });
+
+  const handlePullRefresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['dishes'] }),
+      queryClient.invalidateQueries({ queryKey: ['categories'] }),
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] }),
+      queryClient.invalidateQueries({ queryKey: ['allergens'] }),
+    ]);
+  }, [queryClient]);
+
+  useRegisterPullToRefresh(handlePullRefresh);
 
   const createDishMutation = useMutation({
     mutationFn: async (data: any) => {

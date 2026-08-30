@@ -35,7 +35,15 @@ Record architectural and process decisions here (ADR style).
 
 ---
 
-### ADR-002: Status-weighted prep queue includes READY
+### ADR-005: Review edits require chef re-approval
+
+- **Status:** Accepted
+- **Date:** 2026-08-30
+- **Context:** Customers could edit approved reviews while they remained public. Captain wants edits to re-enter the approval queue.
+- **Decision:** `PATCH /reviews/:id` sets `approved: false` when content changes on a previously approved review. Re-approve does not mint a duplicate coupon if `sourceReviewId` already exists.
+- **Consequences:** Unified Reviews tab shows community feed first, then customer's own reviews; chef pending queue receives re-submissions.
+
+---
 
 - **Status:** Accepted
 - **Date:** 2026-08-22
