@@ -60,7 +60,7 @@ test.describe('Receipt-style dish reviews', () => {
     await expect(page).toHaveURL(/\/profile/);
     await expect(page.getByRole('heading', { name: /my profile/i })).toBeVisible({ timeout: 20_000 });
 
-    const receiptsToggle = page.getByRole('button', { name: /^receipts$/i });
+    const receiptsToggle = page.getByRole('button', { name: /receipts/i });
     await expect(receiptsToggle).toBeVisible({ timeout: 20_000 });
     await receiptsToggle.click();
     await expect(page.getByRole('link', { name: /view all orders/i })).toBeVisible();

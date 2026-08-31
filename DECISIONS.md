@@ -45,6 +45,8 @@ Record architectural and process decisions here (ADR style).
 
 ---
 
+### ADR-002: Status-weighted prep queue includes READY
+
 - **Status:** Accepted
 - **Date:** 2026-08-22
 - **Context:** Slice 9 dynamic ETA. Captain wants READY orders in kitchen queue visibility/load, but not treated equal to PREPARING (3 ready + 2 preparing should not imply ~40 min queue penalty).

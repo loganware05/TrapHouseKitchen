@@ -81,7 +81,7 @@ export default function ReviewsPage() {
     },
   });
 
-  const { data: myReviewsData } = useQuery({
+  const { data: myReviewsData, isLoading: myReviewsLoading } = useQuery({
     queryKey: ['myReviews'],
     queryFn: async () => {
       const res = await api.get<{ data: { reviews: Review[] } }>('/reviews/my');
@@ -337,7 +337,11 @@ export default function ReviewsPage() {
             </div>
           )}
 
-          {myReviewsData && myReviewsData.length > 0 ? (
+          {myReviewsLoading ? (
+            <div className="text-center py-10">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600 mx-auto" />
+            </div>
+          ) : myReviewsData && myReviewsData.length > 0 ? (
             <div className="space-y-6">
               {myReviewsData.map((review) => (
                 <article key={review.id} className="bg-white rounded-lg shadow-md p-6">

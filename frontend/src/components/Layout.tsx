@@ -28,7 +28,7 @@ function pathMatchesNav(pathname: string, to: string): boolean {
     return pathname.startsWith('/orders');
   }
   if (to === '/reviews') {
-    return pathname === '/reviews' || pathname === '/reviews/my';
+    return pathname === '/reviews' || pathname.startsWith('/reviews/');
   }
   if (to === '/dish-requests') {
     return pathname.startsWith('/dish-requests');

@@ -264,6 +264,7 @@ export default function ProfilePage() {
             id="recent-receipts-heading"
             onClick={() => setReceiptsOpen((open) => !open)}
             aria-expanded={receiptsOpen}
+            aria-label="Receipts"
             className="w-full flex items-center justify-between gap-3 rounded-th-lg border border-th-border bg-white px-4 py-3 text-left shadow-th-card hover:bg-th-surface-muted transition-colors"
           >
             <span>
