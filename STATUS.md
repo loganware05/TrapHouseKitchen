@@ -1,12 +1,12 @@
 # Project status
 
-**Last updated:** 2026-08-31
-**Production / shared baseline:** `76e21a0` (`origin/main` — PR #27 customer nav, reviews, PTR)
+**Last updated:** 2026-09-01
+**Production / shared baseline:** `c0db11e` (`origin/main` — PR #28 docs closeout; PR #27 Slice 11)
 **Canonical rule:** This file is the only place that asserts Shipped / WIP / Broken. Do not add new root `*_COMPLETE.md` / `*_READY.md` snapshots — update this file instead.
 
 **Related:** [QA_CHECKLIST.md](QA_CHECKLIST.md) · [SUPPORT_PLAYBOOKS.md](SUPPORT_PLAYBOOKS.md) · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md) · [AGENTS.md](AGENTS.md)
 
-**Current WIP:** None — Slice 11 merged (PR #27). Next backlog item: message-system coupon delivery (waiting list).
+**Current WIP:** Slice 12 plan awaiting approval — coupon email delivery (`IMPLEMENTATION_PLAN.md`). Render smoke green 2026-09-01.
 
 ---
 

@@ -1,269 +1,159 @@
-# Implementation Plan — Slice 11: Customer nav, profile receipts, unified reviews, re-approval, app-wide pull-to-refresh
+# Implementation Plan — Slice 12: Coupon delivery via email (message-system phase 1)
 
 ## Metadata
 
-- Status: **COMPLETE**
-- Plan ID: `slice-11-customer-nav-reviews-ptr-2026-08-28`
-- Parent plan: `post-launch-ux-batch-2026-08-15` (Slices 1–10 complete; PR #26 merged)
-- Issue: `local/customer-nav-reviews-ptr` (placeholder until GitHub issue created)
-- Base: `origin/main` after PR #26 merge
-- Branch (on approval): `feature/local-customer-nav-reviews-ptr`
-- Rollback checkpoint (on approval): `checkpoint/customer-nav-reviews-ptr-2026-08-28`
-- Created: 2026-08-28
-- Last updated: 2026-08-31
-- Merged: PR [#27](https://github.com/loganware05/TrapHouseKitchen/pull/27) → `76e21a0` on `main` (2026-09-01)
+- Status: **AWAITING APPROVAL**
+- Plan ID: `slice-12-coupon-email-delivery-2026-09-01`
+- Parent plan: Slice 11 complete (`slice-11-customer-nav-reviews-ptr-2026-08-28`, PR #27)
+- Issue: `local/coupon-email-delivery` (placeholder until GitHub issue created)
+- Base: `origin/main` at `c0db11e` (PR #28 docs closeout)
+- Branch (on approval): `feature/local-coupon-email-delivery`
+- Rollback checkpoint (on approval): `checkpoint/coupon-email-delivery-2026-09-01`
+- Created: 2026-09-01
+- Last updated: 2026-09-01
 
-## Request (Captain)
+## Request
 
-1. **Customer bottom/sidebar tabs** should be: **Home**, **Reviews**, **Requests**, **Orders** (replace Menu + Profile tabs). **Menu** remains reachable via Home **See all** / **Browse** / category jumps — not a tab item.
-2. **Profile** (header avatar link) should include a **collapsible receipts dropdown** showing **up to the last 3** completed receipts.
-3. **Reviews tab** should show **public (approved) reviews** and the **customer’s pending reviews** in one place.
-4. **Review edits** must **re-enter the approval queue** — edited reviews are hidden from the public feed until the chef re-approves.
-5. **Pull-to-refresh** should work on **every customer and chef tab view**, and become a **default Captain’s Compass skill** for iOS/Capacitor apps unless explicitly waived.
+Deliver review-award coupon codes through the **message system** — deferred from Slices 10–11. There is no in-app messaging product today; **phase 1** is transactional **email** via existing Resend integration when a coupon is minted on chef review approve.
 
 ## Current behavior
 
 | Area | Today |
 |------|--------|
-| Customer nav | Home · Menu · **Orders** · **Profile** (`Layout.tsx`) |
-| Profile receipts | Always-visible “Recent receipts” section, up to **5** (`selectRecentReceipts(..., 5)`) |
-| Profile reviews | Inline “Community reviews” preview (3 items) + links to `/reviews` and `/reviews/my` |
-| Reviews tab | Not in nav; `/reviews` = public approved only; `/reviews/my` = all own reviews + coupons + inline edit |
-| Review `PATCH` | Updates `rating`/`comment` but **keeps `approved: true`** — edits stay public immediately |
-| Re-approve coupon | `approveReviewWithOptionalCoupon` always tries to mint; would **fail** if `sourceReviewId` coupon already exists |
-| Pull-to-refresh | Home, Menu, Orders, Chef Dashboard, Chef Orders only (`mobile-ux-patterns` skill lists same set) |
-| Active orders | Primary surface is `/orders` tab — **no active-order card on Home** today |
+| Coupon mint | `approveReviewWithOptionalCoupon` mints on `REVIEW_APPROVE` gateway when enabled |
+| Customer visibility | Saved/used codes on **Orders** tab; chef copy notes “Messaging delivery … waiting list” |
+| Email | Resend used for order confirmation, status updates, chef notifications, password-reset template exists |
+| Coupon email | **None** — customer must open app to see code |
+| Gateway model | Single `REVIEW_APPROVE` row (`enabled`, `discountAmount`) |
+| Re-approve | Re-approve with existing `sourceReviewId` coupon does **not** mint duplicate; no email path |
 
 ## Desired behavior
 
-### A — Customer navigation
+### A — Email on new coupon mint
 
-| Tab | Route | Notes |
-|-----|-------|-------|
-| Home | `/` | Hub; menu via See all / Browse / category jumps (unchanged) |
-| Reviews | `/reviews` | Promoted to primary nav; community + your reviews |
-| Requests | `/dish-requests` | Promoted to primary nav |
-| Orders | `/orders` | **Stays** as primary tab — active + history orders |
+1. After successful mint in `approveReviewWithOptionalCoupon`, send **coupon award email** to `review.user.email` when present.
+2. Email includes: customer name, coupon code, discount amount, one-time-use note, link to order (`FRONTEND_URL/orders`).
+3. If `RESEND_API_KEY` missing or send fails: **log warning**, approve + mint still succeed (non-blocking).
+4. If user has no email (guest): skip send; in-app Orders tab remains source of truth.
 
-- **Menu** (`/menu`, `/menu/:id`) — off-tab; linked from Home strips and category jumps.
-- **Profile** remains reachable via header user icon (`/profile`) — not a bottom-tab item.
-- Desktop sidebar mirrors mobile bottom nav labels and active-state rules.
+### B — Chef gateway: delivery toggle (optional phase 1B)
 
-### B — Profile receipts dropdown
+Add second gateway key `COUPON_EMAIL_DELIVER` (default **ON** when Resend configured):
 
-1. Replace always-visible receipts block with a **disclosure / accordion** (“Receipts”) default **collapsed**.
-2. Expanded state shows **at most 3** newest completed+paid receipts (`selectRecentReceipts(..., 3)`).
-3. Footer link: **“View all orders”** → `/orders`.
-4. Remove redundant **Community reviews** preview and duplicate “More” links that the new tabs cover (My reviews, All community reviews, Dish requests).
+| Gateway | Controls |
+|---------|----------|
+| `REVIEW_APPROVE` | Mint on approve (unchanged) |
+| `COUPON_EMAIL_DELIVER` | Send email when mint succeeds |
 
-### C — Unified Reviews tab
+Chef Reviews UI: second toggle under coupon gateway card (“Email code to customer”).
 
-When logged in as customer, `/reviews` renders two sections **in this order**:
+**If Captain prefers minimal scope:** skip 1B in first PR — always email on mint when Resend + email exist.
 
-1. **Community reviews** (top)
-   - Existing public approved feed with sort controls.
-2. **Your reviews** (below)
-   - Approved and pending own reviews with status badges.
-   - **Edit** (re-approval flow) and **Delete** on own reviews.
-   - Coupon earned / saved-codes summary (migrated from `MyReviewsPage`).
+### C — Re-approve / duplicate mint
 
-When logged out, only Community reviews section shows.
+- **No email** on re-approve when existing coupon is reused (already has code).
+- **No email** when gateway disabled (approve-only).
 
-- `/reviews/my` → **redirect** to `/reviews` (preserve bookmarks).
-- “Write review” CTA remains; still routes to `/reviews/new`.
+### D — Non-goals (this slice)
 
-### D — Review edit → re-approval
-
-**Backend (`PATCH /reviews/:id`)**
-
-1. If `rating` or `comment` changes and review was `approved: true`, set `approved: false`.
-2. Response message: *“Review updated and sent back for chef approval.”*
-3. Public `GET /reviews` already filters `approved: true` — edited review disappears from public feed immediately.
-
-**Backend (`approveReviewWithOptionalCoupon`)**
-
-4. On re-approve: if a coupon with `sourceReviewId = reviewId` already exists, **approve only** — do **not** mint a duplicate coupon.
-
-**Frontend**
-
-5. After save, show re-approval toast; invalidate `reviews`, `myReviews`, chef pending queries.
-6. Edit UI copy: *“Editing will remove this review from the public feed until the chef approves it again.”*
-
-**Chef**
-
-7. Re-submitted reviews appear in existing pending queue (`approved: false`) — no chef UI change required beyond optional “Edited” badge if `updatedAt > createdAt`.
-
-### E — App-wide pull-to-refresh + skill
-
-1. Introduce a **route-scoped refresh registry** (React context in `Layout` or lightweight store):
-   - Each routable page registers `onRefresh: () => Promise<void>` on mount.
-   - Single `PullToRefresh` wrapper in `Layout` calls the active route’s handler.
-   - Disabled while `CheckoutSheet` is open (existing rule).
-2. Migrate existing per-page `PullToRefresh` wrappers to the registry (avoid double handlers).
-3. Ensure refresh on **all** primary tab routes and profile:
-   - Customer: Home, Menu, Requests, Reviews, Profile, Orders (off-tab)
-   - Chef: Dashboard, Menu, Orders, Reviews, Requests
-4. Update `.cursor/skills/mobile-ux-patterns/SKILL.md` surfaces table.
-5. Add **`.cursor/skills/ios-pull-to-refresh/SKILL.md`** — default expectation: every iOS/Capacitor screen exposes pull-to-refresh unless Captain documents an exception in the plan.
-
-## Non-goals
-
-- Changing chef nav structure (already matches Requests + Reviews pattern).
-- Messaging-system coupon delivery (still waiting list).
-- Removing `/orders` route or rewriting order-tracking E2E from scratch.
-- Native Swift pull-to-refresh (Capacitor WebView uses existing touch hook).
+- SMS / push notifications
+- In-app message inbox UI
+- Email on coupon **use** at checkout (order receipt may already note discount — verify only)
+- Changing coupon amount, checkout apply logic, or nav layout
 
 ## Assumptions
 
 | # | Assumption | If wrong |
 |---|------------|----------|
-| 1 | Active orders can move to a **Home banner** + `/orders` deep link | Captain prefers a different entry point |
-| 2 | Profile keeps allergen, dietary, spend, and saved-cards sections as-is | Scope expands to profile redesign |
-| 3 | “Last 3 receipts” = 3 most recent **completed+paid** within review window (same filter as today) | Captain wants all-time last 3 regardless of window |
-| 4 | Coupons UI moves with “Your reviews” into `/reviews` | Captain wants coupons only on Profile |
-| 5 | Delete review remains allowed without re-approval | Captain wants delete restricted |
+| 1 | “Message system” = **email first** (Resend) | Captain wants SMS or in-app inbox — scope expands |
+| 2 | Email is best-effort; mint must not fail if Resend down | Captain wants hard fail on email error |
+| 3 | Guests without email rely on Orders tab | Captain wants phone/SMS capture |
+| 4 | `FROM_EMAIL` / `FRONTEND_URL` already correct on Render | Fix env in ops, not this slice |
+| 5 | Single email per **new** mint only | Captain wants reminder emails |
 
-## Captain decisions (2026-08-30)
+## Design
 
-| Topic | Decision |
-|-------|----------|
-| Customer tabs | **Home · Reviews · Requests · Orders** |
-| Menu tab | **Removed** from nav; Home See all / Browse / category jumps unchanged |
-| Orders tab | **Keep** as primary tab |
-| Receipts filter | 3 most recent **completed+paid** within **30-day** review window |
-| Reviews tab order | **Community reviews first**, then your approved + pending reviews |
-
-## Design notes
-
-### Navigation active-state
+### Send point
 
 ```ts
-// Layout pathMatchesNav additions
-'/dish-requests' → pathname starts with /dish-requests
-'/reviews'       → /reviews, /reviews/new (not /reviews/my — redirects)
+// couponGateway.service.ts — after transaction succeeds
+if (coupon && user.email && shouldDeliverEmail()) {
+  await sendCouponAwardEmail({ ... }).catch(log);
+}
 ```
 
-### Review re-approval sequence
+### Email template
 
-```mermaid
-sequenceDiagram
-  participant C as Customer
-  participant API as PATCH /reviews/:id
-  participant DB as Review
-  participant Chef as Chef pending queue
-  participant Pub as GET /reviews
+New `sendCouponAwardEmail` in `emailService.ts` — match existing HTML style (TrapHouse branding).
 
-  C->>API: edit approved review
-  API->>DB: approved=false, update content
-  DB-->>Pub: hidden from public feed
-  API-->>Chef: appears in pending list
-  Chef->>DB: approve (no duplicate coupon if exists)
-  DB-->>Pub: visible again
+### Gateway seed (if 1B)
+
+```sql
+INSERT INTO "CouponAwardGateway" (key, enabled, "discountAmount")
+VALUES ('COUPON_EMAIL_DELIVER', true, 0) ON CONFLICT DO NOTHING;
 ```
 
-### Pull-to-refresh registry (sketch)
+`discountAmount` unused for delivery gateway; only `enabled` matters.
 
-```ts
-// PullToRefreshProvider in Layout
-registerRefresh(fn) on route mount
-unregister on unmount
-Layout PullToRefresh → activeRefresh ?? defaultInvalidateAll
-```
+## Phases
 
-## Incremental delivery (recommended PR slices)
+| Phase | Scope |
+|-------|--------|
+| 12A | `sendCouponAwardEmail` + hook on mint; integration tests with mocked Resend |
+| 12B | (Optional) `COUPON_EMAIL_DELIVER` gateway + chef toggle + tests |
+| 12C | Docs, evidence, chef copy update (“waiting list” → “emailed when enabled”) |
 
-Work is split so each slice is shippable and testable. **Prefer 2 PRs** if Captain wants fewer merges; **3 PRs** if smaller review units are preferred.
-
-### Slice 11A — Navigation (PR #1)
-
-| Task | Files (indicative) |
-|------|---------------------|
-| Customer nav → Home, Reviews, Requests, Orders | `Layout.tsx` |
-| `pathMatchesNav` for `/reviews`, `/dish-requests` | `Layout.tsx` |
-| Menu off-tab; Home links unchanged | `HomePage.tsx` (verify only) |
-| Update E2E nav selectors | `e2e/mobile.spec.ts`, `e2e/review-receipts.spec.ts`, etc. |
-
-**Acceptance:** Mobile bottom nav shows Home · Reviews · Requests · Orders; Menu reachable from Home; Profile via header.
-
-### Slice 11B — Profile receipts dropdown (same PR as 11A or follow-up)
-
-| Task | Files |
-|------|-------|
-| Collapsible receipts section, limit 3 | `ProfilePage.tsx`, `orderReceipt.ts` (default limit) |
-| Remove community reviews preview + redundant More links | `ProfilePage.tsx` |
-| Update profile E2E | `e2e/review-receipts.spec.ts` |
-
-**Acceptance:** Profile loads collapsed receipts; expand shows ≤3; “View all orders” works.
-
-### Slice 11C — Unified Reviews tab (PR #2)
-
-| Task | Files |
-|------|-------|
-| Merge `MyReviewsPage` content into `ReviewsPage` | `ReviewsPage.tsx`, optionally extract `CustomerReviewsSection.tsx` |
-| Redirect `/reviews/my` → `/reviews` | `App.tsx` |
-| Add `PullToRefresh` via registry or page wrapper | `ReviewsPage.tsx` |
-| Nav points Reviews tab to unified page | already in 11A |
-
-**Acceptance:** Reviews tab shows pending + public; coupons visible; write/edit flows work.
-
-### Slice 11D — Review re-approval (PR #2 or #3)
-
-| Task | Files |
-|------|-------|
-| `PATCH` sets `approved: false` when content changes on approved review | `review.controller.ts` |
-| Re-approve skips duplicate coupon mint | `couponGateway.service.ts` |
-| Integration tests | `review-flow.test.ts`, `coupon-gateways.test.ts` |
-| Frontend copy + invalidation | `ReviewsPage.tsx` (or extracted component) |
-
-**Acceptance:** Edit approved review → hidden from public → chef pending → re-approve → public again; no duplicate coupon.
-
-### Slice 11E — App-wide pull-to-refresh + skills (PR #3)
-
-| Task | Files |
-|------|-------|
-| `PullToRefreshProvider` + Layout-level wrapper | new `contexts/PullToRefreshContext.tsx`, `Layout.tsx` |
-| Register handlers from all tab pages | Home, Menu, DishRequests, Reviews, Profile, Orders, chef pages |
-| Remove duplicate per-page wrappers | affected pages |
-| Skill: `ios-pull-to-refresh/SKILL.md` | `.cursor/skills/` |
-| Update `mobile-ux-patterns/SKILL.md` | surfaces table |
-| Selftest unchanged; optional E2E touch on Reviews/Requests | `e2e/mobile.spec.ts` |
-
-**Acceptance:** Pull at top on every primary tab refetches that screen’s data; checkout open disables pull.
+**Recommended:** 12A + 12C in one PR; add 12B if Captain wants chef control over email.
 
 ## Validation
 
 | Layer | Command / check |
 |-------|-----------------|
-| Backend unit + integration | `cd backend && npm run test:all` |
-| Review re-approval | new cases in `review-flow.test.ts` |
-| Coupon re-approve | extend `coupon-gateways.test.ts` |
-| PTR logic | `cd frontend && npx tsx src/lib/pullToRefreshLogic.selftest.ts` |
-| Frontend build | `npm run build --prefix frontend` |
-| E2E (nav + reviews + PTR) | `e2e/mobile.spec.ts`, `e2e/review-receipts.spec.ts`, `e2e/chef-flow.spec.ts` |
-| Accessibility | labels on receipts disclosure, review edit warning |
-| Evidence | `.agent/evidence/customer-nav-reviews-ptr-YYYYMMDD/` |
+| Unit | email template renders code + amount |
+| Integration | approve review → mint → `sendCouponAwardEmail` called (mock); no email on re-approve |
+| Integration | approve with no user email → no throw |
+| Backend full | `cd backend && npm run test:all` |
+| Frontend build | `npm run build --prefix frontend` (chef copy only if 12B) |
+| Manual | Render/staging: approve review with Resend configured → customer receives email |
+| Evidence | `.agent/evidence/coupon-email-delivery-YYYYMMDD/` |
 
 ## Rollback
 
-1. Revert to checkpoint tag `checkpoint/customer-nav-reviews-ptr-2026-08-28`.
-2. Backend-only rollback of re-approval: redeploy prior API; frontend edit copy harmless.
-3. PTR registry rollback: restore per-page `PullToRefresh` wrappers (documented in PR).
+1. Revert to checkpoint tag `checkpoint/coupon-email-delivery-2026-09-01`.
+2. Email hook is additive; removing deploy restores in-app-only delivery.
 
 ## Autonomy budget
 
-- Max **3** iterations on E2E nav/touch flakes.
-- Max **2** iterations on coupon re-approve edge cases.
+- Max **2** iterations on Resend mock / flaky email tests.
+- Max **1** iteration on gateway UI if 12B included.
 
 ## Documentation updates (on completion)
 
-- `PROGRESS.md`, `CHANGELOG.md`, `TESTING.md`
-- `DECISIONS.md` — ADR-005: review edits require re-approval
-- `mobile-ux-patterns` + new `ios-pull-to-refresh` skill
+- `CHANGELOG.md`, `PROGRESS.md`, `TESTING.md`
+- `DECISIONS.md` — ADR-006: coupon email delivery (if gateway split approved)
+- Chef Reviews copy; remove “waiting list” for email when shipped
+
+## Alternative slices (if Captain reprioritizes)
+
+| Slice | Rationale |
+|-------|-----------|
+| **Pre-launch regression pack** | `PROJECT_CONTEXT` priority #1 — Stripe live + webhook retest checklist |
+| **Password reset** | Branch `feat/password-reset` ready to land |
+| **Payment / webhook hardening** | Branch `feat/payment-webhook-hardening` |
+| **Capacitor iOS** | App Store path |
+| **E2E stabilization** | CI confidence |
+| **Delivery modeling** | Product gap; larger scope |
+
+**Recommendation:** Slice 12 (coupon email) is the explicit post–Slice 11 backlog item and is small/shippable. Run pre-launch regression in parallel or as Slice 12A ops checklist without code if Captain prefers.
 
 ## Approval Record
 
-- **Status:** COMPLETE (merged)
-- **Approved by:** Captain (Logan)
-- **Approval date:** 2026-08-30
-- **Merged:** 2026-09-01 — PR #27 (`76e21a0`)
-- **Captain notes:** Tabs = Home, Reviews, Requests, Orders; Menu via Home; Orders tab kept; receipts = 3 within 30-day window below Legal; Reviews = community first then yours; profile allergen/saved-cards/dietary removed; Orders = quick reorder + saved/used codes
+- **Status:** AWAITING APPROVAL
+- **Presented to:** Captain (Logan)
+- **Date:** 2026-09-01
+
+### Captain decisions needed
+
+1. **Approve Slice 12 (coupon email)** vs reprioritize to pre-launch regression / password reset / iOS?
+2. **Chef email toggle** (`COUPON_EMAIL_DELIVER`) in v1, or always email when Resend + user email exist?
+3. **Email failure:** non-blocking (recommended) vs fail approve?
