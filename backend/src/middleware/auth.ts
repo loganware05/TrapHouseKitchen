@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import prisma from '../lib/prisma';
 import { AppError } from './errorHandler';
 
 export type AuthRequest = Request & {
@@ -30,7 +31,17 @@ export const authenticate = async (
       name?: string;
       email?: string;
       role: string;
+      tokenVersion?: number;
     };
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { tokenVersion: true },
+    });
+
+    if (!user || (decoded.tokenVersion !== undefined && user.tokenVersion !== decoded.tokenVersion)) {
+      throw new AppError('Invalid token', 401);
+    }
 
     req.user = {
       id: decoded.id,
@@ -63,7 +74,7 @@ export const authorize = (...roles: string[]) => {
 };
 
 /** Attach user when a valid Bearer token is present; otherwise continue anonymously (no error). */
-export const optionalAuthenticate = (
+export const optionalAuthenticate = async (
   req: AuthRequest,
   _res: Response,
   next: NextFunction
@@ -78,7 +89,18 @@ export const optionalAuthenticate = (
       name?: string;
       email?: string;
       role: string;
+      tokenVersion?: number;
     };
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { tokenVersion: true },
+    });
+
+    if (!user || (decoded.tokenVersion !== undefined && user.tokenVersion !== decoded.tokenVersion)) {
+      return next();
+    }
+
     req.user = {
       id: decoded.id,
       name: decoded.name ?? '',

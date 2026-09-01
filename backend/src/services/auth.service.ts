@@ -17,6 +17,7 @@ export type AuthTokenPayload = {
   name: string;
   email?: string;
   role: string;
+  tokenVersion: number;
 };
 
 export function signCustomerToken(user: {
@@ -24,21 +25,24 @@ export function signCustomerToken(user: {
   email: string | null;
   name: string;
   role: string;
+  tokenVersion: number;
 }): string {
   const payload: AuthTokenPayload = {
     id: user.id,
     name: user.name,
     role: user.role,
+    tokenVersion: user.tokenVersion,
     ...(user.email ? { email: user.email } : {}),
   };
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES } as jwt.SignOptions);
 }
 
-export function signGuestToken(user: { id: string; name: string; role: string }): string {
+export function signGuestToken(user: { id: string; name: string; role: string; tokenVersion: number }): string {
   const payload: AuthTokenPayload = {
     id: user.id,
     name: user.name,
     role: user.role,
+    tokenVersion: user.tokenVersion,
   };
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' } as jwt.SignOptions);
 }
@@ -61,6 +65,7 @@ export async function registerUser(email: string, password: string, name: string
       email: true,
       name: true,
       role: true,
+      tokenVersion: true,
     },
   });
   const token = signCustomerToken({
@@ -68,6 +73,7 @@ export async function registerUser(email: string, password: string, name: string
     email: user.email,
     name: user.name,
     role: user.role,
+    tokenVersion: user.tokenVersion,
   });
   return { user, token };
 }
@@ -86,6 +92,7 @@ export async function loginUser(email: string, password: string) {
     email: user.email,
     name: user.name,
     role: user.role,
+    tokenVersion: user.tokenVersion,
   });
   return {
     user: {
@@ -170,6 +177,7 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
       password: hashedPassword,
       passwordResetToken: null,
       passwordResetExpires: null,
+      tokenVersion: { increment: 1 },
     },
   });
 }
@@ -186,12 +194,14 @@ export async function createGuestUser(name: string) {
       name: true,
       role: true,
       isGuest: true,
+      tokenVersion: true,
     },
   });
   const token = signGuestToken({
     id: user.id,
     name: user.name,
     role: user.role,
+    tokenVersion: user.tokenVersion,
   });
   return { user, token };
 }

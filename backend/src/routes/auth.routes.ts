@@ -3,7 +3,7 @@ import { body, validationResult } from 'express-validator';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest, authenticate } from '../middleware/auth';
-import { authLimiter } from '../middleware/rateLimiter';
+import { authLimiter, forgotPasswordLimiter } from '../middleware/rateLimiter';
 import {
   createGuestUser,
   loginUser,
@@ -86,7 +86,7 @@ router.post(
 
 router.post(
   '/forgot-password',
-  authLimiter,
+  forgotPasswordLimiter,
   [body('email').isEmail().normalizeEmail()],
   async (req: any, res: any, next: any) => {
     try {
