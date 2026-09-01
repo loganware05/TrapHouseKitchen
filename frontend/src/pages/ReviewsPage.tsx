@@ -167,7 +167,6 @@ export default function ReviewsPage() {
   };
 
   const couponsData = couponsBundle?.coupons;
-  const usedCouponsData = couponsBundle?.usedCoupons;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
@@ -310,27 +309,6 @@ export default function ReviewsPage() {
                         Copy
                       </button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {usedCouponsData && usedCouponsData.length > 0 && (
-            <div className="mb-8 bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Used codes</h3>
-              <div className="grid gap-3 md:grid-cols-2">
-                {usedCouponsData.map((coupon) => (
-                  <div
-                    key={coupon.id}
-                    className="rounded-lg p-4 border border-gray-200 bg-gray-50 opacity-90"
-                  >
-                    <p className="text-lg font-mono font-semibold text-gray-500 line-through">
-                      {coupon.code}
-                    </p>
-                    <p className="text-sm text-gray-600 mt-1">
-                      ${coupon.discountAmount.toFixed(2)} off · Redeemed
-                    </p>
                   </div>
                 ))}
               </div>

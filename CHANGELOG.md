@@ -11,7 +11,8 @@
 
 ### Changed
 
-- Profile receipts: collapsible dropdown showing up to 3 recent completed orders (30-day window).
+- Profile receipts: collapsible dropdown showing up to 3 recent completed orders (30-day window), below Legal; saved cards, allergen, and dietary sections removed from profile.
+- Orders tab: quick reorder and used discount codes moved from Home and Reviews.
 - Editing an approved review sends it back to chef for re-approval (no duplicate coupon on re-approve).
 - Dish Add actions now update the cart without opening checkout; customers open checkout from the cart button in the top header.
 - Mobile cart access moved from a floating overlay to the header beside Profile.

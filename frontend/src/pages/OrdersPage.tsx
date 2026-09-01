@@ -1,13 +1,18 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Package, Clock, CheckCircle, XCircle, ChevronRight, MapPin } from 'lucide-react';
+import { Package, Clock, CheckCircle, XCircle, ChevronRight, MapPin, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { Order } from '../types';
+import api from '../lib/api';
+import { Coupon, Dish, Order } from '../types';
 import OrderTracker from '../components/OrderTracker';
 import OrderReceipt from '../components/OrderReceipt';
 import OrderCouponBanner from '../components/OrderCouponBanner';
 import { useRegisterPullToRefresh } from '../contexts/PullToRefreshContext';
+import { useAuthStore } from '../stores/authStore';
+import { useCartStore } from '../stores/cartStore';
+import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
+import { trackEvent } from '../stores/analyticsStore';
 import {
   customerOrderStatusLabel,
   customerOrdersQueryOptions,
@@ -145,6 +150,11 @@ function HistoryOrderCard({
 export default function OrdersPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const addItem = useCartStore((s) => s.addItem);
+  const openCheckout = useCheckoutSheetStore((s) => s.open);
+  const [userAllergens, setUserAllergens] = useState<string[]>([]);
   const highlightOrderId = (location.state as { highlightOrderId?: string } | null)
     ?.highlightOrderId;
   const highlightRef = useRef<HTMLDivElement | null>(null);
@@ -154,9 +164,88 @@ export default function OrdersPage() {
     customerOrdersQueryOptions(true)
   );
 
+  const { data: userProfile } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const res = await api.get<{ data: { user: any } }>('/users/profile');
+      return res.data.data.user;
+    },
+    enabled: !!user,
+  });
+
+  const { data: usedCouponsData } = useQuery({
+    queryKey: ['myCoupons', 'used'],
+    queryFn: async () => {
+      const res = await api.get<{ data: { coupons: Coupon[]; usedCoupons: Coupon[] } }>(
+        '/coupons/my'
+      );
+      return res.data.data.usedCoupons;
+    },
+    enabled: !!user && user.role === 'CUSTOMER',
+  });
+
+  useEffect(() => {
+    if (userProfile?.allergenProfile) {
+      setUserAllergens(userProfile.allergenProfile.map((ua: any) => ua.allergenId));
+    }
+  }, [userProfile]);
+
+  const lastOrder = useMemo(() => {
+    if (!ordersData?.length) return null;
+    const sorted = [...ordersData].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    return sorted.find((o) => o.paymentStatus === 'PAID' && o.items?.length) ?? sorted[0];
+  }, [ordersData]);
+
+  const reorderSummary =
+    lastOrder?.items.map((i) => `${i.quantity}× ${i.dish.name}`).join(', ') ?? '';
+
+  const checkDishAllergens = (dish: Dish): boolean => {
+    if (!user || userAllergens.length === 0 || !dish.allergens) {
+      return true;
+    }
+    return !dish.allergens.some((da) => userAllergens.includes(da.allergenId));
+  };
+
+  const handleQuickReorder = () => {
+    if (!user || user.role !== 'CUSTOMER') {
+      toast.error('Log in to reorder');
+      return;
+    }
+    if (!lastOrder?.items.length) return;
+    trackEvent('reorder_tapped', { orderId: lastOrder.id, orderNumber: lastOrder.orderNumber });
+    for (const line of lastOrder.items) {
+      const d = line.dish;
+      if (!d?.id || !d.price) continue;
+      const dishForCart: Dish = {
+        ...d,
+        description: d.description ?? '',
+        status: d.status ?? 'AVAILABLE',
+        categoryId: d.categoryId ?? '',
+        isVegan: !!d.isVegan,
+        isVegetarian: !!d.isVegetarian,
+        isGlutenFree: !!d.isGlutenFree,
+        createdAt: d.createdAt ?? new Date().toISOString(),
+        updatedAt: d.updatedAt ?? new Date().toISOString(),
+        category: d.category ?? { id: '', name: '', displayOrder: 0, createdAt: '', updatedAt: '' },
+      };
+      if (!checkDishAllergens(dishForCart)) {
+        toast.error('A dish in that order conflicts with your allergen profile.');
+        return;
+      }
+      addItem(dishForCart, line.quantity);
+    }
+    toast.success('Added your last order to the cart');
+    openCheckout();
+  };
+
   const handlePullRefresh = useCallback(async () => {
     await refetch();
-  }, [refetch]);
+    if (user?.role === 'CUSTOMER') {
+      await queryClient.invalidateQueries({ queryKey: ['myCoupons', 'used'] });
+    }
+  }, [refetch, queryClient, user?.role]);
 
   useRegisterPullToRefresh(handlePullRefresh);
 
@@ -223,6 +312,52 @@ export default function OrdersPage() {
           </button>
         </div>
       ) : null}
+
+      {user?.role === 'CUSTOMER' && lastOrder && (
+        <section className="mb-10" aria-labelledby="quick-reorder-heading">
+          <h2 id="quick-reorder-heading" className="text-lg font-semibold text-gray-900 mb-4">
+            Quick reorder
+          </h2>
+          <div className="rounded-th-xl border border-th-border bg-white p-4 shadow-th-card">
+            <p className="text-sm text-gray-600 line-clamp-2 mb-1">#{lastOrder.orderNumber}</p>
+            <p className="font-medium text-gray-900 line-clamp-2 mb-4">{reorderSummary}</p>
+            <button
+              type="button"
+              onClick={handleQuickReorder}
+              className="flex w-full items-center justify-center gap-2 rounded-th-lg bg-gray-900 py-3 text-sm font-bold text-white hover:bg-gray-800"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Order again
+            </button>
+          </div>
+        </section>
+      )}
+
+      {usedCouponsData && usedCouponsData.length > 0 && (
+        <section className="mb-10" aria-labelledby="used-codes-heading">
+          <h2 id="used-codes-heading" className="text-lg font-semibold text-gray-900 mb-4">
+            Used codes
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            These discount codes were redeemed and cannot be applied again.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {usedCouponsData.map((coupon) => (
+              <div
+                key={coupon.id}
+                className="rounded-lg p-4 border border-gray-200 bg-gray-50 opacity-90"
+              >
+                <p className="text-lg font-mono font-semibold text-gray-500 line-through">
+                  {coupon.code}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  ${coupon.discountAmount.toFixed(2)} off · Redeemed
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {ordersData && ordersData.length > 0 ? (
         <div className="space-y-10">

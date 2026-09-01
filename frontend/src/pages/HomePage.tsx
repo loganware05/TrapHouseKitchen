@@ -1,13 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ChevronRight, Plus, RotateCcw } from 'lucide-react';
+import { AlertTriangle, ChevronRight, Plus } from 'lucide-react';
 import api from '../lib/api';
-import { Dish, Category, Allergen, Order } from '../types';
-import { customerOrdersQueryKey, customerOrdersQueryOptions } from '../lib/customerOrders';
+import { Dish, Category, Allergen } from '../types';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
-import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
 import { toast } from 'sonner';
 import { trackEvent } from '../stores/analyticsStore';
 import SpendTracker from '../components/SpendTracker';
@@ -70,7 +68,6 @@ export default function HomePage() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const addItem = useCartStore((s) => s.addItem);
-  const openCheckout = useCheckoutSheetStore((s) => s.open);
   const [userAllergens, setUserAllergens] = useState<string[]>([]);
 
   const { data: categoriesData } = useQuery({
@@ -98,10 +95,6 @@ export default function HomePage() {
     enabled: !!user,
   });
 
-  const { data: ordersData } = useQuery(
-    customerOrdersQueryOptions(!!user && user.role === 'CUSTOMER')
-  );
-
   const handlePullRefresh = useCallback(async () => {
     const tasks = [
       queryClient.invalidateQueries({ queryKey: ['categories'] }),
@@ -111,7 +104,6 @@ export default function HomePage() {
       tasks.push(queryClient.invalidateQueries({ queryKey: ['userProfile'] }));
     }
     if (user?.role === 'CUSTOMER') {
-      tasks.push(queryClient.invalidateQueries({ queryKey: customerOrdersQueryKey }));
       tasks.push(queryClient.invalidateQueries({ queryKey: ['orders', 'spend-tracker'] }));
     }
     await Promise.all(tasks);
@@ -187,50 +179,6 @@ export default function HomePage() {
       .slice(0, 6);
   }, [availableDishes]);
 
-  const lastOrder = useMemo(() => {
-    if (!ordersData?.length) return null;
-    const sorted = [...ordersData].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    return sorted.find((o) => o.paymentStatus === 'PAID' && o.items?.length) ?? sorted[0];
-  }, [ordersData]);
-
-  const reorderSummary =
-    lastOrder?.items.map((i) => `${i.quantity}× ${i.dish.name}`).join(', ') ?? '';
-
-  const handleQuickReorder = () => {
-    if (!user || user.role !== 'CUSTOMER') {
-      toast.error('Log in to reorder');
-      return;
-    }
-    if (!lastOrder?.items.length) return;
-    trackEvent('reorder_tapped', { orderId: lastOrder.id, orderNumber: lastOrder.orderNumber });
-    for (const line of lastOrder.items) {
-      const d = line.dish;
-      if (!d?.id || !d.price) continue;
-      const dishForCart: Dish = {
-        ...d,
-        description: d.description ?? '',
-        status: d.status ?? 'AVAILABLE',
-        categoryId: d.categoryId ?? '',
-        isVegan: !!d.isVegan,
-        isVegetarian: !!d.isVegetarian,
-        isGlutenFree: !!d.isGlutenFree,
-        createdAt: d.createdAt ?? new Date().toISOString(),
-        updatedAt: d.updatedAt ?? new Date().toISOString(),
-        category: d.category ?? { id: '', name: '', displayOrder: 0, createdAt: '', updatedAt: '' },
-      };
-      const { safe } = checkDishAllergens(dishForCart);
-      if (!safe) {
-        toast.error('A dish in that order conflicts with your allergen profile.');
-        return;
-      }
-      addItem(dishForCart, line.quantity);
-    }
-    toast.success('Added your last order to the cart');
-    openCheckout();
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:ml-64 pb-28 md:pb-8">
       <header className="mb-6">
@@ -277,24 +225,6 @@ export default function HomePage() {
           <p className="text-sm text-th-muted-fg">Menu is loading or empty — check back soon.</p>
         )}
       </section>
-
-      {user?.role === 'CUSTOMER' && lastOrder && (
-        <section className="mb-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-3">Quick reorder</h2>
-          <div className="rounded-th-xl border border-th-border bg-white p-4 shadow-th-card">
-            <p className="text-sm text-gray-600 line-clamp-2 mb-1">#{lastOrder.orderNumber}</p>
-            <p className="font-medium text-gray-900 line-clamp-2 mb-4">{reorderSummary}</p>
-            <button
-              type="button"
-              onClick={handleQuickReorder}
-              className="flex w-full items-center justify-center gap-2 rounded-th-lg bg-gray-900 py-3 text-sm font-bold text-white hover:bg-gray-800"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Order again
-            </button>
-          </div>
-        </section>
-      )}
 
       <section className="mb-8">
         <div className="flex items-center justify-between mb-3">
