@@ -4,6 +4,8 @@
 
 ### Added
 
+- Password reset: `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`, `/forgot-password` and `/reset-password` UI, login “Forgot password?” link; reset tokens stored as SHA-256 hashes.
+- Payment hardening: reject checkout when `couponCode` disagrees with order `appliedCouponId`; webhook idempotency and payment service unit/integration tests.
 - Customer bottom nav: Home, Reviews, Requests, Orders (Menu via Home browse links).
 - Unified Reviews tab: community reviews first, then your approved and pending reviews.
 - App-wide pull-to-refresh via layout registry; `ios-pull-to-refresh` Captain's Compass skill.

@@ -62,3 +62,33 @@ Record architectural and process decisions here (ADR style).
 - **Context:** Captain wants estimates to improve from completed-order trends after consistent live volume; must not skew estimates before enough data.
 - **Decision:** Record observations on COMPLETED; apply median bias only when `PREP_LEARNING_ENABLED=1` and sample count ≥ threshold; full test coverage before production flag; dish-level suggestions default to chef-visible suggestions, not silent auto-write.
 - **Consequences:** New `PrepTimeObservation` table; env var on Render; chef dashboard panel.
+
+---
+
+### ADR-005: Password reset tokens hashed at rest
+
+- **Status:** Accepted
+- **Date:** 2026-09-01
+- **Context:** Slice 12 ships forgot/reset password for soft launch; storing plaintext reset tokens in Postgres is unnecessary exposure if the DB is compromised.
+- **Decision:** Generate a cryptographically random raw token for the email link; persist only `SHA-256(rawToken)` in `User.passwordResetToken`. E2E uses `E2E_CAPTURE_PASSWORD_RESET=1` to write raw tokens to `.agent/e2e-capture/` (never in production).
+- **Consequences:** Playwright cannot read tokens from DB; capture file or email mock required for auth E2E. Token-in-URL query string remains (follow-up hardening optional).
+
+---
+
+### ADR-006: Coupon code must match applied coupon at PaymentIntent create
+
+- **Status:** Accepted
+- **Date:** 2026-09-01
+- **Context:** Orders can have `appliedCouponId` from checkout apply; client could send a different `couponCode` when creating a PaymentIntent.
+- **Decision:** When both `couponCode` and `order.appliedCouponId` are set, reject with 400 if codes disagree. When only `appliedCouponId` is set, trust the stored coupon without requiring a code.
+- **Consequences:** Prevents discount tampering; clients must send matching code or omit `couponCode` when coupon already applied.
+
+---
+
+### ADR-007: Canceled PaymentIntent sets order status CANCELLED
+
+- **Status:** Accepted (unchanged from main)
+- **Date:** 2026-09-01
+- **Context:** `feat/payment-webhook-hardening` set `paymentStatus: FAILED` on cancel; `main` uses `setOrderStatus(..., 'CANCELLED')`.
+- **Decision:** Keep `main` behavior: `payment_intent.canceled` → payment record `CANCELED`, order `status: CANCELLED` (not failed payment).
+- **Consequences:** Abandoned checkouts align with auto-cancel cleanup; failed card attempts still use `payment_failed` → `paymentStatus: FAILED`.

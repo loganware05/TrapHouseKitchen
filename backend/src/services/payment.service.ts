@@ -66,15 +66,15 @@ async function resolveCouponForPaymentIntent(params: {
   existingAppliedCouponId?: string | null;
 }) {
   const { userId, orderId, couponCode, existingAppliedCouponId } = params;
-
-  if (couponCode?.trim()) {
-    return resolveCouponForCheckout(userId, couponCode, { excludeOrderId: orderId });
-  }
+  const trimmedCode = couponCode?.trim();
 
   if (existingAppliedCouponId) {
     const coupon = await prisma.coupon.findUnique({ where: { id: existingAppliedCouponId } });
     if (!coupon) {
       throw new AppError('Applied coupon not found', 404);
+    }
+    if (trimmedCode && coupon.code.toUpperCase() !== trimmedCode.toUpperCase()) {
+      throw new AppError('Coupon code does not match the coupon applied to this order', 400);
     }
     if (coupon.userId !== userId) {
       throw new AppError('This coupon does not belong to you', 403);
@@ -86,6 +86,10 @@ async function resolveCouponForPaymentIntent(params: {
       throw new AppError('This coupon has expired', 400);
     }
     return coupon;
+  }
+
+  if (trimmedCode) {
+    return resolveCouponForCheckout(userId, couponCode!, { excludeOrderId: orderId });
   }
 
   return null;

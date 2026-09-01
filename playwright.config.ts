@@ -44,6 +44,10 @@ export default defineConfig({
             timeout: 120_000,
             stdout: 'pipe',
             stderr: 'pipe',
+            env: {
+              ...process.env,
+              E2E_CAPTURE_PASSWORD_RESET: '1',
+            },
           },
           {
             command: 'cd frontend && npm run dev -- --host 127.0.0.1 --port 5173 --strictPort',
