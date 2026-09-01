@@ -2,19 +2,16 @@
 
 ## Current status
 
-Slice 11 (customer nav, unified reviews, re-approval, app-wide PTR) implementing on `feature/local-customer-nav-reviews-ptr` — Captain approved 2026-08-30.
+Slice 11 shipped on `main` via PR [#27](https://github.com/loganware05/TrapHouseKitchen/pull/27) (merge `76e21a0`, 2026-09-01).
 
 ## Completed
 
-- Slices 1–10 shipped (PRs #15–#26)
-
-## In progress
-
-- Slice 11: customer tabs Home/Reviews/Requests/Orders, profile receipts dropdown, unified reviews, edit re-approval, layout PTR registry
+- Slices 1–11 shipped (PRs #15–#27)
+- Slice 11: customer tabs Home/Reviews/Requests/Orders; profile receipts (below Legal); unified reviews + re-approval; layout PTR registry; Orders tab quick reorder + saved/used discount codes
 
 ## Next
 
-1. Finish E2E spot-check + open PR
+1. Deploy `main` to Render (if not auto-deployed) and smoke-test customer nav + Orders coupons
 2. Waiting list: message-system coupon delivery
 
 ## Blockers
