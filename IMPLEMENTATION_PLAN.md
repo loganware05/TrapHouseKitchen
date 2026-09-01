@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: **APPROVED**
+- Status: **COMPLETE**
 - Plan ID: `slice-11-customer-nav-reviews-ptr-2026-08-28`
 - Parent plan: `post-launch-ux-batch-2026-08-15` (Slices 1–10 complete; PR #26 merged)
 - Issue: `local/customer-nav-reviews-ptr` (placeholder until GitHub issue created)
@@ -10,7 +10,8 @@
 - Branch (on approval): `feature/local-customer-nav-reviews-ptr`
 - Rollback checkpoint (on approval): `checkpoint/customer-nav-reviews-ptr-2026-08-28`
 - Created: 2026-08-28
-- Last updated: 2026-08-30
+- Last updated: 2026-08-31
+- Merged: PR [#27](https://github.com/loganware05/TrapHouseKitchen/pull/27) → `76e21a0` on `main` (2026-09-01)
 
 ## Request (Captain)
 
@@ -261,7 +262,8 @@ Work is split so each slice is shippable and testable. **Prefer 2 PRs** if Capta
 
 ## Approval Record
 
-- **Status:** APPROVED
+- **Status:** COMPLETE (merged)
 - **Approved by:** Captain (Logan)
 - **Approval date:** 2026-08-30
-- **Captain notes:** Tabs = Home, Reviews, Requests, Orders; Menu via Home; Orders tab kept; receipts = 3 within 30-day window; Reviews = community first then yours
+- **Merged:** 2026-09-01 — PR #27 (`76e21a0`)
+- **Captain notes:** Tabs = Home, Reviews, Requests, Orders; Menu via Home; Orders tab kept; receipts = 3 within 30-day window below Legal; Reviews = community first then yours; profile allergen/saved-cards/dietary removed; Orders = quick reorder + saved/used codes

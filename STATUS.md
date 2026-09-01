@@ -1,12 +1,12 @@
 # Project status
 
-**Last updated:** 2026-08-23
-**Production / shared baseline:** `4af3519` (`origin/main` — PR #24 dynamic ETA)
+**Last updated:** 2026-08-31
+**Production / shared baseline:** `76e21a0` (`origin/main` — PR #27 customer nav, reviews, PTR)
 **Canonical rule:** This file is the only place that asserts Shipped / WIP / Broken. Do not add new root `*_COMPLETE.md` / `*_READY.md` snapshots — update this file instead.
 
 **Related:** [QA_CHECKLIST.md](QA_CHECKLIST.md) · [SUPPORT_PLAYBOOKS.md](SUPPORT_PLAYBOOKS.md) · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md) · [AGENTS.md](AGENTS.md)
 
-**Current WIP:** Slice 10 coupon gateways on `feature/local-coupon-gateways` (PR pending).
+**Current WIP:** None — Slice 11 merged (PR #27). Next backlog item: message-system coupon delivery (waiting list).
 
 ---
 
@@ -34,7 +34,9 @@ On `origin/main` and considered the live product surface:
 | Chef order pipeline | Pending → Preparing → Ready → Out for delivery → Completed; 15s live poll |
 | Dynamic ETA / prep intelligence | Dish+queue weighted ETA; chef override; learning env-gated (`PREP_LEARNING_ENABLED`) |
 | Stripe payments | PaymentIntent + `automatic_payment_methods` |
-| Per-dish reviews (receipt UX) | Chef approve/reject; **no** auto $4 coupon (deferred) |
+| Per-dish reviews (receipt UX) | Chef approve/reject; review-approve coupon gateway (Slice 10); edit → re-approval (Slice 11) |
+| Customer nav (Slice 11) | Home · Reviews · Requests · Orders; Menu off-tab via Home |
+| Pull-to-refresh | Layout registry on all primary customer/chef tab surfaces |
 | Allergens / dietary filters | Customer profile warnings |
 | Dish requests + voting | Customer + chef management |
 | Auth (customer / chef login) | JWT RBAC |
