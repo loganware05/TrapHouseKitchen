@@ -426,6 +426,50 @@ describe('Review Flow Integration Tests', () => {
     });
   });
 
+  describe('Review edit re-approval', () => {
+    let approvedReviewId: string;
+
+    beforeAll(async () => {
+      const review = await prisma.review.findFirst({
+        where: { userId, orderId, approved: true },
+      });
+      approvedReviewId = review!.id;
+    });
+
+    it('should reset approved to false when customer edits content', async () => {
+      const response = await request(app)
+        .patch(`/api/reviews/${approvedReviewId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          rating: 4,
+          comment: 'Updated review text after approval — needs chef re-approval.',
+        })
+        .expect(200);
+
+      expect(response.body.data.review.approved).toBe(false);
+      expect(response.body.message).toMatch(/chef approval/i);
+
+      const publicRes = await request(app).get('/api/reviews').expect(200);
+      const found = publicRes.body.data.reviews.find((r: any) => r.id === approvedReviewId);
+      expect(found).toBeUndefined();
+    });
+
+    it('should re-approve without minting duplicate coupon', async () => {
+      const couponsBefore = await prisma.coupon.count({ where: { userId } });
+
+      const response = await request(app)
+        .post(`/api/reviews/${approvedReviewId}/approve`)
+        .set('Authorization', `Bearer ${chefToken}`)
+        .expect(200);
+
+      expect(response.body.data.review.approved).toBe(true);
+      expect(response.body.data.coupon).toBeTruthy();
+
+      const couponsAfter = await prisma.coupon.count({ where: { userId } });
+      expect(couponsAfter).toBe(couponsBefore);
+    });
+  });
+
   describe('Per-Dish Review Status in Orders Endpoint', () => {
     it('should include review status for each order item', async () => {
       // Reset order to be recent

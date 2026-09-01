@@ -1,14 +1,18 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Package, Clock, CheckCircle, XCircle, ChevronRight, MapPin } from 'lucide-react';
+import { Package, Clock, CheckCircle, XCircle, ChevronRight, MapPin, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { Order } from '../types';
+import api from '../lib/api';
+import { Coupon, Dish, Order } from '../types';
 import OrderTracker from '../components/OrderTracker';
 import OrderReceipt from '../components/OrderReceipt';
 import OrderCouponBanner from '../components/OrderCouponBanner';
-import PullToRefresh from '../components/PullToRefresh';
+import { useRegisterPullToRefresh } from '../contexts/PullToRefreshContext';
+import { useAuthStore } from '../stores/authStore';
+import { useCartStore } from '../stores/cartStore';
 import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
+import { trackEvent } from '../stores/analyticsStore';
 import {
   customerOrderStatusLabel,
   customerOrdersQueryOptions,
@@ -146,7 +150,11 @@ function HistoryOrderCard({
 export default function OrdersPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const checkoutOpen = useCheckoutSheetStore((s) => s.isOpen);
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const addItem = useCartStore((s) => s.addItem);
+  const openCheckout = useCheckoutSheetStore((s) => s.open);
+  const [userAllergens, setUserAllergens] = useState<string[]>([]);
   const highlightOrderId = (location.state as { highlightOrderId?: string } | null)
     ?.highlightOrderId;
   const highlightRef = useRef<HTMLDivElement | null>(null);
@@ -156,9 +164,93 @@ export default function OrdersPage() {
     customerOrdersQueryOptions(true)
   );
 
+  const { data: userProfile } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const res = await api.get<{ data: { user: any } }>('/users/profile');
+      return res.data.data.user;
+    },
+    enabled: !!user,
+  });
+
+  const { data: couponsBundle } = useQuery({
+    queryKey: ['myCoupons'],
+    queryFn: async () => {
+      const res = await api.get<{ data: { coupons: Coupon[]; usedCoupons: Coupon[] } }>(
+        '/coupons/my'
+      );
+      return res.data.data;
+    },
+    enabled: !!user && user.role === 'CUSTOMER',
+  });
+
+  const savedCouponsData = couponsBundle?.coupons;
+  const usedCouponsData = couponsBundle?.usedCoupons;
+
+  useEffect(() => {
+    if (userProfile?.allergenProfile) {
+      setUserAllergens(userProfile.allergenProfile.map((ua: any) => ua.allergenId));
+    }
+  }, [userProfile]);
+
+  const lastOrder = useMemo(() => {
+    if (!ordersData?.length) return null;
+    const sorted = [...ordersData].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    return sorted.find((o) => o.paymentStatus === 'PAID' && o.items?.length) ?? sorted[0];
+  }, [ordersData]);
+
+  const reorderSummary =
+    lastOrder?.items.map((i) => `${i.quantity}× ${i.dish.name}`).join(', ') ?? '';
+
+  const checkDishAllergens = (dish: Dish): boolean => {
+    if (!user || userAllergens.length === 0 || !dish.allergens) {
+      return true;
+    }
+    return !dish.allergens.some((da) => userAllergens.includes(da.allergenId));
+  };
+
+  const handleQuickReorder = () => {
+    if (!user || user.role !== 'CUSTOMER') {
+      toast.error('Log in to reorder');
+      return;
+    }
+    if (!lastOrder?.items.length) return;
+    trackEvent('reorder_tapped', { orderId: lastOrder.id, orderNumber: lastOrder.orderNumber });
+    for (const line of lastOrder.items) {
+      const d = line.dish;
+      if (!d?.id || !d.price) continue;
+      const dishForCart: Dish = {
+        ...d,
+        description: d.description ?? '',
+        status: d.status ?? 'AVAILABLE',
+        categoryId: d.categoryId ?? '',
+        isVegan: !!d.isVegan,
+        isVegetarian: !!d.isVegetarian,
+        isGlutenFree: !!d.isGlutenFree,
+        createdAt: d.createdAt ?? new Date().toISOString(),
+        updatedAt: d.updatedAt ?? new Date().toISOString(),
+        category: d.category ?? { id: '', name: '', displayOrder: 0, createdAt: '', updatedAt: '' },
+      };
+      if (!checkDishAllergens(dishForCart)) {
+        toast.error('A dish in that order conflicts with your allergen profile.');
+        return;
+      }
+      addItem(dishForCart, line.quantity);
+    }
+    toast.success('Added your last order to the cart');
+    openCheckout();
+  };
+
   const handlePullRefresh = useCallback(async () => {
     await refetch();
-  }, [refetch]);
+    if (user?.role === 'CUSTOMER') {
+      await queryClient.invalidateQueries({ queryKey: ['myCoupons'] });
+    }
+  }, [refetch, queryClient, user?.role]);
+
+  useRegisterPullToRefresh(handlePullRefresh);
 
   useEffect(() => {
     if ((location.state as { paymentSuccess?: boolean } | null)?.paymentSuccess && !welcomedRef.current) {
@@ -195,7 +287,6 @@ export default function OrdersPage() {
   }
 
   return (
-    <PullToRefresh onRefresh={handlePullRefresh} enabled={!checkoutOpen}>
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
       <div className="flex items-center justify-between gap-4 mb-8">
         <div>
@@ -224,6 +315,90 @@ export default function OrdersPage() {
           </button>
         </div>
       ) : null}
+
+      {user?.role === 'CUSTOMER' && lastOrder && (
+        <section className="mb-10" aria-labelledby="quick-reorder-heading">
+          <h2 id="quick-reorder-heading" className="text-lg font-semibold text-gray-900 mb-4">
+            Quick reorder
+          </h2>
+          <div className="rounded-th-xl border border-th-border bg-white p-4 shadow-th-card">
+            <p className="text-sm text-gray-600 line-clamp-2 mb-1">#{lastOrder.orderNumber}</p>
+            <p className="font-medium text-gray-900 line-clamp-2 mb-4">{reorderSummary}</p>
+            <button
+              type="button"
+              onClick={handleQuickReorder}
+              className="flex w-full items-center justify-center gap-2 rounded-th-lg bg-gray-900 py-3 text-sm font-bold text-white hover:bg-gray-800"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Order again
+            </button>
+          </div>
+        </section>
+      )}
+
+      {savedCouponsData && savedCouponsData.length > 0 && (
+        <section className="mb-10" aria-labelledby="saved-codes-heading">
+          <h2 id="saved-codes-heading" className="text-lg font-semibold text-gray-900 mb-4">
+            Saved discount codes
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Each code works once. Enter it at checkout — after payment it cannot be reused.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {savedCouponsData.map((coupon) => (
+              <div
+                key={coupon.id}
+                className="bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg p-4 border-2 border-dashed border-primary-300"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-2xl font-bold text-primary-600 font-mono">{coupon.code}</p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Save ${coupon.discountAmount.toFixed(2)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(coupon.code);
+                      toast.success('Code copied to clipboard!');
+                    }}
+                    className="px-3 py-1 text-sm bg-primary-600 text-white rounded hover:bg-primary-700"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {usedCouponsData && usedCouponsData.length > 0 && (
+        <section className="mb-10" aria-labelledby="used-codes-heading">
+          <h2 id="used-codes-heading" className="text-lg font-semibold text-gray-900 mb-4">
+            Used codes
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            These discount codes were redeemed and cannot be applied again.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {usedCouponsData.map((coupon) => (
+              <div
+                key={coupon.id}
+                className="rounded-lg p-4 border border-gray-200 bg-gray-50 opacity-90"
+              >
+                <p className="text-lg font-mono font-semibold text-gray-500 line-through">
+                  {coupon.code}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  ${coupon.discountAmount.toFixed(2)} off · Redeemed
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {ordersData && ordersData.length > 0 ? (
         <div className="space-y-10">
@@ -283,6 +458,5 @@ export default function OrdersPage() {
         </div>
       )}
     </div>
-    </PullToRefresh>
   );
 }

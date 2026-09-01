@@ -11,7 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import api from '../../lib/api';
-import PullToRefresh from '../../components/PullToRefresh';
+import { useRegisterPullToRefresh } from '../../contexts/PullToRefreshContext';
 import KitchenQueueSummary from '../../components/chef/KitchenQueueSummary';
 import {
   chefAllOrdersQueryOptions,
@@ -94,6 +94,8 @@ export default function ChefDashboard() {
     ]);
   }, [queryClient]);
 
+  useRegisterPullToRefresh(handlePullRefresh);
+
   const pendingOrders = ordersData?.filter((o: any) => o.status === 'PENDING').length || 0;
   const preparingOrders = ordersData?.filter((o: any) => o.status === 'PREPARING').length || 0;
   const totalDishes = dishesData?.length || 0;
@@ -111,7 +113,6 @@ export default function ChefDashboard() {
     : 1;
 
   return (
-    <PullToRefresh onRefresh={handlePullRefresh}>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Chef Dashboard</h1>
 
@@ -346,6 +347,5 @@ export default function ChefDashboard() {
         )}
       </div>
     </div>
-    </PullToRefresh>
   );
 }

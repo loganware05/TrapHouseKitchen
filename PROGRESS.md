@@ -2,23 +2,21 @@
 
 ## Current status
 
-Slice 10 (coupon gateways) implementing on `feature/local-coupon-gateways` — Captain approved with chef-controlled amount.
+Slice 11 (customer nav, unified reviews, re-approval, app-wide PTR) implementing on `feature/local-customer-nav-reviews-ptr` — Captain approved 2026-08-30.
 
 ## Completed
 
-- Slices 1–9 shipped and ops-verified (PRs #15–#24)
-- Slice 9 ops docs on `main` (`13a7029`)
+- Slices 1–10 shipped (PRs #15–#26)
 
 ## In progress
 
-- Slice 10: checkout discount reliability + `REVIEW_APPROVE` gateway (enabled + amount)
+- Slice 11: customer tabs Home/Reviews/Requests/Orders, profile receipts dropdown, unified reviews, edit re-approval, layout PTR registry
 
 ## Next
 
-1. Finish validation + open PR
+1. Finish E2E spot-check + open PR
 2. Waiting list: message-system coupon delivery
-3. Apple Pay: no further work unless regression
 
 ## Blockers
 
-- Message-system coupon send deferred (waiting list)
+- None

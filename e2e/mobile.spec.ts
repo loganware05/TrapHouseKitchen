@@ -15,7 +15,7 @@ test.describe('Mobile (iPhone 13)', () => {
       timeout: 25_000,
     });
 
-    await page.getByRole('link', { name: /^menu$/i }).click();
+    await page.getByRole('link', { name: /^see all$/i }).first().click();
     await expect(page).toHaveURL(/\/menu/, { timeout: 15_000 });
     const addBtn = page.getByRole('button', { name: /^add\b/i }).first();
     await expect(addBtn).toBeVisible({ timeout: 20_000 });

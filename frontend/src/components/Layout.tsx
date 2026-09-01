@@ -1,7 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
   Home,
-  LayoutGrid,
   Receipt,
   User,
   ChefHat,
@@ -15,24 +14,44 @@ import {
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import CheckoutSheet from './CheckoutSheet';
+import PullToRefresh from './PullToRefresh';
+import { PullToRefreshProvider, usePullToRefreshRunner } from '../contexts/PullToRefreshContext';
 import { flushAnalytics, initAnalyticsFlushListeners } from '../stores/analyticsStore';
 
 function pathMatchesNav(pathname: string, to: string): boolean {
   if (to === '/') {
     return pathname === '/' || pathname === '/home';
   }
-  if (to === '/menu') {
-    return pathname === '/menu' || pathname.startsWith('/menu/');
-  }
   if (to === '/orders') {
     return pathname.startsWith('/orders');
+  }
+  if (to === '/reviews') {
+    return pathname === '/reviews' || pathname.startsWith('/reviews/');
+  }
+  if (to === '/dish-requests') {
+    return pathname.startsWith('/dish-requests');
   }
   if (to === '/chef') {
     return pathname === '/chef';
   }
   return pathname === to || pathname.startsWith(`${to}/`);
+}
+
+function LayoutMain() {
+  const runRefresh = usePullToRefreshRunner();
+  const checkoutOpen = useCheckoutSheetStore((s) => s.isOpen);
+
+  const handlePullRefresh = useCallback(async () => {
+    await runRefresh();
+  }, [runRefresh]);
+
+  return (
+    <PullToRefresh onRefresh={handlePullRefresh} enabled={!checkoutOpen}>
+      <Outlet />
+    </PullToRefresh>
+  );
 }
 
 export default function Layout() {
@@ -63,9 +82,9 @@ export default function Layout() {
 
   const customerNav = [
     { to: '/', icon: Home, label: 'Home' },
-    { to: '/menu', icon: LayoutGrid, label: 'Menu' },
+    { to: '/reviews', icon: Star, label: 'Reviews' },
+    { to: '/dish-requests', icon: MessageSquare, label: 'Requests' },
     { to: '/orders', icon: Receipt, label: 'Orders' },
-    { to: '/profile', icon: User, label: 'Profile' },
   ];
 
   const chefNav = [
@@ -79,6 +98,7 @@ export default function Layout() {
   const navItems = user?.role === 'CHEF' || user?.role === 'ADMIN' ? chefNav : customerNav;
 
   return (
+    <PullToRefreshProvider>
     <div className="min-h-screen bg-th-surface flex flex-col">
       <header className="bg-white border-b border-th-border sticky top-0 z-50 safe-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -144,7 +164,7 @@ export default function Layout() {
       </header>
 
       <main className="flex-1">
-        <Outlet />
+        <LayoutMain />
       </main>
 
       <CheckoutSheet />
@@ -193,5 +213,6 @@ export default function Layout() {
         </nav>
       </aside>
     </div>
+    </PullToRefreshProvider>
   );
 }

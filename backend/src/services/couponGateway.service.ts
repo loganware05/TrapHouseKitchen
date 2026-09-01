@@ -107,6 +107,23 @@ export async function approveReviewWithOptionalCoupon(reviewId: string) {
 
   const gateway = await getCouponAwardGateway(REVIEW_APPROVE_GATEWAY);
 
+  const existingAward = await prisma.coupon.findUnique({
+    where: { sourceReviewId: reviewId },
+  });
+
+  if (existingAward) {
+    const approvedReview = await prisma.review.update({
+      where: { id: reviewId },
+      data: { approved: true },
+    });
+    return {
+      review: approvedReview,
+      coupon: existingAward,
+      gatewayEnabled: gateway.enabled,
+      message: `Review re-approved for ${review.user.name}`,
+    };
+  }
+
   if (!gateway.enabled) {
     const approvedReview = await prisma.review.update({
       where: { id: reviewId },

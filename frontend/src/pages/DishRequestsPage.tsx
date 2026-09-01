@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ThumbsUp, ThumbsDown, MessageSquare, Plus, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import api from '../lib/api';
 import { DishRequest } from '../types';
 import { useAuthStore } from '../stores/authStore';
+import { useRegisterPullToRefresh } from '../contexts/PullToRefreshContext';
 
 interface RequestForm {
   title: string;
@@ -25,6 +26,12 @@ export default function DishRequestsPage() {
       return res.data.data.dishRequests;
     },
   });
+
+  const handlePullRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['dishRequests'] });
+  }, [queryClient]);
+
+  useRegisterPullToRefresh(handlePullRefresh);
 
   const createRequestMutation = useMutation({
     mutationFn: async (data: RequestForm) => {

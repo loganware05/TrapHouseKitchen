@@ -99,6 +99,7 @@ export function invalidateCustomerOrders(
   queryClient: { invalidateQueries: (opts: { queryKey: readonly string[] }) => void }
 ) {
   queryClient.invalidateQueries({ queryKey: customerOrdersQueryKey });
+  queryClient.invalidateQueries({ queryKey: ['myCoupons', 'used'] });
 }
 
 /** Keep My Orders / Home list in sync when confirmation polls a single order. */

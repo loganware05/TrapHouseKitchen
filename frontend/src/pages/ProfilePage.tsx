@@ -1,36 +1,15 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Elements } from '@stripe/react-stripe-js';
-import { User, AlertTriangle, Save, CreditCard, Trash2, Star, PieChart, ChevronRight, MessageSquare } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { User, PieChart, ChevronDown, ChevronRight } from 'lucide-react';
 import api from '../lib/api';
-import stripePromise from '../lib/stripe';
 import { useAuthStore } from '../stores/authStore';
-import { Allergen, Review } from '../types';
-import SavePaymentMethodForm from '../components/SavePaymentMethodForm';
 import OrderReceipt from '../components/OrderReceipt';
-import type { SavedCardSummary } from '../types';
 import { customerOrdersQueryOptions } from '../lib/customerOrders';
 import { selectRecentReceipts } from '../lib/orderReceipt';
+import { useRegisterPullToRefresh } from '../contexts/PullToRefreshContext';
 
-const PROFILE_COMMUNITY_REVIEW_LIMIT = 3;
-
-function ReviewStars({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-0.5" aria-label={`${rating} out of 5 stars`}>
-      {Array.from({ length: 5 }, (_, i) => (
-        <Star
-          key={i}
-          className={`h-4 w-4 ${
-            i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
-          }`}
-          aria-hidden
-        />
-      ))}
-    </div>
-  );
-}
+const PROFILE_RECEIPT_LIMIT = 3;
 
 type UserSpendData = {
   period: string;
@@ -45,41 +24,12 @@ type UserSpendData = {
   orderCount: number;
 };
 
-function formatBrand(brand: string) {
-  if (!brand) return 'Card';
-  return brand.charAt(0).toUpperCase() + brand.slice(1).toLowerCase();
-}
-
 export default function ProfilePage() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
-  const [dietaryPrefs, setDietaryPrefs] = useState<string[]>([]);
-  const [addCardClientSecret, setAddCardClientSecret] = useState<string | null>(null);
-  const [addCardLoading, setAddCardLoading] = useState(false);
-
-  const { data: userProfile } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: async () => {
-      const res = await api.get<{ data: { user: any } }>('/users/profile');
-      const profile = res.data.data.user;
-      setSelectedAllergens(profile.allergenProfile?.map((ua: any) => ua.allergenId) || []);
-      setDietaryPrefs(profile.dietaryPreferences?.map((dp: any) => dp.name) || []);
-      return profile;
-    },
-  });
-
-  const { data: allergensData } = useQuery({
-    queryKey: ['allergens'],
-    queryFn: async () => {
-      const res = await api.get<{ data: { allergens: Allergen[] } }>('/allergens');
-      return res.data.data.allergens;
-    },
-  });
-
   const [spendPeriod, setSpendPeriod] = useState<'7d' | '30d'>('7d');
+  const [receiptsOpen, setReceiptsOpen] = useState(false);
 
   const { data: spendData, isLoading: spendLoading } = useQuery({
     queryKey: ['userSpend', spendPeriod],
@@ -93,30 +43,20 @@ export default function ProfilePage() {
     enabled: !!user && user.role === 'CUSTOMER',
   });
 
-  const { data: savedMethods = [] } = useQuery({
-    queryKey: ['savedPaymentMethods'],
-    queryFn: async () => {
-      const res = await api.get<{ data: { methods: SavedCardSummary[] } }>('/payment/methods');
-      return res.data.data.methods;
-    },
-    enabled: !!user && !user.isGuest,
-  });
-
   const { data: ordersData } = useQuery({
     ...customerOrdersQueryOptions(!!user && user.role === 'CUSTOMER'),
   });
 
-  const { data: communityReviews = [] } = useQuery({
-    queryKey: ['reviews', 'newest', 'profile-preview'],
-    queryFn: async () => {
-      const res = await api.get<{ data: { reviews: Review[] } }>('/reviews?sortBy=newest');
-      return res.data.data.reviews.slice(0, PROFILE_COMMUNITY_REVIEW_LIMIT);
-    },
-    enabled: !!user && user.role === 'CUSTOMER',
-    staleTime: 60_000,
-  });
+  const recentReceipts = selectRecentReceipts(ordersData ?? [], PROFILE_RECEIPT_LIMIT);
 
-  const recentReceipts = selectRecentReceipts(ordersData ?? [], 5);
+  const handlePullRefresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['userSpend'] }),
+      queryClient.invalidateQueries({ queryKey: ['orders'] }),
+    ]);
+  }, [queryClient]);
+
+  useRegisterPullToRefresh(handlePullRefresh);
 
   const handleWriteReview = (orderId: string, dishId?: string) => {
     if (dishId) {
@@ -126,132 +66,10 @@ export default function ProfilePage() {
     }
   };
 
-  useEffect(() => {
-    if (searchParams.get('setup_return') !== '1') return;
-    const sid = searchParams.get('setup_intent');
-    if (!sid) {
-      setSearchParams({}, { replace: true });
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        await api.post('/payment/methods/sync', { setupIntentId: sid });
-        if (!cancelled) {
-          toast.success('Card saved for faster checkout');
-          queryClient.invalidateQueries({ queryKey: ['savedPaymentMethods'] });
-        }
-      } catch {
-        if (!cancelled) toast.error('Could not save card. Try again.');
-      } finally {
-        if (!cancelled) setSearchParams({}, { replace: true });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [searchParams, setSearchParams, queryClient]);
-
-  const deleteCardMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await api.delete(`/payment/methods/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['savedPaymentMethods'] });
-      toast.success('Card removed');
-    },
-    onError: () => toast.error('Could not remove card'),
-  });
-
-  const setDefaultMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await api.patch(`/payment/methods/${id}/default`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['savedPaymentMethods'] });
-      toast.success('Default card updated');
-    },
-    onError: () => toast.error('Could not update default'),
-  });
-
-  const startAddCard = async () => {
-    try {
-      setAddCardLoading(true);
-      const res = await api.post<{ data: { clientSecret: string } }>('/payment/setup-intent');
-      setAddCardClientSecret(res.data.data.clientSecret);
-    } catch {
-      toast.error('Could not start card setup');
-    } finally {
-      setAddCardLoading(false);
-    }
-  };
-
-  const updateAllergensMutation = useMutation({
-    mutationFn: async (allergenIds: string[]) => {
-      await api.post('/users/allergens', { allergenIds });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-      toast.success('Allergen profile updated!');
-    },
-    onError: () => {
-      toast.error('Failed to update allergen profile');
-    },
-  });
-
-  const updateDietaryPrefsMutation = useMutation({
-    mutationFn: async (preferences: string[]) => {
-      const prefs = preferences.map((name) => ({ name }));
-      await api.post('/users/dietary-preferences', { preferences: prefs });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-      toast.success('Dietary preferences updated!');
-    },
-    onError: () => {
-      toast.error('Failed to update dietary preferences');
-    },
-  });
-
-  const handleSaveAllergens = () => {
-    updateAllergensMutation.mutate(selectedAllergens);
-  };
-
-  const handleSaveDietaryPrefs = () => {
-    updateDietaryPrefsMutation.mutate(dietaryPrefs);
-  };
-
-  const toggleAllergen = (allergenId: string) => {
-    setSelectedAllergens((prev) =>
-      prev.includes(allergenId)
-        ? prev.filter((id) => id !== allergenId)
-        : [...prev, allergenId]
-    );
-  };
-
-  const commonDietaryPreferences = [
-    'Vegetarian',
-    'Vegan',
-    'Gluten-Free',
-    'Dairy-Free',
-    'Keto',
-    'Paleo',
-    'Low-Carb',
-    'Halal',
-    'Kosher',
-  ];
-
-  const toggleDietaryPref = (pref: string) => {
-    setDietaryPrefs((prev) =>
-      prev.includes(pref) ? prev.filter((p) => p !== pref) : [...prev, pref]
-    );
-  };
-
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">My Profile</h1>
 
-      {/* User Info */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex items-center space-x-4 mb-4">
           <div className="bg-primary-100 p-4 rounded-full">
@@ -268,142 +86,6 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-
-      {user?.role === 'CUSTOMER' && recentReceipts.length > 0 && (
-        <section className="mb-6" aria-labelledby="recent-receipts-heading">
-          <div className="flex items-end justify-between gap-3 mb-4">
-            <div>
-              <h2 id="recent-receipts-heading" className="text-xl font-semibold text-gray-900">
-                Recent receipts
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Leave a review for dishes from recent completed orders.
-              </p>
-            </div>
-            <Link to="/orders" className="text-sm font-medium text-primary-600 hover:underline shrink-0">
-              All orders
-            </Link>
-          </div>
-          <div className="space-y-4">
-            {recentReceipts.map((order) => (
-              <OrderReceipt
-                key={order.id}
-                order={order}
-                onWriteReview={handleWriteReview}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {user?.role === 'CUSTOMER' && (
-        <section className="mb-6" aria-labelledby="community-reviews-heading">
-          <div className="flex items-end justify-between gap-3 mb-4">
-            <div>
-              <h2 id="community-reviews-heading" className="text-xl font-semibold text-gray-900">
-                Community reviews
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Recent chef-approved reviews from other customers.
-              </p>
-            </div>
-            <Link
-              to="/reviews"
-              className="text-sm font-medium text-primary-600 hover:underline shrink-0"
-            >
-              See all
-            </Link>
-          </div>
-          {communityReviews.length > 0 ? (
-            <ul className="space-y-3">
-              {communityReviews.map((review) => (
-                <li
-                  key={review.id}
-                  className="bg-white border border-th-border rounded-th-lg p-4"
-                >
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <ReviewStars rating={review.rating} />
-                    <span className="text-xs text-gray-500 shrink-0">
-                      {new Date(review.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-800 line-clamp-3">{review.comment}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600">
-                    <span>by {review.user?.name?.split(' ')[0] || 'Customer'}</span>
-                    {(review.dishName || review.dish?.name) && (
-                      <span className="px-2 py-0.5 rounded-full bg-primary-50 text-primary-700">
-                        {review.dishName || review.dish?.name}
-                      </span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="bg-white border border-dashed border-th-border rounded-th-lg p-5 text-center">
-              <p className="text-sm text-gray-600 mb-3">No public reviews yet.</p>
-              <Link
-                to="/reviews"
-                className="text-sm font-medium text-primary-600 hover:underline"
-              >
-                Open reviews page
-              </Link>
-            </div>
-          )}
-        </section>
-      )}
-
-      {user?.role === 'CUSTOMER' && (
-        <div className="bg-white rounded-th-xl shadow-th-card p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">More</h2>
-          <nav className="space-y-1" aria-label="Additional links">
-            <Link
-              to="/reviews/my"
-              className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-900 hover:bg-th-surface-muted transition-colors"
-            >
-              <span className="flex items-center gap-3 font-medium">
-                <Star className="h-5 w-5 text-primary-600" />
-                My reviews
-              </span>
-              <ChevronRight className="h-4 w-4 text-th-muted-fg" />
-            </Link>
-            <Link
-              to="/reviews"
-              className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-900 hover:bg-th-surface-muted transition-colors"
-            >
-              <span className="flex items-center gap-3 font-medium">
-                <MessageSquare className="h-5 w-5 text-primary-600" />
-                All community reviews
-              </span>
-              <ChevronRight className="h-4 w-4 text-th-muted-fg" />
-            </Link>
-            <Link
-              to="/dish-requests"
-              className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-900 hover:bg-th-surface-muted transition-colors"
-            >
-              <span className="flex items-center gap-3 font-medium">
-                <MessageSquare className="h-5 w-5 text-primary-600" />
-                Dish requests
-              </span>
-              <ChevronRight className="h-4 w-4 text-th-muted-fg" />
-            </Link>
-            <Link
-              to="/privacy"
-              className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-700 hover:bg-th-surface-muted transition-colors text-sm"
-            >
-              Privacy policy
-              <ChevronRight className="h-4 w-4 text-th-muted-fg" />
-            </Link>
-            <Link
-              to="/terms"
-              className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-700 hover:bg-th-surface-muted transition-colors text-sm"
-            >
-              Terms of service
-              <ChevronRight className="h-4 w-4 text-th-muted-fg" />
-            </Link>
-          </nav>
-        </div>
-      )}
 
       {user?.role === 'CUSTOMER' && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -497,178 +179,68 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Saved payment methods (1-tap checkout) */}
-      {user && !user.isGuest && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <CreditCard className="h-5 w-5 text-primary-600" />
-            <h2 className="text-xl font-semibold text-gray-900">Saved cards</h2>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            Use a saved card at checkout with one tap. Cards are stored securely with Stripe.
-          </p>
-
-          {savedMethods.length > 0 && (
-            <ul className="space-y-2 mb-4">
-              {savedMethods.map((m) => (
-                <li
-                  key={m.id}
-                  className="flex items-center justify-between gap-2 p-3 rounded-lg border border-gray-200"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {formatBrand(m.brand)} •••• {m.last4}
-                      {m.isDefault && (
-                        <span className="ml-2 text-xs text-primary-600 font-normal">Default</span>
-                      )}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Exp {m.expiryMonth}/{m.expiryYear}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {!m.isDefault && (
-                      <button
-                        type="button"
-                        onClick={() => setDefaultMutation.mutate(m.id)}
-                        disabled={setDefaultMutation.isPending}
-                        className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg"
-                        title="Set as default"
-                        aria-label="Set as default"
-                      >
-                        <Star className="h-4 w-4" />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => deleteCardMutation.mutate(m.id)}
-                      disabled={deleteCardMutation.isPending}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                      title="Remove card"
-                      aria-label="Remove card"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {!addCardClientSecret && (
-            <button
-              type="button"
-              onClick={startAddCard}
-              disabled={addCardLoading}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+      {user?.role === 'CUSTOMER' && (
+        <div className="bg-white rounded-th-xl shadow-th-card p-6 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Legal</h2>
+          <nav className="space-y-1" aria-label="Legal links">
+            <Link
+              to="/privacy"
+              className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-700 hover:bg-th-surface-muted transition-colors text-sm"
             >
-              {addCardLoading ? 'Loading…' : savedMethods.length ? 'Add another card' : 'Add a card'}
-            </button>
-          )}
-
-          {addCardClientSecret && (
-            <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <Elements
-                stripe={stripePromise}
-                options={{
-                  clientSecret: addCardClientSecret,
-                  appearance: {
-                    theme: 'stripe',
-                    variables: { colorPrimary: '#ea580c' },
-                  },
-                }}
-              >
-                <SavePaymentMethodForm
-                  onComplete={() => {
-                    setAddCardClientSecret(null);
-                    queryClient.invalidateQueries({ queryKey: ['savedPaymentMethods'] });
-                  }}
-                  onCancel={() => setAddCardClientSecret(null)}
-                />
-              </Elements>
-            </div>
-          )}
+              Privacy policy
+              <ChevronRight className="h-4 w-4 text-th-muted-fg" />
+            </Link>
+            <Link
+              to="/terms"
+              className="flex items-center justify-between rounded-th-lg px-3 py-3 text-gray-700 hover:bg-th-surface-muted transition-colors text-sm"
+            >
+              Terms of service
+              <ChevronRight className="h-4 w-4 text-th-muted-fg" />
+            </Link>
+          </nav>
         </div>
       )}
 
-      {/* Allergen Profile */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <AlertTriangle className="h-5 w-5 mr-2 text-red-600" />
-              Allergen Profile
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Select allergens you're sensitive to. We'll warn you about dishes containing them.
-            </p>
-          </div>
+      {user?.role === 'CUSTOMER' && recentReceipts.length > 0 && (
+        <section className="mb-6" aria-labelledby="recent-receipts-heading">
           <button
-            onClick={handleSaveAllergens}
-            disabled={updateAllergensMutation.isPending}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+            type="button"
+            id="recent-receipts-heading"
+            onClick={() => setReceiptsOpen((open) => !open)}
+            aria-expanded={receiptsOpen}
+            aria-label="Receipts"
+            className="w-full flex items-center justify-between gap-3 rounded-th-lg border border-th-border bg-white px-4 py-3 text-left shadow-th-card hover:bg-th-surface-muted transition-colors"
           >
-            <Save className="h-4 w-4" />
-            Save
+            <span>
+              <span className="block text-xl font-semibold text-gray-900">Receipts</span>
+              <span className="block text-sm text-gray-600 mt-0.5">
+                Up to {PROFILE_RECEIPT_LIMIT} recent completed orders (30-day window)
+              </span>
+            </span>
+            {receiptsOpen ? (
+              <ChevronDown className="h-5 w-5 text-th-muted-fg shrink-0" aria-hidden />
+            ) : (
+              <ChevronRight className="h-5 w-5 text-th-muted-fg shrink-0" aria-hidden />
+            )}
           </button>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {allergensData?.map((allergen) => (
-            <button
-              key={allergen.id}
-              onClick={() => toggleAllergen(allergen.id)}
-              className={`p-3 rounded-lg border-2 transition-all text-left ${
-                selectedAllergens.includes(allergen.id)
-                  ? 'border-red-500 bg-red-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <p className="font-medium text-gray-900">{allergen.name}</p>
-              {allergen.description && (
-                <p className="text-xs text-gray-600 mt-1">{allergen.description}</p>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Dietary Preferences */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Dietary Preferences</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Select your dietary preferences to help filter menu items.
-            </p>
-          </div>
-          <button
-            onClick={handleSaveDietaryPrefs}
-            disabled={updateDietaryPrefsMutation.isPending}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-          >
-            <Save className="h-4 w-4" />
-            Save
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {commonDietaryPreferences.map((pref) => (
-            <button
-              key={pref}
-              onClick={() => toggleDietaryPref(pref)}
-              className={`p-3 rounded-lg border-2 transition-all ${
-                dietaryPrefs.includes(pref)
-                  ? 'border-green-500 bg-green-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <p className="font-medium text-gray-900">{pref}</p>
-            </button>
-          ))}
-        </div>
-      </div>
+          {receiptsOpen && (
+            <div className="mt-4 space-y-4">
+              {recentReceipts.map((order) => (
+                <OrderReceipt
+                  key={order.id}
+                  order={order}
+                  onWriteReview={handleWriteReview}
+                />
+              ))}
+              <div className="text-center">
+                <Link to="/orders" className="text-sm font-medium text-primary-600 hover:underline">
+                  View all orders
+                </Link>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }
-
