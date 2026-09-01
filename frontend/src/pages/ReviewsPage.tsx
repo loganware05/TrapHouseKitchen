@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Star, Plus, MessageSquare, Edit, Trash2, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
-import { Review, Coupon } from '../types';
+import { Review } from '../types';
 import { useAuthStore } from '../stores/authStore';
 import { useRegisterPullToRefresh } from '../contexts/PullToRefreshContext';
 
@@ -90,22 +90,10 @@ export default function ReviewsPage() {
     enabled: isCustomer,
   });
 
-  const { data: couponsBundle } = useQuery({
-    queryKey: ['myCoupons'],
-    queryFn: async () => {
-      const res = await api.get<{ data: { coupons: Coupon[]; usedCoupons: Coupon[] } }>(
-        '/coupons/my'
-      );
-      return res.data.data;
-    },
-    enabled: isCustomer,
-  });
-
   const handlePullRefresh = useCallback(async () => {
     const tasks = [queryClient.invalidateQueries({ queryKey: ['reviews'] })];
     if (isCustomer) {
       tasks.push(queryClient.invalidateQueries({ queryKey: ['myReviews'] }));
-      tasks.push(queryClient.invalidateQueries({ queryKey: ['myCoupons'] }));
     }
     await Promise.all(tasks);
   }, [queryClient, isCustomer]);
@@ -165,8 +153,6 @@ export default function ReviewsPage() {
       deleteReviewMutation.mutate(id);
     }
   };
-
-  const couponsData = couponsBundle?.coupons;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
@@ -278,42 +264,6 @@ export default function ReviewsPage() {
           <h2 id="your-reviews-heading" className="text-xl font-semibold text-gray-900 mb-4">
             Your reviews
           </h2>
-
-          {couponsData && couponsData.length > 0 && (
-            <div className="mb-8 bg-gradient-to-r from-primary-50 to-primary-100 border border-primary-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Saved discount codes</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Each code works once. Enter it at checkout — after payment it cannot be reused.
-              </p>
-              <div className="grid gap-4 md:grid-cols-2">
-                {couponsData.map((coupon) => (
-                  <div
-                    key={coupon.id}
-                    className="bg-white rounded-lg p-4 border-2 border-dashed border-primary-300"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="text-2xl font-bold text-primary-600 font-mono">{coupon.code}</p>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Save ${coupon.discountAmount.toFixed(2)}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(coupon.code);
-                          toast.success('Code copied to clipboard!');
-                        }}
-                        className="px-3 py-1 text-sm bg-primary-600 text-white rounded hover:bg-primary-700"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {myReviewsLoading ? (
             <div className="text-center py-10">

@@ -173,16 +173,19 @@ export default function OrdersPage() {
     enabled: !!user,
   });
 
-  const { data: usedCouponsData } = useQuery({
-    queryKey: ['myCoupons', 'used'],
+  const { data: couponsBundle } = useQuery({
+    queryKey: ['myCoupons'],
     queryFn: async () => {
       const res = await api.get<{ data: { coupons: Coupon[]; usedCoupons: Coupon[] } }>(
         '/coupons/my'
       );
-      return res.data.data.usedCoupons;
+      return res.data.data;
     },
     enabled: !!user && user.role === 'CUSTOMER',
   });
+
+  const savedCouponsData = couponsBundle?.coupons;
+  const usedCouponsData = couponsBundle?.usedCoupons;
 
   useEffect(() => {
     if (userProfile?.allergenProfile) {
@@ -243,7 +246,7 @@ export default function OrdersPage() {
   const handlePullRefresh = useCallback(async () => {
     await refetch();
     if (user?.role === 'CUSTOMER') {
-      await queryClient.invalidateQueries({ queryKey: ['myCoupons', 'used'] });
+      await queryClient.invalidateQueries({ queryKey: ['myCoupons'] });
     }
   }, [refetch, queryClient, user?.role]);
 
@@ -329,6 +332,44 @@ export default function OrdersPage() {
               <RotateCcw className="h-4 w-4" />
               Order again
             </button>
+          </div>
+        </section>
+      )}
+
+      {savedCouponsData && savedCouponsData.length > 0 && (
+        <section className="mb-10" aria-labelledby="saved-codes-heading">
+          <h2 id="saved-codes-heading" className="text-lg font-semibold text-gray-900 mb-4">
+            Saved discount codes
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Each code works once. Enter it at checkout — after payment it cannot be reused.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {savedCouponsData.map((coupon) => (
+              <div
+                key={coupon.id}
+                className="bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg p-4 border-2 border-dashed border-primary-300"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-2xl font-bold text-primary-600 font-mono">{coupon.code}</p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Save ${coupon.discountAmount.toFixed(2)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(coupon.code);
+                      toast.success('Code copied to clipboard!');
+                    }}
+                    className="px-3 py-1 text-sm bg-primary-600 text-white rounded hover:bg-primary-700"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}
