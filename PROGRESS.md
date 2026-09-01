@@ -2,18 +2,19 @@
 
 ## Current status
 
-Slice 11 shipped on `main` via PR [#27](https://github.com/loganware05/TrapHouseKitchen/pull/27) (merge `76e21a0`, 2026-09-01).
+Slice 11 shipped on `main` (`c0db11e`). Captain reprioritized Slice 12 to **pre-launch Stripe regression + password reset + payment hardening** — plan **AWAITING APPROVAL** (`IMPLEMENTATION_PLAN.md`).
 
 ## Completed
 
-- Slices 1–11 shipped (PRs #15–#27)
-- Slice 11: customer tabs Home/Reviews/Requests/Orders; profile receipts (below Legal); unified reviews + re-approval; layout PTR registry; Orders tab quick reorder + saved/used discount codes
+- Slices 1–11 shipped (PRs #15–#28)
+- Post-merge Render smoke: `.agent/evidence/render-smoke-20260901/validation.md`
 
 ## Next
 
-1. Deploy `main` to Render (if not auto-deployed) and smoke-test customer nav + Orders coupons
-2. Waiting list: message-system coupon delivery
+1. **Captain approval:** Slice 12 pre-launch payments/auth plan
+2. On approval: rebase `feat/password-reset`, cherry-pick payment hardening, run regression matrix
+3. Waiting list: coupon email delivery
 
 ## Blockers
 
-- None
+- Slice 12 implementation blocked on plan approval
