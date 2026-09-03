@@ -45,6 +45,13 @@ Notable files: `unpaid-order-visibility.test.ts`, `delivery-location.test.ts`, `
 - Integration: `review-flow.test.ts` edit re-approval cases
 - Evidence: `.agent/evidence/customer-nav-reviews-ptr-20260830/validation.md`
 
+### Slice 12 — password reset + payment hardening
+
+- `backend/tests/integration/auth-routes.test.ts`: forgot/reset with SHA-256 hashed tokens
+- `backend/tests/unit/passwordResetToken.test.ts`, `payment.service.test.ts`, `webhook-stripe.test.ts`
+- E2E: `e2e/auth-flow.spec.ts` forgot → reset → login; API must run with `E2E_CAPTURE_PASSWORD_RESET=1` (set in `playwright.config.ts` webServer). Token read via `backend/scripts/e2e-read-reset-token.ts` from `.agent/e2e-capture/password-reset/`
+- Evidence: `.agent/evidence/prelaunch-stripe-20260901/validation.md`
+
 ## End-to-end tests
 
 `e2e/payment-flow.spec.ts`:

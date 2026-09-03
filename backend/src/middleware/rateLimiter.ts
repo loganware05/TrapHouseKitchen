@@ -48,3 +48,15 @@ export const orderLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Forgot-password rate limiter - 5 requests per 15 minutes (no skipSuccessfulRequests)
+export const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: {
+    status: 'error',
+    message: 'Too many password reset attempts, please try again in 15 minutes.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});

@@ -6,7 +6,7 @@
 
 **Related:** [QA_CHECKLIST.md](QA_CHECKLIST.md) · [SUPPORT_PLAYBOOKS.md](SUPPORT_PLAYBOOKS.md) · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md) · [AGENTS.md](AGENTS.md)
 
-**Current WIP:** None — Slice 11 merged (PR #27). Next backlog item: message-system coupon delivery (waiting list).
+**Current WIP:** Slice 12 — pre-launch Stripe regression, password reset (hashed tokens), payment hardening (`feature/local-prelaunch-payments-auth`).
 
 ---
 

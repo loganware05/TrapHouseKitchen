@@ -3,8 +3,14 @@ import { body, validationResult } from 'express-validator';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest, authenticate } from '../middleware/auth';
-import { authLimiter } from '../middleware/rateLimiter';
-import { createGuestUser, loginUser, registerUser } from '../services/auth.service';
+import { authLimiter, forgotPasswordLimiter } from '../middleware/rateLimiter';
+import {
+  createGuestUser,
+  loginUser,
+  registerUser,
+  requestPasswordReset,
+  resetPasswordWithToken,
+} from '../services/auth.service';
 
 const router = Router();
 
@@ -71,6 +77,50 @@ router.post(
       res.status(201).json({
         status: 'success',
         data: { user, token },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/forgot-password',
+  forgotPasswordLimiter,
+  [body('email').isEmail().normalizeEmail()],
+  async (req: any, res: any, next: any) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new AppError('Validation failed', 400);
+      }
+      const { email } = req.body;
+      await requestPasswordReset(email);
+      res.json({
+        status: 'success',
+        message: 'If that email is on file, check your inbox for reset instructions.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/reset-password',
+  authLimiter,
+  [body('token').trim().notEmpty(), body('password').isLength({ min: 6 })],
+  async (req: any, res: any, next: any) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new AppError('Validation failed', 400);
+      }
+      const { token, password } = req.body;
+      await resetPasswordWithToken(token, password);
+      res.json({
+        status: 'success',
+        message: 'Password updated successfully.',
       });
     } catch (error) {
       next(error);

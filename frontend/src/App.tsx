@@ -4,6 +4,8 @@ import { useAuthStore } from './stores/authStore';
 import UnauthorizedRedirect from './components/UnauthorizedRedirect';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import MenuPage from './pages/MenuPage';
@@ -99,6 +101,8 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<HomePage />} />
           <Route path="login" element={<LoginPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="menu" element={<MenuPage />} />
           <Route path="privacy" element={<PrivacyPolicyPage />} />
