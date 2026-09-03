@@ -95,10 +95,18 @@ router.post(
         throw new AppError('Validation failed', 400);
       }
       const { email } = req.body;
-      await requestPasswordReset(email);
+      const linkPayload = await requestPasswordReset(email);
       res.json({
         status: 'success',
         message: 'If that email is on file, check your inbox for reset instructions.',
+        ...(linkPayload?.resetUrl
+          ? {
+              data: {
+                resetUrl: linkPayload.resetUrl,
+                resetToken: linkPayload.resetToken,
+              },
+            }
+          : {}),
       });
     } catch (error) {
       next(error);

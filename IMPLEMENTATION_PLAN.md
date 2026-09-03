@@ -1,41 +1,73 @@
-# Implementation Plan — Slice 12: Pre-launch Stripe regression, password reset, payment hardening
+# Implementation Plan — Post–Slice 12: per-user data isolation, email smoke, PWA push
 
 ## Metadata
 
-- Status: **APPROVED — IN IMPLEMENTATION**
-- Plan ID: `slice-12-prelaunch-payments-auth-2026-09-01`
-- Parent plan: Slice 11 complete (`c0db11e` on `main`)
-- Issue: `local/prelaunch-payments-auth` (placeholder until GitHub issue created)
-- Base: `origin/main` at `c0db11e`
-- Branch: `feature/local-prelaunch-payments-auth`
-- Rollback checkpoint: `checkpoint/prelaunch-payments-auth-2026-09-01`
-- Created: 2026-09-01
-- Last updated: 2026-09-01
+- Status: **APPROVED — IN IMPLEMENTATION** (Slices 13 + 14)
+- Plan ID: `slice-13-plus-isolation-email-push-2026-09-02`
+- Depends on: PR [#29](https://github.com/loganware05/TrapHouseKitchen/pull/29) **merged** (`74429c8` on `main`)
+- Issue: `local/post-slice-12-isolation-email-push` (placeholder)
+- Base: `origin/main` at `74429c8`
+- Branch: `feature/local-user-query-isolation`
+- Rollback checkpoint: `checkpoint/user-query-isolation-2026-09-03`
+- Created: 2026-09-02
+- Last updated: 2026-09-03
 
-## Captain decisions (2026-09-01)
+## Captain decisions (2026-09-03)
 
-1. **Approved** — reset + hardening + regression in one PR
-2. **Password reset tokens:** SHA-256 hash at rest; raw token only in email / E2E capture file
-3. **`payment_intent.canceled`:** keep order status **CANCELLED** on `main` (not `paymentStatus: FAILED`)
+1. **PR #29 merged** — yes
+2. **Slice 13** — approved (per-user React Query isolation)
+3. **Password-reset smoke** — **Option B**: non-prod “show reset link” helper (**Slice 14**)
+4. **Slice 15** (PWA push) — **deferred** until Captain sees and merges Slice 13
+5. **Push permission UX** (when 15 approved) — toggle on **Orders/Profile**
+6. **Capacitor push** — waiting list
 
-## Delivery summary
+## Delivery (this PR)
 
-| Phase | Scope | Status |
+| Slice | Scope | Status |
 |-------|--------|--------|
-| 12A | Password reset API + UI + hashed tokens | Done |
-| 12B | Coupon mismatch guard + payment/webhook tests | Done |
-| 12C | Regression matrix + evidence | In progress |
+| 13 | User-scoped query keys + clear cache on logout | **Done** |
+| 14 | Non-prod forgot-password response includes `resetUrl` when flagged | **Done** |
+| 15 | PWA web push | Parked — await post-13 approval |
 
-## Validation evidence
+## Slice 13 — Per-user client cache isolation
 
-Store under `.agent/evidence/prelaunch-stripe-20260901/`:
+### Desired behavior
 
-- `validation.md` — automated test results
-- `qa-checklist.md` — manual rows (pending Captain QA)
+1. Coupon saved/used lists and customer orders always belong to the **current** session user.
+2. Logout (and login as a different user) clears auth-scoped React Query caches.
+3. Query keys include `userId` for `myCoupons`, `orders`, `myReviews`, `userProfile`, `userSpend`, `eligibleOrders`, and spend-tracker.
+
+### Non-goals
+
+- Coupon schema / minting; message-system coupon delivery; Slice 15 push
+
+## Slice 14 — Non-prod show reset link
+
+### Desired behavior
+
+1. When `NODE_ENV !== 'production'` **and** `SHOW_PASSWORD_RESET_LINK=1`, `POST /api/auth/forgot-password` includes `data.resetUrl` (and optionally `data.resetToken`) in the JSON response for the requested email when a user exists.
+2. Forgot-password UI shows a copyable reset link when the API returns `resetUrl`.
+3. Production never returns the link regardless of env flag.
+
+### Non-goals
+
+- Open/click tracking; marketing email; production debug endpoint
+
+## Slice 15 (parked)
+
+- Order-status web push; permission toggle on Orders/Profile; Capacitor on waiting list.
+- Re-approve after Slice 13 merge.
+
+## Waiting list
+
+- Coupon delivery via messaging/email campaign
+- Capacitor native push (APNs)
+- SMS notifications
+- Marketing/email analytics
 
 ## Approval Record
 
-- **Status:** APPROVED
+- **Status:** APPROVED (13 + 14); Slice 15 pending
 - **Approved by:** Captain (Logan)
-- **Approval date:** 2026-09-01
-- **Captain notes:** Hash reset tokens in this slice; keep CANCELLED order status on canceled PaymentIntents; single PR for A+B+C
+- **Approval date:** 2026-09-03
+- **Captain notes:** Merge #29 done; Slice 13 next; Option B reset-link helper; Slice 15 after 13 merge; push toggle on Orders/Profile; Capacitor push waiting list

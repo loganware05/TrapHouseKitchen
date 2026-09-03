@@ -7,12 +7,14 @@ import {
   customerOrderQueryOptions,
   syncCustomerOrderIntoListCache,
 } from '../lib/customerOrders';
+import { useAuthStore } from '../stores/authStore';
 
 export default function OrderConfirmationPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
   const [nowTick, setNowTick] = useState(() => Date.now());
 
   const paymentSuccess = location.state?.paymentSuccess || false;
@@ -29,15 +31,15 @@ export default function OrderConfirmationPage() {
     isError,
     error,
   } = useQuery({
-    ...customerOrderQueryOptions(orderId ?? '', !!orderId),
+    ...customerOrderQueryOptions(user?.id, orderId ?? '', !!orderId),
   });
 
   useEffect(() => {
-    if (!order) {
+    if (!order || !user?.id) {
       return;
     }
-    syncCustomerOrderIntoListCache(queryClient, order);
-  }, [order, queryClient]);
+    syncCustomerOrderIntoListCache(queryClient, user.id, order);
+  }, [order, queryClient, user?.id]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNowTick(Date.now()), 30_000);

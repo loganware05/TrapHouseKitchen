@@ -52,6 +52,13 @@ Notable files: `unpaid-order-visibility.test.ts`, `delivery-location.test.ts`, `
 - E2E: `e2e/auth-flow.spec.ts` forgot → reset → login; API must run with `E2E_CAPTURE_PASSWORD_RESET=1` (set in `playwright.config.ts` webServer). Token read via `backend/scripts/e2e-read-reset-token.ts` from `.agent/e2e-capture/password-reset/`
 - Evidence: `.agent/evidence/prelaunch-stripe-20260901/validation.md`
 
+### Slice 13–14 — per-user cache isolation + non-prod reset link
+
+- Frontend: user-scoped React Query keys (`authQueryKeys.ts` / `customerOrders.ts`); `queryClient.clear()` on login/logout/register/guest
+- Selftest: `npx tsx frontend/src/lib/authQueryKeys.selftest.ts`
+- Non-prod: `SHOW_PASSWORD_RESET_LINK=1` returns `data.resetUrl` from forgot-password (ignored in production); UI shows copyable link
+- Evidence: `.agent/evidence/user-query-isolation-20260903/validation.md`
+
 ## End-to-end tests
 
 `e2e/payment-flow.spec.ts`:

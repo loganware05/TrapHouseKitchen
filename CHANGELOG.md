@@ -4,9 +4,15 @@
 
 ### Added
 
+- Non-prod password-reset smoke helper: set `SHOW_PASSWORD_RESET_LINK=1` (never in production) so forgot-password returns a copyable `resetUrl` on the page.
 - Password reset: `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`, `/forgot-password` and `/reset-password` UI, login “Forgot password?” link; reset tokens stored as SHA-256 hashes.
 - Payment hardening: reject checkout when `couponCode` disagrees with order `appliedCouponId`; webhook idempotency and payment service unit/integration tests.
 - Customer bottom nav: Home, Reviews, Requests, Orders (Menu via Home browse links).
+
+### Fixed
+
+- Customer coupons/orders/reviews/profile caches no longer leak across accounts after logout or login as a different user (user-scoped React Query keys + cache clear on auth change).
+
 - Unified Reviews tab: community reviews first, then your approved and pending reviews.
 - App-wide pull-to-refresh via layout registry; `ios-pull-to-refresh` Captain's Compass skill.
 - Apple Pay-first checkout via Stripe Express Checkout Element, with card/other-method fallback and Chromium E2E coverage for success, decline, and unsupported-Apple-Pay clients.

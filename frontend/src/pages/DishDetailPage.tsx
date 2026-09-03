@@ -8,6 +8,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { toast } from 'sonner';
 import { trackEvent } from '../stores/analyticsStore';
+import { userProfileQueryKey } from '../lib/authQueryKeys';
 
 export default function DishDetailPage() {
   const { id } = useParams();
@@ -26,7 +27,7 @@ export default function DishDetailPage() {
   });
 
   const { data: userProfile } = useQuery({
-    queryKey: ['userProfile'],
+    queryKey: user?.id ? userProfileQueryKey(user.id) : ['userProfile'],
     queryFn: async () => {
       const res = await api.get<{ data: { user: any } }>('/users/profile');
       return res.data.data.user;

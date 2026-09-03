@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import { Order } from '../types';
 import { useAuthStore } from '../stores/authStore';
+import { spendTrackerQueryKey } from '../lib/authQueryKeys';
 
 const DEFAULT_WEEKLY = 50;
 
@@ -32,7 +33,7 @@ export default function SpendTracker() {
   const weekStart = startOfWeekUtc(new Date());
 
   const { data: orders } = useQuery({
-    queryKey: ['orders', 'spend-tracker'],
+    queryKey: user?.id ? spendTrackerQueryKey(user.id) : ['orders', 'spend-tracker'],
     queryFn: async () => {
       const res = await api.get<{ data: { orders: Order[] } }>('/orders');
       return res.data.data.orders;

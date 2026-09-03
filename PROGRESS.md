@@ -2,18 +2,20 @@
 
 ## Current status
 
-Slice 12 **in implementation** on `feature/local-prelaunch-payments-auth` — password reset (hashed tokens), payment hardening, pre-launch regression (`IMPLEMENTATION_PLAN.md` approved 2026-09-01).
+Slices **13 + 14** implemented on `feature/local-user-query-isolation` — per-user React Query isolation + non-prod reset-link helper. Ready for PR. Slice 15 PWA push parked until Captain re-approves after merge.
 
 ## Completed
 
-- Slices 1–11 shipped (PRs #15–#28)
-- Slice 12A/B: forgot/reset password routes + UI; SHA-256 token hashing; coupon mismatch guard; auth/payment/webhook tests
+- Slices 1–12 shipped (PRs #15–#29)
+- Slice 13/14 code + validation evidence (pending PR)
 
 ## Next
 
-1. Finish Slice 12C validation evidence + PR
-2. Waiting list: coupon email delivery
+1. Open/merge Slice 13–14 PR
+2. Captain: approve Slice 15 (Orders/Profile push toggle)
+3. Waiting list: coupon message delivery; Capacitor/APNs; SMS
 
 ## Blockers
 
-- None
+- Slice 15 blocked on post-13 approval
+- Production reset email still needs Resend when ready (`SHOW_PASSWORD_RESET_LINK` is local/staging only)

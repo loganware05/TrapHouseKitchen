@@ -92,3 +92,23 @@ Record architectural and process decisions here (ADR style).
 - **Context:** `feat/payment-webhook-hardening` set `paymentStatus: FAILED` on cancel; `main` uses `setOrderStatus(..., 'CANCELLED')`.
 - **Decision:** Keep `main` behavior: `payment_intent.canceled` → payment record `CANCELED`, order `status: CANCELLED` (not failed payment).
 - **Consequences:** Abandoned checkouts align with auto-cancel cleanup; failed card attempts still use `payment_failed` → `paymentStatus: FAILED`.
+
+---
+
+### ADR-008: Auth-scoped React Query keys + clear on session change
+
+- **Status:** Accepted
+- **Date:** 2026-09-03
+- **Context:** Customers saw another account’s saved/used coupons after logout/login because TanStack Query keys (`myCoupons`, `orders`, etc.) were global and logout did not clear the cache.
+- **Decision:** Include `userId` in private query keys; call `queryClient.clear()` on login, register, guest login, logout, and failed `/me` session restore.
+- **Consequences:** Account switches cannot reuse stale private data; public keys (`dishes`, `reviews`) remain shared.
+
+---
+
+### ADR-009: Non-prod password reset link exposure for smoke
+
+- **Status:** Accepted
+- **Date:** 2026-09-03
+- **Context:** Soft-launch smoke of forgot/reset without Resend inbox.
+- **Decision:** When `NODE_ENV !== 'production'` and `SHOW_PASSWORD_RESET_LINK=1`, include `resetUrl` / `resetToken` in forgot-password JSON and show a copyable helper on the forgot-password page. Production never returns the link.
+- **Consequences:** Local/staging smoke without email; ops must never set the flag on Render production.

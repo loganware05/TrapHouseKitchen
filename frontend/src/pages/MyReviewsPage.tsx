@@ -5,30 +5,35 @@ import { Star, Edit, Trash2, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { Review, Coupon } from '../types';
+import { useAuthStore } from '../stores/authStore';
+import { myCouponsQueryKey, myReviewsQueryKey } from '../lib/authQueryKeys';
 
 export default function MyReviewsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
   const [editingId, setEditingId] = useState<string>('');
   const [editRating, setEditRating] = useState<number>(0);
   const [editComment, setEditComment] = useState<string>('');
 
   const { data: reviewsData } = useQuery({
-    queryKey: ['myReviews'],
+    queryKey: user?.id ? myReviewsQueryKey(user.id) : ['myReviews'],
     queryFn: async () => {
       const res = await api.get<{ data: { reviews: Review[] } }>('/reviews/my');
       return res.data.data.reviews;
     },
+    enabled: !!user?.id,
   });
 
   const { data: couponsBundle } = useQuery({
-    queryKey: ['myCoupons'],
+    queryKey: user?.id ? myCouponsQueryKey(user.id) : ['myCoupons'],
     queryFn: async () => {
       const res = await api.get<{ data: { coupons: Coupon[]; usedCoupons: Coupon[] } }>(
         '/coupons/my'
       );
       return res.data.data;
     },
+    enabled: !!user?.id,
   });
   const couponsData = couponsBundle?.coupons;
   const usedCouponsData = couponsBundle?.usedCoupons;
@@ -38,7 +43,9 @@ export default function MyReviewsPage() {
       await api.patch(`/reviews/${id}`, { rating, comment });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myReviews'] });
+      if (user?.id) {
+        queryClient.invalidateQueries({ queryKey: myReviewsQueryKey(user.id) });
+      }
       toast.success('Review updated successfully!');
       setEditingId('');
     },
@@ -52,7 +59,9 @@ export default function MyReviewsPage() {
       await api.delete(`/reviews/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myReviews'] });
+      if (user?.id) {
+        queryClient.invalidateQueries({ queryKey: myReviewsQueryKey(user.id) });
+      }
       toast.success('Review deleted successfully');
     },
     onError: () => {

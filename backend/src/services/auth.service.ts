@@ -105,7 +105,10 @@ export async function loginUser(email: string, password: string) {
   };
 }
 
-export async function requestPasswordReset(email: string) {
+export async function requestPasswordReset(email: string): Promise<{
+  resetUrl?: string;
+  resetToken?: string;
+} | void> {
   const normalized = email.trim().toLowerCase();
   if (!normalized) {
     return;
@@ -147,6 +150,11 @@ export async function requestPasswordReset(email: string) {
     });
   } catch (err) {
     console.warn('⚠️ Password reset email failed:', err);
+  }
+
+  // Non-prod smoke helper only — never expose the raw link in production.
+  if (process.env.NODE_ENV !== 'production' && process.env.SHOW_PASSWORD_RESET_LINK === '1') {
+    return { resetUrl, resetToken: rawToken };
   }
 }
 

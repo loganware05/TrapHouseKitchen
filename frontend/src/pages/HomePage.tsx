@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { trackEvent } from '../stores/analyticsStore';
 import SpendTracker from '../components/SpendTracker';
 import { useRegisterPullToRefresh } from '../contexts/PullToRefreshContext';
+import { spendTrackerQueryKey, userProfileQueryKey } from '../lib/authQueryKeys';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -87,7 +88,7 @@ export default function HomePage() {
   });
 
   const { data: userProfile } = useQuery({
-    queryKey: ['userProfile'],
+    queryKey: user?.id ? userProfileQueryKey(user.id) : ['userProfile'],
     queryFn: async () => {
       const res = await api.get<{ data: { user: any } }>('/users/profile');
       return res.data.data.user;
@@ -100,11 +101,11 @@ export default function HomePage() {
       queryClient.invalidateQueries({ queryKey: ['categories'] }),
       queryClient.invalidateQueries({ queryKey: ['dishes', 'home-all'] }),
     ];
-    if (user) {
-      tasks.push(queryClient.invalidateQueries({ queryKey: ['userProfile'] }));
+    if (user?.id) {
+      tasks.push(queryClient.invalidateQueries({ queryKey: userProfileQueryKey(user.id) }));
     }
-    if (user?.role === 'CUSTOMER') {
-      tasks.push(queryClient.invalidateQueries({ queryKey: ['orders', 'spend-tracker'] }));
+    if (user?.role === 'CUSTOMER' && user.id) {
+      tasks.push(queryClient.invalidateQueries({ queryKey: spendTrackerQueryKey(user.id) }));
     }
     await Promise.all(tasks);
   }, [queryClient, user]);

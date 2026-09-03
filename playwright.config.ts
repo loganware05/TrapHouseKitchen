@@ -47,6 +47,7 @@ export default defineConfig({
             env: {
               ...process.env,
               E2E_CAPTURE_PASSWORD_RESET: '1',
+              SHOW_PASSWORD_RESET_LINK: '1',
             },
           },
           {
