@@ -108,10 +108,10 @@ export async function loginUser(email: string, password: string) {
 export async function requestPasswordReset(email: string): Promise<{
   resetUrl?: string;
   resetToken?: string;
-} | void> {
+}> {
   const normalized = email.trim().toLowerCase();
   if (!normalized) {
-    return;
+    return {};
   }
 
   const user = await prisma.user.findFirst({
@@ -122,7 +122,7 @@ export async function requestPasswordReset(email: string): Promise<{
     },
   });
   if (!user?.email) {
-    return;
+    return {};
   }
 
   const rawToken = generatePasswordResetToken();
@@ -156,6 +156,8 @@ export async function requestPasswordReset(email: string): Promise<{
   if (process.env.NODE_ENV !== 'production' && process.env.SHOW_PASSWORD_RESET_LINK === '1') {
     return { resetUrl, resetToken: rawToken };
   }
+
+  return {};
 }
 
 export async function resetPasswordWithToken(token: string, newPassword: string) {

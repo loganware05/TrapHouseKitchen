@@ -96,13 +96,14 @@ router.post(
       }
       const { email } = req.body;
       const linkPayload = await requestPasswordReset(email);
+      const resetUrl = linkPayload.resetUrl;
       res.json({
         status: 'success',
         message: 'If that email is on file, check your inbox for reset instructions.',
-        ...(linkPayload?.resetUrl
+        ...(resetUrl
           ? {
               data: {
-                resetUrl: linkPayload.resetUrl,
+                resetUrl,
                 resetToken: linkPayload.resetToken,
               },
             }
