@@ -7,6 +7,7 @@ import api from '../lib/api';
 import { Review } from '../types';
 import { useAuthStore } from '../stores/authStore';
 import { useRegisterPullToRefresh } from '../contexts/PullToRefreshContext';
+import { myReviewsQueryKey } from '../lib/authQueryKeys';
 
 function renderStars(
   rating: number,
@@ -82,7 +83,7 @@ export default function ReviewsPage() {
   });
 
   const { data: myReviewsData, isLoading: myReviewsLoading } = useQuery({
-    queryKey: ['myReviews'],
+    queryKey: user?.id ? myReviewsQueryKey(user.id) : ['myReviews'],
     queryFn: async () => {
       const res = await api.get<{ data: { reviews: Review[] } }>('/reviews/my');
       return res.data.data.reviews;
@@ -92,11 +93,11 @@ export default function ReviewsPage() {
 
   const handlePullRefresh = useCallback(async () => {
     const tasks = [queryClient.invalidateQueries({ queryKey: ['reviews'] })];
-    if (isCustomer) {
-      tasks.push(queryClient.invalidateQueries({ queryKey: ['myReviews'] }));
+    if (isCustomer && user?.id) {
+      tasks.push(queryClient.invalidateQueries({ queryKey: myReviewsQueryKey(user.id) }));
     }
     await Promise.all(tasks);
-  }, [queryClient, isCustomer]);
+  }, [queryClient, isCustomer, user?.id]);
 
   useRegisterPullToRefresh(handlePullRefresh);
 
@@ -106,7 +107,9 @@ export default function ReviewsPage() {
       return res.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['myReviews'] });
+      if (user?.id) {
+        queryClient.invalidateQueries({ queryKey: myReviewsQueryKey(user.id) });
+      }
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
       toast.success(data.message ?? 'Review updated and sent back for chef approval.');
       setEditingId('');
@@ -121,7 +124,9 @@ export default function ReviewsPage() {
       await api.delete(`/reviews/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myReviews'] });
+      if (user?.id) {
+        queryClient.invalidateQueries({ queryKey: myReviewsQueryKey(user.id) });
+      }
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
       toast.success('Review deleted successfully');
     },

@@ -8,6 +8,7 @@ import OrderReceipt from '../components/OrderReceipt';
 import { customerOrdersQueryOptions } from '../lib/customerOrders';
 import { selectRecentReceipts } from '../lib/orderReceipt';
 import { useRegisterPullToRefresh } from '../contexts/PullToRefreshContext';
+import { userSpendQueryKey } from '../lib/authQueryKeys';
 
 const PROFILE_RECEIPT_LIMIT = 3;
 
@@ -32,7 +33,7 @@ export default function ProfilePage() {
   const [receiptsOpen, setReceiptsOpen] = useState(false);
 
   const { data: spendData, isLoading: spendLoading } = useQuery({
-    queryKey: ['userSpend', spendPeriod],
+    queryKey: user?.id ? userSpendQueryKey(user.id, spendPeriod) : ['userSpend', spendPeriod],
     queryFn: async () => {
       const res = await api.get<{ status: string; data: UserSpendData }>(
         '/analytics/user-spend',
@@ -44,7 +45,7 @@ export default function ProfilePage() {
   });
 
   const { data: ordersData } = useQuery({
-    ...customerOrdersQueryOptions(!!user && user.role === 'CUSTOMER'),
+    ...customerOrdersQueryOptions(user?.id, !!user && user.role === 'CUSTOMER'),
   });
 
   const recentReceipts = selectRecentReceipts(ordersData ?? [], PROFILE_RECEIPT_LIMIT);

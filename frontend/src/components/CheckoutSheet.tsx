@@ -239,7 +239,7 @@ export default function CheckoutSheet() {
     } catch (syncError) {
       console.warn('Payment sync after checkout failed:', syncError);
     }
-    invalidateCustomerOrders(queryClient);
+    invalidateCustomerOrders(queryClient, user?.id);
     trackOrderPlacedOnce(orderId, {
       amount: total,
       subtotal,

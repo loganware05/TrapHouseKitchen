@@ -18,6 +18,7 @@ import {
   customerOrdersQueryOptions,
   isActiveCustomerOrder,
 } from '../lib/customerOrders';
+import { myCouponsQueryKey } from '../lib/authQueryKeys';
 import { isCompletedPaidReceipt } from '../lib/orderReceipt';
 
 const statusColors = {
@@ -161,11 +162,11 @@ export default function OrdersPage() {
   const welcomedRef = useRef(false);
 
   const { data: ordersData, isLoading, isError, refetch, isFetching } = useQuery(
-    customerOrdersQueryOptions(true)
+    customerOrdersQueryOptions(user?.id, true)
   );
 
   const { data: userProfile } = useQuery({
-    queryKey: ['userProfile'],
+    queryKey: user?.id ? ['userProfile', user.id] : ['userProfile'],
     queryFn: async () => {
       const res = await api.get<{ data: { user: any } }>('/users/profile');
       return res.data.data.user;
@@ -174,14 +175,16 @@ export default function OrdersPage() {
   });
 
   const { data: couponsBundle } = useQuery({
-    queryKey: ['myCoupons'],
+    queryKey: user?.id ? myCouponsQueryKey(user.id) : ['myCoupons', 'anonymous'],
     queryFn: async () => {
       const res = await api.get<{ data: { coupons: Coupon[]; usedCoupons: Coupon[] } }>(
         '/coupons/my'
       );
       return res.data.data;
     },
-    enabled: !!user && user.role === 'CUSTOMER',
+    enabled: !!user?.id && user.role === 'CUSTOMER',
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const savedCouponsData = couponsBundle?.coupons;
@@ -245,10 +248,10 @@ export default function OrdersPage() {
 
   const handlePullRefresh = useCallback(async () => {
     await refetch();
-    if (user?.role === 'CUSTOMER') {
-      await queryClient.invalidateQueries({ queryKey: ['myCoupons'] });
+    if (user?.role === 'CUSTOMER' && user.id) {
+      await queryClient.invalidateQueries({ queryKey: myCouponsQueryKey(user.id) });
     }
-  }, [refetch, queryClient, user?.role]);
+  }, [refetch, queryClient, user?.role, user?.id]);
 
   useRegisterPullToRefresh(handlePullRefresh);
 

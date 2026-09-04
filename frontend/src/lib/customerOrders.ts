@@ -1,12 +1,15 @@
 import api from './api';
 import type { Order, OrderStatus } from '../types';
+import { myCouponsQueryKey } from './authQueryKeys';
 
-export const customerOrdersQueryKey = ['orders'] as const;
+export function customerOrdersQueryKey(userId: string) {
+  return ['orders', userId] as const;
+}
 
 export const CUSTOMER_ORDER_POLL_MS = 15_000;
 
-export function customerOrderQueryKey(orderId: string) {
-  return ['orders', orderId] as const;
+export function customerOrderQueryKey(userId: string, orderId: string) {
+  return ['orders', userId, orderId] as const;
 }
 
 export async function fetchCustomerOrders(): Promise<Order[]> {
@@ -60,11 +63,12 @@ export const customerOrderStatusLabel: Record<OrderStatus, string> = {
   CANCELLED: 'Cancelled',
 };
 
-export function customerOrdersQueryOptions(enabled = true) {
+export function customerOrdersQueryOptions(userId: string | undefined, enabled = true) {
+  const id = userId ?? '';
   return {
-    queryKey: customerOrdersQueryKey,
+    queryKey: customerOrdersQueryKey(id),
     queryFn: fetchCustomerOrders,
-    enabled,
+    enabled: enabled && !!userId,
     staleTime: 30_000,
     refetchOnMount: 'always' as const,
     refetchIntervalInBackground: true,
@@ -78,11 +82,16 @@ export function customerOrdersQueryOptions(enabled = true) {
   };
 }
 
-export function customerOrderQueryOptions(orderId: string, enabled = true) {
+export function customerOrderQueryOptions(
+  userId: string | undefined,
+  orderId: string,
+  enabled = true
+) {
+  const id = userId ?? '';
   return {
-    queryKey: customerOrderQueryKey(orderId),
+    queryKey: customerOrderQueryKey(id, orderId),
     queryFn: () => fetchCustomerOrderWithPaymentSync(orderId),
-    enabled: enabled && !!orderId,
+    enabled: enabled && !!userId && !!orderId,
     staleTime: 10_000,
     refetchOnMount: 'always' as const,
     refetchIntervalInBackground: true,
@@ -96,10 +105,17 @@ export function customerOrderQueryOptions(orderId: string, enabled = true) {
 }
 
 export function invalidateCustomerOrders(
-  queryClient: { invalidateQueries: (opts: { queryKey: readonly string[] }) => void }
+  queryClient: { invalidateQueries: (opts: { queryKey: readonly string[] }) => void },
+  userId?: string
 ) {
-  queryClient.invalidateQueries({ queryKey: customerOrdersQueryKey });
-  queryClient.invalidateQueries({ queryKey: ['myCoupons', 'used'] });
+  if (userId) {
+    queryClient.invalidateQueries({ queryKey: customerOrdersQueryKey(userId) });
+    queryClient.invalidateQueries({ queryKey: myCouponsQueryKey(userId) });
+    return;
+  }
+  // Prefix match when caller has no user id (still clears all users' order/coupon caches)
+  queryClient.invalidateQueries({ queryKey: ['orders'] });
+  queryClient.invalidateQueries({ queryKey: ['myCoupons'] });
 }
 
 /** Keep My Orders / Home list in sync when confirmation polls a single order. */
@@ -110,9 +126,10 @@ export function syncCustomerOrderIntoListCache(
       updater: (old: Order[] | undefined) => Order[] | undefined
     ) => void;
   },
+  userId: string,
   order: Order
 ) {
-  queryClient.setQueryData(customerOrdersQueryKey, (old) => {
+  queryClient.setQueryData(customerOrdersQueryKey(userId), (old) => {
     if (!old) {
       return old;
     }

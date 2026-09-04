@@ -5,10 +5,13 @@ import { Star, Send, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 import { Order } from '../types';
+import { useAuthStore } from '../stores/authStore';
+import { eligibleOrdersQueryKey } from '../lib/authQueryKeys';
 
 export default function ReviewFormPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
   const [searchParams] = useSearchParams();
   const [selectedOrderId, setSelectedOrderId] = useState<string>('');
   const [selectedDishId, setSelectedDishId] = useState<string>('');
@@ -17,11 +20,12 @@ export default function ReviewFormPage() {
   const [comment, setComment] = useState<string>('');
 
   const { data: eligibleOrders, isLoading, isError, refetch } = useQuery({
-    queryKey: ['eligibleOrders'],
+    queryKey: user?.id ? eligibleOrdersQueryKey(user.id) : ['eligibleOrders'],
     queryFn: async () => {
       const res = await api.get<{ data: { orders: Order[] } }>('/reviews/eligible-orders');
       return res.data.data.orders;
     },
+    enabled: !!user?.id,
     retry: 2,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -51,9 +55,11 @@ export default function ReviewFormPage() {
       await api.post('/reviews', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['eligibleOrders'] });
+      if (user?.id) {
+        queryClient.invalidateQueries({ queryKey: eligibleOrdersQueryKey(user.id) });
+        queryClient.invalidateQueries({ queryKey: ['orders', user.id] });
+      }
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
       toast.success('Review submitted! It will appear publicly once our chef approves it.');
       // Reset form but stay on page to review another dish
       setSelectedDishId('');

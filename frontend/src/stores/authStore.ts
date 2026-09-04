@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, AuthResponse } from '../types';
 import api from '../lib/api';
+import { clearAuthScopedQueryCache } from '../lib/queryClient';
 
 interface AuthState {
   user: User | null;
@@ -42,8 +43,10 @@ export const useAuthStore = create<AuthState>()(
             password,
           });
           const { user, token } = response.data.data;
-          set({ user, token, isLoading: false });
+          // Token must hit localStorage before React Query refetches (axios reads it).
           localStorage.setItem('token', token);
+          clearAuthScopedQueryCache();
+          set({ user, token, isLoading: false });
         } catch (error) {
           set({ isLoading: false });
           throw error;
@@ -59,8 +62,9 @@ export const useAuthStore = create<AuthState>()(
             name,
           });
           const { user, token } = response.data.data;
-          set({ user, token, isLoading: false });
           localStorage.setItem('token', token);
+          clearAuthScopedQueryCache();
+          set({ user, token, isLoading: false });
         } catch (error) {
           set({ isLoading: false });
           throw error;
@@ -74,8 +78,9 @@ export const useAuthStore = create<AuthState>()(
             name,
           });
           const { user, token } = response.data.data;
-          set({ user, token, isLoading: false });
           localStorage.setItem('token', token);
+          clearAuthScopedQueryCache();
+          set({ user, token, isLoading: false });
         } catch (error) {
           set({ isLoading: false });
           throw error;
@@ -84,6 +89,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         localStorage.removeItem('token');
+        clearAuthScopedQueryCache();
         set({ user: null, token: null });
       },
 
@@ -96,6 +102,7 @@ export const useAuthStore = create<AuthState>()(
           set({ user: response.data.data.user });
         } catch (error) {
           localStorage.removeItem('token');
+          clearAuthScopedQueryCache();
           set({ user: null, token: null });
         }
       },

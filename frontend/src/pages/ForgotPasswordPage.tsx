@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ChefHat } from 'lucide-react';
@@ -8,19 +9,45 @@ interface Form {
   email: string;
 }
 
+type ForgotResponse = {
+  status: string;
+  message?: string;
+  data?: { resetUrl?: string; resetToken?: string };
+};
+
 export default function ForgotPasswordPage() {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<Form>();
+  const [devResetUrl, setDevResetUrl] = useState<string | null>(null);
 
   const onSubmit = async (data: Form) => {
     try {
-      await api.post('/auth/forgot-password', { email: data.email.trim() });
-      toast.success('If that email is on file, check your inbox for reset instructions.');
+      setDevResetUrl(null);
+      const res = await api.post<ForgotResponse>('/auth/forgot-password', {
+        email: data.email.trim(),
+      });
+      toast.success(
+        res.data.message ||
+          'If that email is on file, check your inbox for reset instructions.'
+      );
+      if (res.data.data?.resetUrl) {
+        setDevResetUrl(res.data.data.resetUrl);
+      }
     } catch (error: unknown) {
       const msg =
         error && typeof error === 'object' && 'response' in error
           ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
           : null;
       toast.error(msg || 'Something went wrong. Try again.');
+    }
+  };
+
+  const copyLink = async () => {
+    if (!devResetUrl) return;
+    try {
+      await navigator.clipboard.writeText(devResetUrl);
+      toast.success('Reset link copied');
+    } catch {
+      toast.error('Could not copy — select the link manually');
     }
   };
 
@@ -59,6 +86,45 @@ export default function ForgotPasswordPage() {
           >
             {isSubmitting ? 'Sending…' : 'Send reset link'}
           </button>
+
+          {devResetUrl && (
+            <div
+              className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-left space-y-2"
+              data-testid="dev-reset-link"
+            >
+              <p className="text-sm font-medium text-amber-900">
+                Non-prod smoke helper — reset link (not emailed / or also emailed if Resend is set)
+              </p>
+              <a
+                href={devResetUrl}
+                className="block break-all text-sm text-primary-700 underline"
+              >
+                {devResetUrl}
+              </a>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="text-sm font-medium text-amber-900 underline"
+                >
+                  Copy link
+                </button>
+                <Link
+                  to={(() => {
+                    try {
+                      const u = new URL(devResetUrl);
+                      return `${u.pathname}${u.search}`;
+                    } catch {
+                      return '/reset-password';
+                    }
+                  })()}
+                  className="text-sm font-medium text-primary-700 underline"
+                >
+                  Open reset page
+                </Link>
+              </div>
+            </div>
+          )}
 
           <div className="text-center">
             <Link to="/login" className="text-sm font-medium text-primary-600 hover:text-primary-500">

@@ -115,10 +115,12 @@ describe('Auth routes and role enforcement', () => {
       .send({ email, password: 'secret12', name: 'FP User' })
       .expect(201);
 
-    await request(app)
+    const res = await request(app)
       .post('/api/auth/forgot-password')
       .send({ email })
       .expect(200);
+
+    expect(res.body.data?.resetUrl).toBeUndefined();
 
     const user = await prisma.user.findUnique({ where: { email } });
     expect(user?.passwordResetToken).toBeTruthy();
@@ -129,6 +131,37 @@ describe('Auth routes and role enforcement', () => {
     expect(user!.passwordResetToken).toBe(hashPasswordResetToken(arg.resetToken));
     expect(user!.passwordResetToken).not.toBe(arg.resetToken);
     spy.mockRestore();
+  });
+
+  it('POST /forgot-password includes resetUrl when SHOW_PASSWORD_RESET_LINK=1 (non-prod)', async () => {
+    const prev = process.env.SHOW_PASSWORD_RESET_LINK;
+    process.env.SHOW_PASSWORD_RESET_LINK = '1';
+    const spy = vi.spyOn(emailService, 'sendPasswordResetEmail').mockResolvedValue(true);
+    const email = `integration-fp-link-${runId}@example.com`;
+
+    try {
+      await request(app)
+        .post('/api/auth/register')
+        .send({ email, password: 'secret12', name: 'FP Link' })
+        .expect(201);
+
+      const res = await request(app)
+        .post('/api/auth/forgot-password')
+        .send({ email })
+        .expect(200);
+
+      expect(res.body.data?.resetUrl).toMatch(/\/reset-password\?token=/);
+      expect(res.body.data?.resetToken).toBeTruthy();
+      const user = await prisma.user.findUnique({ where: { email } });
+      expect(user!.passwordResetToken).toBe(hashPasswordResetToken(res.body.data.resetToken));
+    } finally {
+      if (prev === undefined) {
+        delete process.env.SHOW_PASSWORD_RESET_LINK;
+      } else {
+        process.env.SHOW_PASSWORD_RESET_LINK = prev;
+      }
+      spy.mockRestore();
+    }
   });
 
   it('POST /reset-password updates password and clears token', async () => {

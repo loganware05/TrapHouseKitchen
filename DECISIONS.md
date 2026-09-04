@@ -92,3 +92,25 @@ Record architectural and process decisions here (ADR style).
 - **Context:** `feat/payment-webhook-hardening` set `paymentStatus: FAILED` on cancel; `main` uses `setOrderStatus(..., 'CANCELLED')`.
 - **Decision:** Keep `main` behavior: `payment_intent.canceled` → payment record `CANCELED`, order `status: CANCELLED` (not failed payment).
 - **Consequences:** Abandoned checkouts align with auto-cancel cleanup; failed card attempts still use `payment_failed` → `paymentStatus: FAILED`.
+
+---
+
+### ADR-008: Auth-scoped React Query keys + clear on session change
+
+- **Status:** Accepted
+- **Date:** 2026-09-03
+- **Context:** Customers saw another account’s saved/used coupons after logout/login because TanStack Query keys (`myCoupons`, `orders`, etc.) were global and logout did not clear the cache.
+- **Decision:** Include `userId` in private query keys; call `queryClient.clear()` on login, register, guest login, logout, and failed `/me` session restore.
+- **Consequences:** Account switches cannot reuse stale private data; public keys (`dishes`, `reviews`) remain shared.
+
+---
+
+### ADR-010: Session token before auth state on login
+
+- **Status:** Accepted
+- **Date:** 2026-09-04
+- **Context:** After Slice 13 keyed coupons by `userId`, switching accounts could still show the previous user’s codes because `set({ user })` re-enabled queries while axios still read the old JWT from `localStorage`.
+- **Decision:** On login/register/guest, `localStorage.setItem('token', …)` runs before `clearAuthScopedQueryCache()` and before Zustand `set({ user, token })`. API Workbox strategy is `NetworkOnly`; `/coupons/my` is `Cache-Control: private, no-store`.
+- **Consequences:** New-account fetches always use the new Bearer token; stale SW/API cache cannot resurrect another user’s coupon list.
+
+---

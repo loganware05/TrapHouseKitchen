@@ -74,21 +74,21 @@ export default defineConfig({
       workbox: {
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/api\..*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 // 1 hour
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
+            // Never cache API JSON — NetworkFirst previously could serve another
+            // account's /coupons/my (and similar) when the network briefly failed.
+            urlPattern: ({ url }) => {
+              if (url.pathname.startsWith('/api')) return true;
+              if (/^https:\/\/api\./i.test(url.href)) return true;
+              // Render API hosts: traphousekitchen-api.onrender.com
+              if (url.hostname.includes('-api.') && url.hostname.endsWith('onrender.com')) {
+                return true;
               }
-            }
-          }
-        ]
-      }
+              return false;
+            },
+            handler: 'NetworkOnly',
+          },
+        ],
+      },
     })
   ],
   resolve: {

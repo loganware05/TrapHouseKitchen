@@ -9,6 +9,7 @@ import { useCartStore } from '../stores/cartStore';
 import { toast } from 'sonner';
 import { trackEvent } from '../stores/analyticsStore';
 import { useRegisterPullToRefresh } from '../contexts/PullToRefreshContext';
+import { userProfileQueryKey } from '../lib/authQueryKeys';
 
 export default function MenuPage() {
   const queryClient = useQueryClient();
@@ -44,7 +45,7 @@ export default function MenuPage() {
   });
 
   const { data: userProfile } = useQuery({
-    queryKey: ['userProfile'],
+    queryKey: user?.id ? userProfileQueryKey(user.id) : ['userProfile'],
     queryFn: async () => {
       const res = await api.get<{ data: { user: any } }>('/users/profile');
       return res.data.data.user;
@@ -57,11 +58,11 @@ export default function MenuPage() {
       queryClient.invalidateQueries({ queryKey: ['categories'] }),
       queryClient.invalidateQueries({ queryKey: ['dishes', selectedCategory] }),
     ];
-    if (user) {
-      tasks.push(queryClient.invalidateQueries({ queryKey: ['userProfile'] }));
+    if (user?.id) {
+      tasks.push(queryClient.invalidateQueries({ queryKey: userProfileQueryKey(user.id) }));
     }
     await Promise.all(tasks);
-  }, [queryClient, selectedCategory, user]);
+  }, [queryClient, selectedCategory, user?.id]);
 
   useRegisterPullToRefresh(handlePullRefresh);
 
