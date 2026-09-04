@@ -89,17 +89,12 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        void (async () => {
-          try {
-            await revokePushOnLogout();
-          } catch {
-            // Ignore revoke failures during logout
-          } finally {
-            localStorage.removeItem('token');
-            clearAuthScopedQueryCache();
-            set({ user: null, token: null });
-          }
-        })();
+        // Clear session immediately so a slow/hung revoke cannot keep the JWT alive.
+        const previousToken = localStorage.getItem('token');
+        localStorage.removeItem('token');
+        clearAuthScopedQueryCache();
+        set({ user: null, token: null });
+        void revokePushOnLogout(previousToken);
       },
 
       fetchUser: async () => {

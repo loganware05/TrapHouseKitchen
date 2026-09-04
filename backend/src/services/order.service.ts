@@ -59,11 +59,14 @@ export async function setOrderStatus(
     assertValidOrderStatusTransition(existing.status, status);
   }
 
+  // Same-status no-ops are allowed by the transition checker — do not re-notify.
+  const statusChanged = existing.status !== status;
+
   const order = await prisma.order.update({
     where: { id: orderId },
     data: {
       status,
-      ...(status === 'COMPLETED' && { completedAt: new Date() }),
+      ...(status === 'COMPLETED' && statusChanged && { completedAt: new Date() }),
     },
     include: {
       items: {
@@ -76,6 +79,7 @@ export async function setOrderStatus(
   });
 
   if (
+    statusChanged &&
     options?.sendEmail &&
     ['PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'COMPLETED', 'CANCELLED'].includes(status)
   ) {
@@ -88,15 +92,18 @@ export async function setOrderStatus(
     }).catch(err => console.error('Status email error:', err));
   }
 
-  // Web Push for opted-in customers on Preparing / Ready / Out for delivery only.
-  sendOrderStatusPush({
-    userId: order.userId,
-    orderId: order.id,
-    orderNumber: order.orderNumber,
-    status,
-  }).catch(err => console.error('Status push error:', err));
+  if (statusChanged) {
+    // Web Push for opted-in customers on Preparing / Ready / Out for delivery only
+    // (skipped on same-status no-ops to avoid duplicate notifications).
+    sendOrderStatusPush({
+      userId: order.userId,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      status,
+    }).catch(err => console.error('Status push error:', err));
+  }
 
-  if (status === 'COMPLETED') {
+  if (statusChanged && status === 'COMPLETED') {
     recordPrepTimeObservation(orderId).catch(err =>
       console.error('Prep observation error:', err)
     );

@@ -91,7 +91,11 @@ export async function subscribeToWebPush(): Promise<PushSubscription> {
   return subscription;
 }
 
-export async function unsubscribeFromWebPush(options?: { all?: boolean }): Promise<void> {
+export async function unsubscribeFromWebPush(options?: {
+  all?: boolean;
+  /** When set, use this Bearer token (e.g. logout already cleared localStorage). */
+  authToken?: string | null;
+}): Promise<void> {
   let endpoint: string | undefined;
 
   if (isWebPushSupported()) {
@@ -107,19 +111,31 @@ export async function unsubscribeFromWebPush(options?: { all?: boolean }): Promi
     }
   }
 
+  const headers =
+    options?.authToken != null && options.authToken !== ''
+      ? { Authorization: `Bearer ${options.authToken}` }
+      : undefined;
+
   if (options?.all || !endpoint) {
-    await api.delete('/push/unsubscribe', { data: { all: true } });
+    await api.delete('/push/unsubscribe', { data: { all: true }, headers });
     return;
   }
 
-  await api.delete('/push/unsubscribe', { data: { endpoint } });
+  await api.delete('/push/unsubscribe', { data: { endpoint }, headers });
 }
 
-/** Best-effort cleanup on logout — never throws to callers. */
-export async function revokePushOnLogout(): Promise<void> {
+const LOGOUT_REVOKE_TIMEOUT_MS = 2_000;
+
+/** Best-effort cleanup after session clear — never throws; times out quickly. */
+export async function revokePushOnLogout(authToken?: string | null): Promise<void> {
   try {
-    await unsubscribeFromWebPush({ all: true });
+    await Promise.race([
+      unsubscribeFromWebPush({ all: true, authToken }),
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, LOGOUT_REVOKE_TIMEOUT_MS);
+      }),
+    ]);
   } catch {
-    // Ignore — logout must still clear session
+    // Ignore — logout already cleared the session
   }
 }

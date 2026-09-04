@@ -33,6 +33,12 @@ node scripts/slice15-push-smoke.mjs
 - Native Chromium headless `grantPermissions(['notifications'])` still reports `denied` in this cloud image; subscribe path validated with a PushManager stub after documenting that limitation.
 - Screenshots: `screenshots/02b-profile-ready-to-enable.png`, `03-profile-after-toggle.png`, `04-orders-no-toggle.png`, `05-profile-toggle-focused.png`.
 
+## Follow-up patches (2026-09-04 First Mate)
+
+- Same-status no-ops no longer re-send Web Push (or status email / prep observation).
+- Logout clears JWT immediately; push revoke runs afterward with the prior Bearer token and a 2s timeout.
+- Selftest: `npx tsx frontend/src/lib/authLogoutPush.selftest.ts`
+
 ## Blockers / ops
 
 - Real push delivery requires `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` on the API host (documented in `backend/.env.example` + `render.yaml` sync:false). Local `.env` used for smoke is **not** committed.

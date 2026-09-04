@@ -71,6 +71,7 @@ Notable files: `unpaid-order-visibility.test.ts`, `delivery-location.test.ts`, `
 - Profile: `PushNotificationToggle` (`role="switch"`) — permission only on explicit toggle
 - SW: `public/push-handler.js` imported by Workbox (`vite.config.ts`)
 - Evidence: `.agent/evidence/slice-15-pwa-web-push-20260904/`
+- Same-status no-ops do not re-send push/email; logout clears JWT before best-effort push revoke (2s cap)
 
 ## End-to-end tests
 
