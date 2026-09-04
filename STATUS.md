@@ -6,6 +6,6 @@
 
 **Related:** [QA_CHECKLIST.md](QA_CHECKLIST.md) · [SUPPORT_PLAYBOOKS.md](SUPPORT_PLAYBOOKS.md) · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md) · [AGENTS.md](AGENTS.md)
 
-**Current WIP:** Slice 15 — PWA web push (Profile toggle; Preparing/Ready/Out for delivery). Approved for **Cursor Cloud Agent** implementation. Capacitor native push remains on the waiting list.
+**Current WIP:** Slice 15 — PWA web push on `feature/local-pwa-web-push` (Profile toggle; Preparing/Ready/Out for delivery). Capacitor native push remains on the waiting list.
 
 ---

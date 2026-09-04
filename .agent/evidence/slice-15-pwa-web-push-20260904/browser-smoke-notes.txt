@@ -1,0 +1,15 @@
+Notification.permission after grantPermissions: denied
+After login URL: http://localhost:5173/
+Toggle visible. aria-checked: false
+Disabled?: true
+Permission now: denied
+Heading present: true
+Headless permission still not granted — injecting test stubs for subscribe path
+Init permission (expect default, not prompted yet): default
+Before enable aria-checked=false disabled=false
+After enable aria-checked=true
+Permission after toggle click: granted
+Backend subscriptions: status=200 enabled=true count=1 endpoint=https://fcm.googleapis.com/fcm/send/playwright-smoke
+Orders page push toggle count (expect 0): 0
+Focused aria-label: Order push notifications
+aria-describedby present: push-toggle-description

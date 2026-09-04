@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { User, AuthResponse } from '../types';
 import api from '../lib/api';
 import { clearAuthScopedQueryCache } from '../lib/queryClient';
+import { revokePushOnLogout } from '../lib/webPush';
 
 interface AuthState {
   user: User | null;
@@ -88,9 +89,17 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        localStorage.removeItem('token');
-        clearAuthScopedQueryCache();
-        set({ user: null, token: null });
+        void (async () => {
+          try {
+            await revokePushOnLogout();
+          } catch {
+            // Ignore revoke failures during logout
+          } finally {
+            localStorage.removeItem('token');
+            clearAuthScopedQueryCache();
+            set({ user: null, token: null });
+          }
+        })();
       },
 
       fetchUser: async () => {

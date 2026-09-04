@@ -124,3 +124,13 @@ Record architectural and process decisions here (ADR style).
 - **Consequences:** New-account fetches always use the new Bearer token; stale SW/API cache cannot resurrect another user’s coupon list.
 
 ---
+
+### ADR-011: PWA Web Push for order status (Profile opt-in)
+
+- **Status:** Accepted
+- **Date:** 2026-09-04
+- **Context:** Customers want timely order updates without polling the Orders tab; Capacitor/APNs is out of scope for soft launch.
+- **Decision:** Use VAPID Web Push (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT`). Persist `PushSubscription` rows per user (unique `endpoint`). Opt-in toggle lives on **Profile only** and never auto-prompts. Send on transitions into **PREPARING**, **READY**, and **OUT_FOR_DELIVERY** only (not Completed / Pending / Cancelled). Subscription CRUD and list endpoints are owner-scoped with `Cache-Control: private, no-store`; logout revokes the user’s subscriptions.
+- **Consequences:** Requires VAPID env on Render for real delivery; browsers without PushManager show a disabled toggle; gone endpoints (410/404) are pruned on send.
+
+---

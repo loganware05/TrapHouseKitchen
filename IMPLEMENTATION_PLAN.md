@@ -2,16 +2,16 @@
 
 ## Metadata
 
-- Status: **APPROVED — AWAITING CLOUD AGENT IMPLEMENTATION**
+- Status: **IMPLEMENTED — AWAITING PR MERGE**
 - Plan ID: `slice-15-pwa-web-push-2026-09-04`
 - Depends on: PR [#30](https://github.com/loganware05/TrapHouseKitchen/pull/30) **merged** (`b6a5e0c` on `main`)
 - Issue: `local/slice-15-pwa-web-push` (placeholder)
 - Base: `origin/main` at `b6a5e0c`
-- Branch: `feature/local-pwa-web-push` *(cloud agent creates)*
-- Rollback checkpoint: *(cloud agent creates)*
+- Branch: `feature/local-pwa-web-push`
+- Rollback checkpoint: `checkpoint/pwa-web-push-2026-09-04`
 - Created: 2026-09-04
 - Last updated: 2026-09-04
-- Execution: **Cursor Cloud Agent** (separate chat; browser validation expected)
+- Execution: **Cursor Cloud Agent** (browser validation recorded)
 
 ## Prior delivery (closed)
 
@@ -76,3 +76,11 @@
 - **Approved by:** Captain (Logan)
 - **Approval date:** 2026-09-04
 - **Captain notes:** Approve Slice 15; Profile-only toggle; notify Preparing + Ready + Out for delivery; run in cloud agent with browser testing; Capacitor remains waiting list
+
+## Implementation notes (2026-09-04 cloud agent)
+
+- Prisma `PushSubscription` + migration `20260904180000_add_push_subscriptions`
+- API: `GET/POST/DELETE /api/push/*`; send hooked in `setOrderStatus`
+- UI: Profile `PushNotificationToggle`; SW `public/push-handler.js`
+- ADR-011 recorded; evidence under `.agent/evidence/slice-15-pwa-web-push-20260904/`
+- Ops: set Render `VAPID_*` after merge for live delivery

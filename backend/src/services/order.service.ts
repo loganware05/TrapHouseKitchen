@@ -15,6 +15,7 @@ import {
 import { resolveDeliveryLocation, type DeliveryInput } from './deliveryLocation.service';
 import { assertValidOrderStatusTransition } from './orderStatusTransitions';
 import { recordPrepTimeObservation } from './prepTimeLearning.service';
+import { sendOrderStatusPush } from './pushNotification.service';
 
 export {
   ABANDONED_ORDER_MAX_AGE_MS,
@@ -86,6 +87,14 @@ export async function setOrderStatus(
       estimatedTime: options.emailData?.estimatedTime,
     }).catch(err => console.error('Status email error:', err));
   }
+
+  // Web Push for opted-in customers on Preparing / Ready / Out for delivery only.
+  sendOrderStatusPush({
+    userId: order.userId,
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    status,
+  }).catch(err => console.error('Status push error:', err));
 
   if (status === 'COMPLETED') {
     recordPrepTimeObservation(orderId).catch(err =>
