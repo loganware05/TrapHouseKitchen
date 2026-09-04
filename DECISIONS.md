@@ -105,10 +105,12 @@ Record architectural and process decisions here (ADR style).
 
 ---
 
-### ADR-009: Non-prod password reset link exposure for smoke
+### ADR-010: Session token before auth state on login
 
 - **Status:** Accepted
-- **Date:** 2026-09-03
-- **Context:** Soft-launch smoke of forgot/reset without Resend inbox.
-- **Decision:** When `NODE_ENV !== 'production'` and `SHOW_PASSWORD_RESET_LINK=1`, include `resetUrl` / `resetToken` in forgot-password JSON and show a copyable helper on the forgot-password page. Production never returns the link.
-- **Consequences:** Local/staging smoke without email; ops must never set the flag on Render production.
+- **Date:** 2026-09-04
+- **Context:** After Slice 13 keyed coupons by `userId`, switching accounts could still show the previous user’s codes because `set({ user })` re-enabled queries while axios still read the old JWT from `localStorage`.
+- **Decision:** On login/register/guest, `localStorage.setItem('token', …)` runs before `clearAuthScopedQueryCache()` and before Zustand `set({ user, token })`. API Workbox strategy is `NetworkOnly`; `/coupons/my` is `Cache-Control: private, no-store`.
+- **Consequences:** New-account fetches always use the new Bearer token; stale SW/API cache cannot resurrect another user’s coupon list.
+
+---

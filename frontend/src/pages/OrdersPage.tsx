@@ -18,6 +18,7 @@ import {
   customerOrdersQueryOptions,
   isActiveCustomerOrder,
 } from '../lib/customerOrders';
+import { myCouponsQueryKey } from '../lib/authQueryKeys';
 import { isCompletedPaidReceipt } from '../lib/orderReceipt';
 
 const statusColors = {
@@ -174,14 +175,16 @@ export default function OrdersPage() {
   });
 
   const { data: couponsBundle } = useQuery({
-    queryKey: user?.id ? ['myCoupons', user.id] : ['myCoupons'],
+    queryKey: user?.id ? myCouponsQueryKey(user.id) : ['myCoupons', 'anonymous'],
     queryFn: async () => {
       const res = await api.get<{ data: { coupons: Coupon[]; usedCoupons: Coupon[] } }>(
         '/coupons/my'
       );
       return res.data.data;
     },
-    enabled: !!user && user.role === 'CUSTOMER',
+    enabled: !!user?.id && user.role === 'CUSTOMER',
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const savedCouponsData = couponsBundle?.coupons;
@@ -246,7 +249,7 @@ export default function OrdersPage() {
   const handlePullRefresh = useCallback(async () => {
     await refetch();
     if (user?.role === 'CUSTOMER' && user.id) {
-      await queryClient.invalidateQueries({ queryKey: ['myCoupons', user.id] });
+      await queryClient.invalidateQueries({ queryKey: myCouponsQueryKey(user.id) });
     }
   }, [refetch, queryClient, user?.role, user?.id]);
 

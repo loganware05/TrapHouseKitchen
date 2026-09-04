@@ -29,6 +29,8 @@ router.get('/my', authenticate, async (req: AuthRequest, res: Response, next: an
     );
     const used = coupons.filter((c) => c.used);
 
+    // Never let browsers/PWAs reuse another account's coupon payload.
+    res.setHeader('Cache-Control', 'private, no-store');
     res.json({
       status: 'success',
       data: {

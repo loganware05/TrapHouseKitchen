@@ -11,7 +11,12 @@ export const queryClient = new QueryClient({
   },
 });
 
-/** Drop all cached queries (call on logout / account switch). */
+/** Drop all cached queries (and PWA API cache) on logout / account switch. */
 export function clearAuthScopedQueryCache(): void {
   queryClient.clear();
+  if (typeof caches !== 'undefined') {
+    void caches.delete('api-cache').catch(() => {
+      /* ignore SW cache errors */
+    });
+  }
 }

@@ -26,7 +26,7 @@ export default function MyReviewsPage() {
   });
 
   const { data: couponsBundle } = useQuery({
-    queryKey: user?.id ? myCouponsQueryKey(user.id) : ['myCoupons'],
+    queryKey: user?.id ? myCouponsQueryKey(user.id) : ['myCoupons', 'anonymous'],
     queryFn: async () => {
       const res = await api.get<{ data: { coupons: Coupon[]; usedCoupons: Coupon[] } }>(
         '/coupons/my'
@@ -34,6 +34,8 @@ export default function MyReviewsPage() {
       return res.data.data;
     },
     enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
   const couponsData = couponsBundle?.coupons;
   const usedCouponsData = couponsBundle?.usedCoupons;

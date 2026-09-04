@@ -55,8 +55,11 @@ Notable files: `unpaid-order-visibility.test.ts`, `delivery-location.test.ts`, `
 ### Slice 13–14 — per-user cache isolation + non-prod reset link
 
 - Frontend: user-scoped React Query keys (`authQueryKeys.ts` / `customerOrders.ts`); `queryClient.clear()` on login/logout/register/guest
-- Selftest: `npx tsx frontend/src/lib/authQueryKeys.selftest.ts`
+- Critical: `localStorage` token is set **before** Zustand user update (`authSessionToken.selftest.ts`)
+- Selftest: `npx tsx frontend/src/lib/authQueryKeys.selftest.ts` and `npx tsx frontend/src/lib/authSessionToken.selftest.ts`
 - Non-prod: `SHOW_PASSWORD_RESET_LINK=1` returns `data.resetUrl` from forgot-password (ignored in production); UI shows copyable link
+- Backend: `GET /coupons/my` is user-scoped + `Cache-Control: private, no-store`; integration covers two-user isolation
+- PWA: API routes use Workbox `NetworkOnly` (no cross-session JSON cache)
 - Evidence: `.agent/evidence/user-query-isolation-20260903/validation.md`
 
 ## End-to-end tests

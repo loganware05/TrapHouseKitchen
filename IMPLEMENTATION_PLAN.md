@@ -10,7 +10,7 @@
 - Branch: `feature/local-user-query-isolation`
 - Rollback checkpoint: `checkpoint/user-query-isolation-2026-09-03`
 - Created: 2026-09-02
-- Last updated: 2026-09-03
+- Last updated: 2026-09-04
 
 ## Captain decisions (2026-09-03)
 
@@ -25,7 +25,7 @@
 
 | Slice | Scope | Status |
 |-------|--------|--------|
-| 13 | User-scoped query keys + clear cache on logout | **Done** |
+| 13 | User-scoped query keys + clear cache on logout | **Done** (+ token-before-set race fix 2026-09-04) |
 | 14 | Non-prod forgot-password response includes `resetUrl` when flagged | **Done** |
 | 15 | PWA web push | Parked — await post-13 approval |
 
@@ -36,6 +36,8 @@
 1. Coupon saved/used lists and customer orders always belong to the **current** session user.
 2. Logout (and login as a different user) clears auth-scoped React Query caches.
 3. Query keys include `userId` for `myCoupons`, `orders`, `myReviews`, `userProfile`, `userSpend`, `eligibleOrders`, and spend-tracker.
+4. On login/register/guest, write the new JWT to `localStorage` **before** updating auth state / clearing the query cache so axios never attaches the previous account’s token to the new user’s queries.
+5. Do not PWA-cache API JSON (`NetworkOnly`); `GET /coupons/my` sends `Cache-Control: private, no-store`.
 
 ### Non-goals
 

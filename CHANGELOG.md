@@ -11,7 +11,7 @@
 
 ### Fixed
 
-- Customer coupons/orders/reviews/profile caches no longer leak across accounts after logout or login as a different user (user-scoped React Query keys + cache clear on auth change).
+- Customer coupons/orders/reviews/profile caches no longer leak across accounts after logout or login as a different user (user-scoped React Query keys + cache clear on auth change; JWT written to `localStorage` before auth state updates; API responses not PWA-cached).
 
 - Unified Reviews tab: community reviews first, then your approved and pending reviews.
 - App-wide pull-to-refresh via layout registry; `ios-pull-to-refresh` Captain's Compass skill.

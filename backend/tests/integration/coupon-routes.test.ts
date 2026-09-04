@@ -158,4 +158,73 @@ describe('Coupon routes', () => {
     expect(fail.length).toBe(1);
     expect(fail[0].body.message).toMatch(/already been applied/i);
   });
+
+  it('GET /my returns only the authenticated user coupons (saved + used)', async () => {
+    await setup();
+    const used = await prisma.coupon.create({
+      data: {
+        code: `USED${randomUUID().slice(0, 5)}`.toUpperCase(),
+        userId,
+        discountAmount: 2,
+        used: true,
+      },
+    });
+
+    const otherEmail = `integration-cp-other-${runId}-${randomUUID().slice(0, 6)}@example.com`;
+    const otherHash = await bcrypt.hash('pw12345', 10);
+    const otherUser = await prisma.user.create({
+      data: {
+        email: otherEmail,
+        name: 'Other Coupon User',
+        password: otherHash,
+        role: 'CUSTOMER',
+      },
+    });
+    const otherCoupon = await prisma.coupon.create({
+      data: {
+        code: `OTHR${randomUUID().slice(0, 5)}`.toUpperCase(),
+        userId: otherUser.id,
+        discountAmount: 9,
+        used: false,
+      },
+    });
+    const otherUsed = await prisma.coupon.create({
+      data: {
+        code: `OTHU${randomUUID().slice(0, 5)}`.toUpperCase(),
+        userId: otherUser.id,
+        discountAmount: 1,
+        used: true,
+      },
+    });
+
+    const mine = await request(app)
+      .get('/api/coupons/my')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(mine.headers['cache-control']).toMatch(/no-store/i);
+    const savedCodes = (mine.body.data.coupons as { code: string }[]).map((c) => c.code);
+    const usedCodes = (mine.body.data.usedCoupons as { code: string }[]).map((c) => c.code);
+    expect(savedCodes).toContain(couponCode);
+    expect(usedCodes).toContain(used.code);
+    expect(savedCodes).not.toContain(otherCoupon.code);
+    expect(usedCodes).not.toContain(otherUsed.code);
+
+    const otherLogin = await request(app)
+      .post('/api/auth/login')
+      .send({ email: otherEmail, password: 'pw12345' })
+      .expect(200);
+
+    const theirs = await request(app)
+      .get('/api/coupons/my')
+      .set('Authorization', `Bearer ${otherLogin.body.data.token}`)
+      .expect(200);
+
+    const theirSaved = (theirs.body.data.coupons as { code: string }[]).map((c) => c.code);
+    const theirUsed = (theirs.body.data.usedCoupons as { code: string }[]).map((c) => c.code);
+    expect(theirSaved).toContain(otherCoupon.code);
+    expect(theirUsed).toContain(otherUsed.code);
+    expect(theirSaved).not.toContain(couponCode);
+    expect(theirUsed).not.toContain(used.code);
+  });
 });

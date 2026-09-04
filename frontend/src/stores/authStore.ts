@@ -43,9 +43,10 @@ export const useAuthStore = create<AuthState>()(
             password,
           });
           const { user, token } = response.data.data;
+          // Token must hit localStorage before React Query refetches (axios reads it).
+          localStorage.setItem('token', token);
           clearAuthScopedQueryCache();
           set({ user, token, isLoading: false });
-          localStorage.setItem('token', token);
         } catch (error) {
           set({ isLoading: false });
           throw error;
@@ -61,9 +62,9 @@ export const useAuthStore = create<AuthState>()(
             name,
           });
           const { user, token } = response.data.data;
+          localStorage.setItem('token', token);
           clearAuthScopedQueryCache();
           set({ user, token, isLoading: false });
-          localStorage.setItem('token', token);
         } catch (error) {
           set({ isLoading: false });
           throw error;
@@ -77,9 +78,9 @@ export const useAuthStore = create<AuthState>()(
             name,
           });
           const { user, token } = response.data.data;
+          localStorage.setItem('token', token);
           clearAuthScopedQueryCache();
           set({ user, token, isLoading: false });
-          localStorage.setItem('token', token);
         } catch (error) {
           set({ isLoading: false });
           throw error;
