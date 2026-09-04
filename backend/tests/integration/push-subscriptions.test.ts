@@ -35,10 +35,12 @@ describe('Web Push subscriptions + status gating', () => {
   const endpointB = `https://fcm.googleapis.com/fcm/send/test-b-${runId}`;
 
   beforeAll(async () => {
+    // Test-only placeholders (not production VAPID material).
     process.env.VAPID_PUBLIC_KEY =
-      process.env.VAPID_PUBLIC_KEY || 'BLImMsYGOfgmCSjeHnFriLRpZ5ClGH_voKQ8gWL279l6lUFxVh89eFXWpU0wB7k648T923egflr5YddbKSs_M6A';
+      process.env.VAPID_PUBLIC_KEY ||
+      'BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
     process.env.VAPID_PRIVATE_KEY =
-      process.env.VAPID_PRIVATE_KEY || '8Q6x0_fz9rMsVgOHNx08gO-mSmi3fWA3xcRkOuzjOsY';
+      process.env.VAPID_PRIVATE_KEY || 'TEST_ONLY_VAPID_PRIVATE_KEY_PLACEHOLDER';
     process.env.VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:test@example.com';
 
     hashedPassword = await bcrypt.hash(password, 10);
