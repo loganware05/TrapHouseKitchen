@@ -105,6 +105,16 @@ Record architectural and process decisions here (ADR style).
 
 ---
 
+### ADR-009: Non-prod password reset link exposure for smoke
+
+- **Status:** Accepted
+- **Date:** 2026-09-03
+- **Context:** Soft-launch smoke of forgot/reset without Resend inbox.
+- **Decision:** When `NODE_ENV !== 'production'` and `SHOW_PASSWORD_RESET_LINK=1`, include `resetUrl` / `resetToken` in forgot-password JSON and show a copyable helper on the forgot-password page. Production never returns the link.
+- **Consequences:** Local/staging smoke without email; ops must never set the flag on Render production.
+
+---
+
 ### ADR-010: Session token before auth state on login
 
 - **Status:** Accepted

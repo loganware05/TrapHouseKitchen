@@ -1,64 +1,66 @@
-# Implementation Plan — Post–Slice 12: per-user data isolation, email smoke, PWA push
+# Implementation Plan — Slice 15: PWA web push
 
 ## Metadata
 
-- Status: **APPROVED — IN IMPLEMENTATION** (Slices 13 + 14)
-- Plan ID: `slice-13-plus-isolation-email-push-2026-09-02`
-- Depends on: PR [#29](https://github.com/loganware05/TrapHouseKitchen/pull/29) **merged** (`74429c8` on `main`)
-- Issue: `local/post-slice-12-isolation-email-push` (placeholder)
-- Base: `origin/main` at `74429c8`
-- Branch: `feature/local-user-query-isolation`
-- Rollback checkpoint: `checkpoint/user-query-isolation-2026-09-03`
-- Created: 2026-09-02
+- Status: **APPROVED — AWAITING CLOUD AGENT IMPLEMENTATION**
+- Plan ID: `slice-15-pwa-web-push-2026-09-04`
+- Depends on: PR [#30](https://github.com/loganware05/TrapHouseKitchen/pull/30) **merged** (`b6a5e0c` on `main`)
+- Issue: `local/slice-15-pwa-web-push` (placeholder)
+- Base: `origin/main` at `b6a5e0c`
+- Branch: `feature/local-pwa-web-push` *(cloud agent creates)*
+- Rollback checkpoint: *(cloud agent creates)*
+- Created: 2026-09-04
 - Last updated: 2026-09-04
+- Execution: **Cursor Cloud Agent** (separate chat; browser validation expected)
 
-## Captain decisions (2026-09-03)
-
-1. **PR #29 merged** — yes
-2. **Slice 13** — approved (per-user React Query isolation)
-3. **Password-reset smoke** — **Option B**: non-prod “show reset link” helper (**Slice 14**)
-4. **Slice 15** (PWA push) — **deferred** until Captain sees and merges Slice 13
-5. **Push permission UX** (when 15 approved) — toggle on **Orders/Profile**
-6. **Capacitor push** — waiting list
-
-## Delivery (this PR)
+## Prior delivery (closed)
 
 | Slice | Scope | Status |
 |-------|--------|--------|
-| 13 | User-scoped query keys + clear cache on logout | **Done** (+ token-before-set race fix 2026-09-04) |
-| 14 | Non-prod forgot-password response includes `resetUrl` when flagged | **Done** |
-| 15 | PWA web push | Parked — await post-13 approval |
+| 13 | User-scoped query keys + clear cache on logout + login JWT race fix | **Shipped** — PR #30 |
+| 14 | Non-prod forgot-password `resetUrl` helper | **Shipped** — PR #30 |
 
-## Slice 13 — Per-user client cache isolation
+## Captain decisions (2026-09-04)
 
-### Desired behavior
+1. **Slice 15 approved** — implement now
+2. **Push permission UX** — toggle on **Profile only** (not Orders)
+3. **Notify statuses** — **Preparing**, **Ready**, **Out for delivery** only (not Completed, not Pending/Cancelled)
+4. **Capacitor push** — waiting list (out of scope)
+5. **Execution** — run in **Cursor Cloud Agent** (new chat) with browser testing
 
-1. Coupon saved/used lists and customer orders always belong to the **current** session user.
-2. Logout (and login as a different user) clears auth-scoped React Query caches.
-3. Query keys include `userId` for `myCoupons`, `orders`, `myReviews`, `userProfile`, `userSpend`, `eligibleOrders`, and spend-tracker.
-4. On login/register/guest, write the new JWT to `localStorage` **before** updating auth state / clearing the query cache so axios never attaches the previous account’s token to the new user’s queries.
-5. Do not PWA-cache API JSON (`NetworkOnly`); `GET /coupons/my` sends `Cache-Control: private, no-store`.
-
-### Non-goals
-
-- Coupon schema / minting; message-system coupon delivery; Slice 15 push
-
-## Slice 14 — Non-prod show reset link
+## Slice 15 — PWA web push
 
 ### Desired behavior
 
-1. When `NODE_ENV !== 'production'` **and** `SHOW_PASSWORD_RESET_LINK=1`, `POST /api/auth/forgot-password` includes `data.resetUrl` (and optionally `data.resetToken`) in the JSON response for the requested email when a user exists.
-2. Forgot-password UI shows a copyable reset link when the API returns `resetUrl`.
-3. Production never returns the link regardless of env flag.
+1. Customers can opt in to browser/PWA Web Push for order-status updates.
+2. Permission UX is an explicit toggle on **Profile** only (never auto-prompt on first load / Orders).
+3. Push only for authenticated customers who opted in; respect unsubscribe / logout / revoke.
+4. Send notifications when an order status becomes **PREPARING**, **READY**, or **OUT_FOR_DELIVERY**.
+5. Do not notify for Completed (or other statuses) in this slice.
 
 ### Non-goals
 
-- Open/click tracking; marketing email; production debug endpoint
+- Capacitor / APNs native push
+- SMS
+- Marketing or coupon campaign push
+- Push toggle on Orders page
+- Changing order lifecycle beyond notification hooks on status transitions
 
-## Slice 15 (parked)
+### Suggested technical outline (cloud agent may refine with evidence)
 
-- Order-status web push; permission toggle on Orders/Profile; Capacitor on waiting list.
-- Re-approve after Slice 13 merge.
+- VAPID keys via env (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`)
+- Persist push subscriptions per user (Prisma model)
+- Service worker + subscribe/unsubscribe from Profile toggle
+- Backend send on status change paths used by chef order pipeline
+- Secure: only owner’s subscriptions; no cross-user leak (follow ADR-008/010 patterns)
+- Tests + `.agent/evidence/` + docs updates (PROGRESS, TESTING, CHANGELOG, DECISIONS)
+
+### Validation
+
+- Unit/integration for subscribe + send gating by status
+- Browser: enable toggle on Profile → permission → chef advances order through Preparing/Ready/Out for delivery → notification received (or logged in non-prod evidence)
+- Security + accessibility review for Profile toggle
+- Production build; never commit secrets
 
 ## Waiting list
 
@@ -66,10 +68,11 @@
 - Capacitor native push (APNs)
 - SMS notifications
 - Marketing/email analytics
+- Production Resend for password-reset email
 
 ## Approval Record
 
-- **Status:** APPROVED (13 + 14); Slice 15 pending
+- **Status:** APPROVED
 - **Approved by:** Captain (Logan)
-- **Approval date:** 2026-09-03
-- **Captain notes:** Merge #29 done; Slice 13 next; Option B reset-link helper; Slice 15 after 13 merge; push toggle on Orders/Profile; Capacitor push waiting list
+- **Approval date:** 2026-09-04
+- **Captain notes:** Approve Slice 15; Profile-only toggle; notify Preparing + Ready + Out for delivery; run in cloud agent with browser testing; Capacitor remains waiting list

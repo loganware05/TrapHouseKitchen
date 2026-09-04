@@ -2,20 +2,19 @@
 
 ## Current status
 
-Slices **13 + 14** on `feature/local-user-query-isolation` (PR #30). Follow-up: login token race + API/PWA no-store so coupons cannot leak across accounts. Slice 15 PWA push parked until Captain re-approves after merge.
+Slice **15** (PWA web push) **approved** 2026-09-04 — Profile-only toggle; notify Preparing / Ready / Out for delivery. Execution assigned to a **Cursor Cloud Agent** (new chat). Local First Mate is not implementing product code for this slice.
 
 ## Completed
 
-- Slices 1–12 shipped (PRs #15–#29)
-- Slice 13/14 + cross-account coupon race fix (pending merge of PR #30)
+- Slices 1–14 shipped (PRs #15–#30)
+- Per-user React Query isolation, login JWT race fix, non-prod password-reset link helper
 
 ## Next
 
-1. Merge Slice 13–14 PR (#30) after retest: User A coupons → logout → User B → Orders shows only B
-2. Captain: approve Slice 15 (Orders/Profile push toggle)
-3. Waiting list: coupon message delivery; Capacitor/APNs; SMS
+1. Cloud agent: branch + checkpoint + implement Slice 15 + browser evidence + PR
+2. Waiting list: coupon message delivery; Capacitor/APNs; SMS; production Resend for reset email
 
 ## Blockers
 
-- Slice 15 blocked on post-13 approval
+- Cloud agent needs repo access on `main` at `b6a5e0c` (or later) and any VAPID/env secrets for real push smoke
 - Production reset email still needs Resend when ready (`SHOW_PASSWORD_RESET_LINK` is local/staging only)
