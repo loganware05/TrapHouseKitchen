@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: **IMPLEMENTED — AWAITING PR MERGE**
+- Status: **SHIPPED** — PR [#31](https://github.com/loganware05/TrapHouseKitchen/pull/31) merged (`f7c4719` on `main`)
 - Plan ID: `slice-15-pwa-web-push-2026-09-04`
 - Depends on: PR [#30](https://github.com/loganware05/TrapHouseKitchen/pull/30) **merged** (`b6a5e0c` on `main`)
 - Issue: `local/slice-15-pwa-web-push` (placeholder)
@@ -10,8 +10,8 @@
 - Branch: `feature/local-pwa-web-push`
 - Rollback checkpoint: `checkpoint/pwa-web-push-2026-09-04`
 - Created: 2026-09-04
-- Last updated: 2026-09-04
-- Execution: **Cursor Cloud Agent** (browser validation recorded)
+- Last updated: 2026-09-07
+- Execution: **Cursor Cloud Agent** (browser validation recorded); First Mate patches for no-op push + logout JWT clear
 
 ## Prior delivery (closed)
 
@@ -84,3 +84,5 @@
 - UI: Profile `PushNotificationToggle`; SW `public/push-handler.js`
 - ADR-011 recorded; evidence under `.agent/evidence/slice-15-pwa-web-push-20260904/`
 - Ops: set Render `VAPID_*` after merge for live delivery
+- **Shipped 2026-09-07** via PR #31 (`f7c4719`)
+- **Live smoke 2026-09-07 (Captain):** web deploy has new SW; order-status notifications work
