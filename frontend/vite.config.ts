@@ -41,7 +41,7 @@ export default defineConfig({
       : []),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'push-handler.js'],
       manifest: {
         name: 'TrapHouse Kitchen',
         short_name: 'TrapHouse',
@@ -72,6 +72,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        importScripts: ['push-handler.js'],
         runtimeCaching: [
           {
             // Never cache API JSON — NetworkFirst previously could serve another

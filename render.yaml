@@ -58,6 +58,12 @@ services:
         value: gpt-4o-mini
       - key: AI_MAX_TOKENS
         value: "1024"
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
     healthCheckPath: /health
 
   # Frontend Static Site

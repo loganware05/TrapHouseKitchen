@@ -45,6 +45,12 @@ afterEach(async () => {
       ],
     };
 
+    await prisma.pushSubscription.deleteMany({
+      where: {
+        user: testUserEmailFilter,
+      },
+    });
+
     await prisma.coupon.deleteMany({
       where: {
         user: testUserEmailFilter,

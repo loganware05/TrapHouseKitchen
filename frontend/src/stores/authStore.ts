@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { User, AuthResponse } from '../types';
 import api from '../lib/api';
 import { clearAuthScopedQueryCache } from '../lib/queryClient';
+import { revokePushOnLogout } from '../lib/webPush';
 
 interface AuthState {
   user: User | null;
@@ -88,9 +89,12 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        // Clear session immediately so a slow/hung revoke cannot keep the JWT alive.
+        const previousToken = localStorage.getItem('token');
         localStorage.removeItem('token');
         clearAuthScopedQueryCache();
         set({ user: null, token: null });
+        void revokePushOnLogout(previousToken);
       },
 
       fetchUser: async () => {

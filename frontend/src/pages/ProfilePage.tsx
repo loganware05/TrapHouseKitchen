@@ -5,6 +5,7 @@ import { User, PieChart, ChevronDown, ChevronRight } from 'lucide-react';
 import api from '../lib/api';
 import { useAuthStore } from '../stores/authStore';
 import OrderReceipt from '../components/OrderReceipt';
+import PushNotificationToggle from '../components/PushNotificationToggle';
 import { customerOrdersQueryOptions } from '../lib/customerOrders';
 import { selectRecentReceipts } from '../lib/orderReceipt';
 import { useRegisterPullToRefresh } from '../contexts/PullToRefreshContext';
@@ -87,6 +88,8 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {user?.role === 'CUSTOMER' && <PushNotificationToggle />}
 
       {user?.role === 'CUSTOMER' && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">

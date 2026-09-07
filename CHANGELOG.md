@@ -4,6 +4,7 @@
 
 ### Added
 
+- PWA Web Push (Slice 15): Profile opt-in toggle for order-status notifications; VAPID env keys; `PushSubscription` persistence; push on Preparing / Ready / Out for delivery only; logout revokes subscriptions.
 - Non-prod password-reset smoke helper: set `SHOW_PASSWORD_RESET_LINK=1` (never in production) so forgot-password returns a copyable `resetUrl` on the page.
 - Password reset: `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`, `/forgot-password` and `/reset-password` UI, login “Forgot password?” link; reset tokens stored as SHA-256 hashes.
 - Payment hardening: reject checkout when `couponCode` disagrees with order `appliedCouponId`; webhook idempotency and payment service unit/integration tests.

@@ -62,6 +62,17 @@ Notable files: `unpaid-order-visibility.test.ts`, `delivery-location.test.ts`, `
 - PWA: API routes use Workbox `NetworkOnly` (no cross-session JSON cache)
 - Evidence: `.agent/evidence/user-query-isolation-20260903/validation.md`
 
+### Slice 15 — PWA web push
+
+- Env: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (see `backend/.env.example`; never commit private keys)
+- Unit: `backend/tests/unit/pushNotification.test.ts` — status gating + ownership
+- Integration: `backend/tests/integration/push-subscriptions.test.ts` — subscribe, cross-user 403, send on PREPARING/READY/OUT_FOR_DELIVERY, no send on COMPLETED, unsubscribe all
+- Frontend selftest: `npx tsx frontend/src/lib/webPush.selftest.ts`
+- Profile: `PushNotificationToggle` (`role="switch"`) — permission only on explicit toggle
+- SW: `public/push-handler.js` imported by Workbox (`vite.config.ts`)
+- Evidence: `.agent/evidence/slice-15-pwa-web-push-20260904/`
+- Same-status no-ops do not re-send push/email; logout clears JWT before best-effort push revoke (2s cap)
+
 ## End-to-end tests
 
 `e2e/payment-flow.spec.ts`:
