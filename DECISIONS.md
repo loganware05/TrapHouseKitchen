@@ -134,3 +134,33 @@ Record architectural and process decisions here (ADR style).
 - **Consequences:** Requires VAPID env on Render for real delivery; browsers without PushManager show a disabled toggle; gone endpoints (410/404) are pruned on send.
 
 ---
+
+### ADR-012: Production JWT fail-closed + hard tokenVersion
+
+- **Status:** Accepted
+- **Date:** 2026-11-05
+- **Context:** Auth fell back to `'default-secret'` when `JWT_SECRET` was unset, and tokens without `tokenVersion` skipped version checks.
+- **Decision:** Production (`NODE_ENV=production`) requires a non-default `JWT_SECRET` at startup and for sign/verify. Authenticated requests require a numeric `tokenVersion` matching the user row (missing claim → 401). Non-production may warn and use the insecure default for local DX only.
+- **Consequences:** Misconfigured production deploys fail closed; sessions minted without `tokenVersion` are invalidated.
+
+---
+
+### ADR-013: Late payment success must not reverse fulfillment
+
+- **Status:** Accepted
+- **Date:** 2026-11-05
+- **Context:** `finalizeSuccessfulPayment` always called `setOrderStatus(..., PENDING)`, which throws after PREPARING+ and can interrupt marking `PAID`.
+- **Decision:** Only invoke `setOrderStatus(..., PENDING)` when the order is already `PENDING`. Advanced statuses keep fulfillment state while payment/coupon finalization still runs.
+- **Consequences:** Delayed webhooks/client sync cannot roll kitchen progress backward.
+
+---
+
+### ADR-014: No production seed on API boot
+
+- **Status:** Accepted
+- **Date:** 2026-11-05
+- **Context:** `render.yaml` ran `prisma:seed || true` on every start; seed upserts a fixed Chef id/email with a documented local password.
+- **Decision:** Render startCommand is migrate-via-build + `npm start` only. Seed refuses production unless `ALLOW_PRODUCTION_SEED=1`, and Chef bootstrap should use `SEED_CHEF=0` (or a strong `SEED_CHEF_PASSWORD`) for any intentional prod one-shot.
+- **Consequences:** Fresh envs need an explicit shell seed for catalog data; Chef credentials are ops-owned.
+
+---

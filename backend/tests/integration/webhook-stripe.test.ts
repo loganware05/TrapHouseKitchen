@@ -139,6 +139,38 @@ describe('Stripe webhooks', () => {
     expect(txs[0].stripeChargeId).toBe(piId.replace(/^pi_/, 'ch_'));
   });
 
+  it('payment_intent.succeeded after fulfillment advance keeps PREPARING and marks PAID', async () => {
+    const piId = `pi_wh_prep_${runId}`;
+    const { order, payment } = await seedUserAndPayment(piId);
+
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { status: 'PREPARING' },
+    });
+
+    const event = {
+      id: `evt_prep_${runId}`,
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: piId,
+          amount: 999,
+          currency: 'usd',
+          metadata: { orderId: order.id },
+        },
+      },
+    };
+
+    await rawPost(event).expect(200);
+
+    const updated = await prisma.order.findUnique({ where: { id: order.id } });
+    expect(updated?.status).toBe('PREPARING');
+    expect(updated?.paymentStatus).toBe('PAID');
+
+    const pay = await prisma.payment.findUnique({ where: { id: payment.id } });
+    expect(pay?.status).toBe(PaymentRecordStatus.SUCCEEDED);
+  });
+
   it('payment_intent.succeeded is idempotent on Stripe retries (duplicate charge row rejected)', async () => {
     const piId = `pi_wh_dup_${runId}`;
     const { order, payment } = await seedUserAndPayment(piId);

@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Security
+
+- Production rejects missing or default `JWT_SECRET` at API startup; JWT auth requires matching `tokenVersion` (claim-less tokens invalid).
+- Render API no longer seeds the database on every boot; production seed requires explicit opt-in and should not create fixed Chef credentials.
+- Ops script `backend/scripts/set-user-password.ts` rotates a user password and bumps `tokenVersion`.
+
+### Fixed
+
+- Late Stripe payment success no longer attempts to move fulfilled orders back to Pending (preserves PREPARING+ while still marking PAID).
+- Privacy Policy and Terms contact block uses real business address/phone/email.
+- README scripts match actual package manifests (no false root `npm test` / `npm start`).
+
 ### Added
 
 - PWA Web Push (Slice 15): Profile opt-in toggle for order-status notifications; VAPID env keys; `PushSubscription` persistence; push on Preparing / Ready / Out for delivery only; logout revokes subscriptions.

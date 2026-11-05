@@ -4,6 +4,13 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_PRODUCTION_SEED !== '1') {
+    console.error(
+      'Refusing to seed in production. Set ALLOW_PRODUCTION_SEED=1 only for an intentional one-shot bootstrap, and never rely on fixed Chef credentials in production.'
+    );
+    process.exit(1);
+  }
+
   console.log('🌱 Starting database seed...');
 
   // Create default allergens
@@ -44,21 +51,34 @@ async function main() {
   }
   console.log('✅ Categories created');
 
-  // Create default chef account (password: chef123)
-  const hashedPassword = await bcrypt.hash('chef123', 10);
-  await prisma.user.upsert({
-    where: { id: 'chef-1' },
-    update: {},
-    create: {
-      id: 'chef-1',
-      email: 'chef@traphouse.com',
-      password: hashedPassword,
-      name: 'Head Chef',
-      role: 'CHEF',
-      isGuest: false,
-    },
-  });
-  console.log('✅ Chef user created (email: chef@traphouse.com, password: chef123)');
+  // Local/dev Chef bootstrap only. Production Chef accounts must be provisioned and rotated by ops.
+  const seedChef = process.env.SEED_CHEF !== '0';
+  if (seedChef) {
+    const chefEmail = process.env.SEED_CHEF_EMAIL || 'chef@traphouse.com';
+    const chefPassword = process.env.SEED_CHEF_PASSWORD || 'chef123';
+    if (process.env.NODE_ENV === 'production' && !process.env.SEED_CHEF_PASSWORD) {
+      console.error('Production seed requires SEED_CHEF_PASSWORD when SEED_CHEF is enabled.');
+      process.exit(1);
+    }
+    const hashedPassword = await bcrypt.hash(chefPassword, 10);
+    await prisma.user.upsert({
+      where: { id: 'chef-1' },
+      update: {},
+      create: {
+        id: 'chef-1',
+        email: chefEmail,
+        password: hashedPassword,
+        name: 'Head Chef',
+        role: 'CHEF',
+        isGuest: false,
+      },
+    });
+    console.log(
+      `✅ Chef user upserted (id=chef-1, email=${chefEmail}). Password not logged; override via SEED_CHEF_PASSWORD for local use.`
+    );
+  } else {
+    console.log('⏭️  Skipping Chef bootstrap (SEED_CHEF=0)');
+  }
 
   console.log('🎉 Database seed completed!');
 }

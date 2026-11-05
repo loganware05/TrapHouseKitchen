@@ -116,9 +116,9 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-gray-700 font-medium">TrapHouse Kitchen</p>
-              <p className="text-gray-700">123 Main Street, Birmingham, AL 35203</p>
-              <p className="text-gray-700">Email: <a href="mailto:privacy@traphousekitchen.com" className="text-primary-600 hover:text-primary-700">privacy@traphousekitchen.com</a></p>
-              <p className="text-gray-700">Phone: <a href="tel:+12055551234" className="text-primary-600 hover:text-primary-700">(205) 555-1234</a></p>
+              <p className="text-gray-700">1210 Bibb St, Tuskegee, AL 36088</p>
+              <p className="text-gray-700">Email: <a href="mailto:loganware05@gmail.com" className="text-primary-600 hover:text-primary-700">loganware05@gmail.com</a></p>
+              <p className="text-gray-700">Phone: <a href="tel:+12056135029" className="text-primary-600 hover:text-primary-700">(205) 613-5029</a></p>
             </div>
           </section>
 

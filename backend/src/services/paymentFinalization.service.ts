@@ -116,7 +116,9 @@ export async function finalizeSuccessfulPayment(
     });
   }
 
-  if (payment.order.status !== 'CANCELLED') {
+  // Ensure paid orders enter the kitchen as PENDING, but never reverse
+  // fulfillment (PREPARING+) when a late webhook or client sync replays success.
+  if (payment.order.status === 'PENDING') {
     await setOrderStatus(payment.orderId, 'PENDING', { sendEmail: false });
   }
 

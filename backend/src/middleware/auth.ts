@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { getJwtSecret } from '../lib/jwtConfig';
 import { AppError } from './errorHandler';
 
 export type AuthRequest = Request & {
@@ -12,7 +13,25 @@ export type AuthRequest = Request & {
   };
 };
 
-const jwtSecret = () => process.env.JWT_SECRET || 'default-secret';
+type AccessTokenClaims = {
+  id: string;
+  name?: string;
+  email?: string;
+  role: string;
+  tokenVersion?: number;
+};
+
+function assertValidTokenVersion(
+  decoded: AccessTokenClaims,
+  userTokenVersion: number
+): void {
+  if (typeof decoded.tokenVersion !== 'number') {
+    throw new AppError('Invalid token', 401);
+  }
+  if (userTokenVersion !== decoded.tokenVersion) {
+    throw new AppError('Invalid token', 401);
+  }
+}
 
 export const authenticate = async (
   req: AuthRequest,
@@ -26,22 +45,17 @@ export const authenticate = async (
       throw new AppError('Authentication required', 401);
     }
 
-    const decoded = jwt.verify(token, jwtSecret()) as {
-      id: string;
-      name?: string;
-      email?: string;
-      role: string;
-      tokenVersion?: number;
-    };
+    const decoded = jwt.verify(token, getJwtSecret()) as AccessTokenClaims;
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
       select: { tokenVersion: true },
     });
 
-    if (!user || (decoded.tokenVersion !== undefined && user.tokenVersion !== decoded.tokenVersion)) {
+    if (!user) {
       throw new AppError('Invalid token', 401);
     }
+    assertValidTokenVersion(decoded, user.tokenVersion);
 
     req.user = {
       id: decoded.id,
@@ -84,20 +98,14 @@ export const optionalAuthenticate = async (
     if (!token) {
       return next();
     }
-    const decoded = jwt.verify(token, jwtSecret()) as {
-      id: string;
-      name?: string;
-      email?: string;
-      role: string;
-      tokenVersion?: number;
-    };
+    const decoded = jwt.verify(token, getJwtSecret()) as AccessTokenClaims;
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
       select: { tokenVersion: true },
     });
 
-    if (!user || (decoded.tokenVersion !== undefined && user.tokenVersion !== decoded.tokenVersion)) {
+    if (!user || typeof decoded.tokenVersion !== 'number' || user.tokenVersion !== decoded.tokenVersion) {
       return next();
     }
 

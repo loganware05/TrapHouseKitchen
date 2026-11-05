@@ -1,86 +1,55 @@
-# Implementation Plan — Slice 15: PWA web push
+# Implementation Plan — NorthStar: Campus Service Night
 
 ## Metadata
 
-- Status: **IMPLEMENTED — AWAITING PR MERGE**
-- Plan ID: `slice-15-pwa-web-push-2026-09-04`
-- Depends on: PR [#30](https://github.com/loganware05/TrapHouseKitchen/pull/30) **merged** (`b6a5e0c` on `main`)
-- Issue: `local/slice-15-pwa-web-push` (placeholder)
-- Base: `origin/main` at `b6a5e0c`
-- Branch: `feature/local-pwa-web-push`
-- Rollback checkpoint: `checkpoint/pwa-web-push-2026-09-04`
-- Created: 2026-09-04
-- Last updated: 2026-09-04
-- Execution: **Cursor Cloud Agent** (browser validation recorded)
+- Status: **APPROVED — IMPLEMENTING**
+- Plan ID: `northstar-campus-service-night-2026-11-05`
+- Source: `TrapHouseKitchen_Repository_State_2026-10-22.pdf` (reviewed `main` at `f7c4719`)
+- Issue: [#32](https://github.com/loganware05/TrapHouseKitchen/issues/32)
+- Base: `origin/main` at `f7c4719`
+- Branch: `fix/32-release-gaps-hardening`
+- Rollback checkpoint: `checkpoint/release-gaps-2026-11-05`
+- Created: 2026-11-05
+- Last updated: 2026-11-05
 
-## Prior delivery (closed)
+## NorthStar
 
-| Slice | Scope | Status |
-|-------|--------|--------|
-| 13 | User-scoped query keys + clear cache on logout + login JWT race fix | **Shipped** — PR #30 |
-| 14 | Non-prod forgot-password `resetUrl` helper | **Shipped** — PR #30 |
+**A repeatable, verified campus service night.**
 
-## Captain decisions (2026-09-04)
-
-1. **Slice 15 approved** — implement now
-2. **Push permission UX** — toggle on **Profile only** (not Orders)
-3. **Notify statuses** — **Preparing**, **Ready**, **Out for delivery** only (not Completed, not Pending/Cancelled)
-4. **Capacitor push** — waiting list (out of scope)
-5. **Execution** — run in **Cursor Cloud Agent** (new chat) with browser testing
-
-## Slice 15 — PWA web push
-
-### Desired behavior
-
-1. Customers can opt in to browser/PWA Web Push for order-status updates.
-2. Permission UX is an explicit toggle on **Profile** only (never auto-prompt on first load / Orders).
-3. Push only for authenticated customers who opted in; respect unsubscribe / logout / revoke.
-4. Send notifications when an order status becomes **PREPARING**, **READY**, or **OUT_FOR_DELIVERY**.
-5. Do not notify for Completed (or other statuses) in this slice.
-
-### Non-goals
-
-- Capacitor / APNs native push
-- SMS
-- Marketing or coupon campaign push
-- Push toggle on Orders page
-- Changing order lifecycle beyond notification hooks on status transitions
-
-### Suggested technical outline (cloud agent may refine with evidence)
-
-- VAPID keys via env (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`)
-- Persist push subscriptions per user (Prisma model)
-- Service worker + subscribe/unsubscribe from Profile toggle
-- Backend send on status change paths used by chef order pipeline
-- Secure: only owner’s subscriptions; no cross-user leak (follow ADR-008/010 patterns)
-- Tests + `.agent/evidence/` + docs updates (PROGRESS, TESTING, CHANGELOG, DECISIONS)
-
-### Validation
-
-- Unit/integration for subscribe + send gating by status
-- Browser: enable toggle on Profile → permission → chef advances order through Preparing/Ready/Out for delivery → notification received (or logged in non-prod evidence)
-- Security + accessibility review for Profile toggle
-- Production build; never commit secrets
-
-## Waiting list
-
-- Coupon delivery via messaging/email campaign
-- Capacitor native push (APNs)
-- SMS notifications
-- Marketing/email analytics
-- Production Resend for password-reset email
+A customer can place and pay for an order, the Chef sees exactly one paid order, fulfillment advances safely, the customer receives updates, and reviews/coupons work without account leaks or payment ambiguity.
 
 ## Approval Record
 
 - **Status:** APPROVED
 - **Approved by:** Captain (Logan)
-- **Approval date:** 2026-09-04
-- **Captain notes:** Approve Slice 15; Profile-only toggle; notify Preparing + Ready + Out for delivery; run in cloud agent with browser testing; Capacitor remains waiting list
+- **Approval date:** 2026-11-05
+- **Captain notes:**
+  1. Approve Slice 16 scope as written (docs + seed-off-start + JWT fail-closed + hard tokenVersion + payment finalization + README)
+  2. Privacy/Terms: use real contact values (supplied privately for this slice)
+  3. Hard `tokenVersion` cutover
+  4. Proceed with issue / branch / worktree
+  5. Verify any seed-created production Chef account
 
-## Implementation notes (2026-09-04 cloud agent)
+## Slice 16 scope (active)
 
-- Prisma `PushSubscription` + migration `20260904180000_add_push_subscriptions`
-- API: `GET/POST/DELETE /api/push/*`; send hooked in `setOrderStatus`
-- UI: Profile `PushNotificationToggle`; SW `public/push-handler.js`
-- ADR-011 recorded; evidence under `.agent/evidence/slice-15-pwa-web-push-20260904/`
-- Ops: set Render `VAPID_*` after merge for live delivery
+| Workstream | Status |
+|------------|--------|
+| A Docs closeout + PROJECT_CONTEXT refresh | In progress |
+| B Stop prod seed-on-start + seed refuse-prod | In progress |
+| C JWT fail-closed + tokenVersion hard cutover | In progress |
+| D Payment finalization replay fix | In progress |
+| E README DX | In progress |
+| F Privacy/Terms real contacts | In progress |
+| G Production Chef seed-password verification | **CRITICAL finding** — default seed login still succeeds on production API; rotation required via ops script |
+
+## Roadmap (later slices — not approved yet)
+
+17 payment safety matrix → 18 staging → 19 decisive CI → 20 service ops → 21 delivery ETA → 22 engagement → 23 iOS
+
+## Rollback
+
+```bash
+git checkout main
+git reset --hard checkpoint/release-gaps-2026-11-05
+# If merged: revert the Slice 16 PR and redeploy previous Render deploy
+```
