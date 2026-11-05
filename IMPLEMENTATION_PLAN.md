@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: **APPROVED — IMPLEMENTING**
+- Status: **IMPLEMENTED — AWAITING PR MERGE** ([#33](https://github.com/loganware05/TrapHouseKitchen/pull/33))
 - Plan ID: `northstar-campus-service-night-2026-11-05`
 - Source: `TrapHouseKitchen_Repository_State_2026-10-22.pdf` (reviewed `main` at `f7c4719`)
 - Issue: [#32](https://github.com/loganware05/TrapHouseKitchen/issues/32)

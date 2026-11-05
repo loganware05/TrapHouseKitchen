@@ -6,7 +6,7 @@
 
 Slice **15** shipped on `main` (PR #31, `f7c4719`).
 
-Slice **16** (**APPROVED**, implementing on `fix/32-release-gaps-hardening`, issue [#32](https://github.com/loganware05/TrapHouseKitchen/issues/32)): close release gaps + payment finalization hardening. Rollback: `checkpoint/release-gaps-2026-11-05`.
+Slice **16** implemented on `fix/32-release-gaps-hardening` — PR [#33](https://github.com/loganware05/TrapHouseKitchen/pull/33), issue [#32](https://github.com/loganware05/TrapHouseKitchen/issues/32). Rollback: `checkpoint/release-gaps-2026-11-05`.
 
 ## Completed
 
