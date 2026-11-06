@@ -70,7 +70,10 @@ jobs:
 
   e2e:
     name: Playwright E2E
-    runs-on: ubuntu-latest
+    # Pin 24.04: ubuntu-latest is rolling to 26.04, and Playwright 1.58.x has no
+    # Chromium build for ubuntu26.04-x64 (install fails before any specs run).
+    # Upgrade @playwright/test to >=1.61 before returning this job to ubuntu-latest.
+    runs-on: ubuntu-24.04
     needs: test
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     services:
