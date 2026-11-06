@@ -13,6 +13,11 @@
 - Late Stripe payment success no longer attempts to move fulfilled orders back to Pending (preserves PREPARING+ while still marking PAID).
 - Privacy Policy and Terms contact block uses real business address/phone/email.
 - README scripts match actual package manifests (no false root `npm test` / `npm start`).
+- CI: Vitest integration files run sequentially to avoid shared coupon-gateway races; JWT unit tests no longer reassign `process.env`; Playwright E2E job pinned to `ubuntu-24.04` (Playwright 1.58 lacks Chromium for Ubuntu 26.04).
+
+## [Slice 16] — 2026-11-06
+
+Shipped on `main` via PR #33 (`a3733be`): release-gap hardening toward campus service night NorthStar.
 
 ### Added
 

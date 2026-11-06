@@ -4,27 +4,23 @@
 
 **NorthStar:** repeatable campus service night.
 
-Slice **15** shipped on `main` (PR #31, `f7c4719`).
+Slice **16** **shipped** on `main` via PR [#33](https://github.com/loganware05/TrapHouseKitchen/pull/33) (`a3733be`). Issue [#32](https://github.com/loganware05/TrapHouseKitchen/issues/32) closed. Rollback tag: `checkpoint/release-gaps-2026-11-05`.
 
-Slice **16** implemented on `fix/32-release-gaps-hardening` — PR [#33](https://github.com/loganware05/TrapHouseKitchen/pull/33), issue [#32](https://github.com/loganware05/TrapHouseKitchen/issues/32). Rollback: `checkpoint/release-gaps-2026-11-05`.
+**Active plan:** Slice 17 — prove payment safety — **AWAITING APPROVAL** (`slice-17-payment-safety-2026-11-06`).
 
 ## Completed
 
-- Slices 1–15 code shipped (PRs #15–#31)
-- Slice 15 live push smoke (2026-09-07) documented on closeout branch; reconciled into Slice 16 docs
-
-## In progress (Slice 16)
-
-- Docs reconcile, JWT fail-closed, tokenVersion hard cutover, stop Render seed-on-start, payment finalization replay fix, Privacy/Terms contacts, README
-- **Critical:** Production Chef still authenticates with seed default — Captain must rotate password (script provided)
+- Slices 1–16 shipped (PRs #15–#33)
+- Slice 16: docs reconcile, stop Render seed-on-start, JWT fail-closed, hard `tokenVersion`, late payment success preserves fulfillment, Privacy/Terms contacts, CI isolation fixes, E2E runner pin to ubuntu-24.04
 
 ## Next
 
-1. Finish Slice 16 validation + PR
-2. Rotate production Chef password (ops)
-3. Slice 17 — prove payment safety matrix
+1. Captain approve Slice 17 (payment race/refund/decline matrix)
+2. Confirm production Chef password rotated (ops)
+3. Slice 18 — staging rebuild
 
 ## Blockers
 
-- Production Chef credential rotation (ops; Render MCP auth unavailable in this environment)
+- Slice 17 not approved yet
+- Production Chef credential rotation still ops-owned if not completed after merge/deploy
 - Production reset email still needs Resend when ready
