@@ -148,6 +148,14 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 - Safari / Apple device: confirm Apple Pay button appears and sandbox payment succeeds
 - Confirm fallback card path still works when Apple Pay is unavailable
 
+### Slice 16 — release gaps + payment finalization
+
+- Unit: `backend/tests/unit/jwtConfig.test.ts`, `auth.middleware.tokenVersion.test.ts`, updated `auth.service.test.ts`
+- Integration: `webhook-stripe.test.ts` — late success after PREPARING keeps status and marks PAID
+- Seed: production refuse without `ALLOW_PRODUCTION_SEED=1`; Render startCommand no longer seeds
+- Ops: `backend/scripts/set-user-password.ts` for Chef rotation
+- Evidence: `.agent/evidence/slice-16-release-gaps-20261105/`
+
 ## Evidence location
 
 `.agent/evidence/apple-pay-first-20260815/`

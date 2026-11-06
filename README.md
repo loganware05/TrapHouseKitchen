@@ -256,13 +256,14 @@ See [docs/features/authentication.md](docs/features/authentication.md).
 ## 🧪 Testing
 
 ```bash
-# Backend tests
+# Backend unit + integration (from backend package)
 cd backend
 npm test
+# or: npm run test:all
 
-# Frontend tests
-cd frontend
-npm test
+# There is no root `npm test` / frontend `npm test` script yet.
+# E2E (Playwright) from repo root:
+npm run test:e2e
 
 # Headless validation scripts (no DB required)
 cd backend
@@ -343,8 +344,9 @@ npx prisma migrate dev   # Create migration
 npx prisma generate      # Generate Prisma client
 
 # Production
-npm run build            # Build for production
-npm start                # Start production server
+npm run build            # Build frontend + backend
+cd backend && npm start  # Start API (Render startCommand)
+cd frontend && npm run preview  # Local preview of Vite production build
 ```
 
 ## 📚 Documentation

@@ -2,19 +2,29 @@
 
 ## Current status
 
-Slice **15** (PWA web push) **implemented** on `feature/local-pwa-web-push` — validation evidence recorded; PR pending merge. Rollback: `checkpoint/pwa-web-push-2026-09-04`.
+**NorthStar:** repeatable campus service night.
+
+Slice **15** shipped on `main` (PR #31, `f7c4719`).
+
+Slice **16** implemented on `fix/32-release-gaps-hardening` — PR [#33](https://github.com/loganware05/TrapHouseKitchen/pull/33), issue [#32](https://github.com/loganware05/TrapHouseKitchen/issues/32). Rollback: `checkpoint/release-gaps-2026-11-05`.
 
 ## Completed
 
-- Slices 1–14 shipped (PRs #15–#30)
-- Slice 15: Profile Web Push opt-in; VAPID + `PushSubscription`; notify Preparing / Ready / Out for delivery; tests + browser smoke evidence
+- Slices 1–15 code shipped (PRs #15–#31)
+- Slice 15 live push smoke (2026-09-07) documented on closeout branch; reconciled into Slice 16 docs
+
+## In progress (Slice 16)
+
+- Docs reconcile, JWT fail-closed, tokenVersion hard cutover, stop Render seed-on-start, payment finalization replay fix, Privacy/Terms contacts, README
+- **Critical:** Production Chef still authenticates with seed default — Captain must rotate password (script provided)
 
 ## Next
 
-1. Merge Slice 15 PR; set Render `VAPID_*` for live push
-2. Waiting list: coupon message delivery; Capacitor/APNs; SMS; production Resend for reset email
+1. Finish Slice 16 validation + PR
+2. Rotate production Chef password (ops)
+3. Slice 17 — prove payment safety matrix
 
 ## Blockers
 
-- Live push delivery needs Render VAPID secrets (not in repo)
-- Production reset email still needs Resend when ready (`SHOW_PASSWORD_RESET_LINK` is local/staging only)
+- Production Chef credential rotation (ops; Render MCP auth unavailable in this environment)
+- Production reset email still needs Resend when ready

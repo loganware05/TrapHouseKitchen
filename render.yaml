@@ -20,7 +20,9 @@ services:
     # Adopting an existing DB that was created with db push: run `prisma migrate resolve` once, then deploy.
     # npm ci keeps TypeScript on the lockfile pin (avoids TS 6/7 pulling moduleResolution=node10 removal).
     buildCommand: cd backend && npm ci && npx prisma generate && npx prisma migrate deploy && npm run build
-    startCommand: cd backend && npm run prisma:seed || true && npm start
+    # Do not seed on every boot — seed creates fixed local Chef credentials and is local/dev only.
+    # Fresh environments: run `cd backend && npm run prisma:seed` once via Render shell after migrate.
+    startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
         value: production

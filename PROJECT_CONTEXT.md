@@ -55,9 +55,10 @@ Near-term operational success: complete pre-launch verification (soft launch alr
 
 - **Customer app:** Menu browse, allergens/dietary filters, cart, guest checkout, Stripe payment, order tracking, per-dish reviews, dish request voting, profile
 - **Chef app:** Dashboard, menu CRUD, order pipeline (Pending → Preparing → Ready → Out for delivery → Completed), dish requests, review approve/reject (+ coupon issuance)
-- **Payments:** Stripe PaymentIntent + webhooks (hardening slice not yet on `main`)
-- **Auth:** JWT RBAC (customer vs Chef); password reset not yet on `main`
-- **Analytics / AI attribution:** Tip and order attribution features exist on feature branches; land after payment + iOS priorities
+- **Payments:** Stripe PaymentIntent + webhooks with reconciliation; late success must not reverse fulfillment status
+- **Auth:** JWT RBAC (customer vs Chef) with `tokenVersion`; password reset on `main` (hashed tokens); production rejects missing/default `JWT_SECRET`
+- **Notifications:** Opt-in PWA Web Push on Profile (Preparing / Ready / Out for delivery)
+- **Analytics / AI attribution:** Backend AI meal-builder API exists; customer meal-builder UI removed; attribution UI still a later priority
 
 ## External Services
 
@@ -132,11 +133,11 @@ Optimize for a small concurrent user base (<200 community) rather than large-sca
 
 ## Known Technical Debt
 
-- Feature work merged to `chore/prisma-migrations-baseline` but not re-landed on `main` (password reset, payment hardening, AI attribution, Capacitor iOS)
-- Password-reset token hashing debt once that feature lands (plaintext tokens on that branch)
-- Playwright suite instability (~14/19 failing historically)
-- Soft-launch Stripe flows need full retest after recent repository changes
-- Webhook-related email TODOs (failed payment / refund) live in the payment slice not yet on `main`
+- Production Chef account historically created by seed may still use the documented local default password — rotate immediately via `backend/scripts/set-user-password.ts` (see Slice 16 evidence)
+- Playwright suite instability historically; CI E2E still `continue-on-error`
+- Soft-launch Stripe flows need full retest (Slice 17)
+- Webhook refund confirmation email still TODO
+- Capacitor iOS remains on feature branch
 - Legacy `vercel.json` may confuse deploy tooling if not ignored
 
 ## Terminology
@@ -187,15 +188,15 @@ Node + local Postgres is acceptable when Docker is unavailable. See `docs/develo
 
 ## Current Priorities
 
-Pre-launch verification first, then land features onto `main` in this order:
+NorthStar: a repeatable campus service night (pay once → one paid Chef order → safe fulfillment → customer updates → reviews/coupons without leaks).
 
-1. **Pre-launch / regression verification** — especially Stripe live payments, webhooks, and critical customer + Chef flows after recent repo changes
-2. **Password reset** (`feat/password-reset` / former PR #4)
-3. **Payment / webhook hardening** (`feat/payment-webhook-hardening` / former PR #5)
-4. **Capacitor iOS** (`feat/capacitor-ios-scaffold` / former PR #7) → App Store path
-5. **AI order attribution** (`feat/ai-order-attribution` / former PR #6)
-6. **Delivery modeling** (status/ETA; observed 5–10 min after marked for delivery) — not yet scoped as an approved implementation plan
-7. Staging rebuild (optional but useful before App Store launch)
-8. Playwright E2E stabilization and WCAG 2.1 AA hardening
+1. **Slice 16 — close release gaps** (in progress on `fix/32-release-gaps-hardening`) — docs reconcile, stop prod seed-on-start, JWT fail-closed, `tokenVersion` hard cutover, payment finalization replay fix, legal contacts, Chef credential rotation
+2. **Slice 17 — prove payment safety** — decline/retry/refund/duplicate webhook/races with regression evidence
+3. **Staging rebuild** — separate DB + test Stripe + email/push smoke
+4. **Decisive CI** — stable core E2E blocking + sandbox payment lane
+5. **Service operations** — hours, pause, limits, dish sellout
+6. **Delivery + ETA timestamps** — separate prep from travel/arrival
+7. **Engagement** — production Resend reset email; coupon/SMS decision
+8. **Capacitor iOS** (`feat/capacitor-ios-scaffold`) after web path is reliable
 
 Canonical ship status: always check `STATUS.md`.

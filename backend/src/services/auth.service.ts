@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { getJwtSecret } from '../lib/jwtConfig';
 import { AppError } from '../middleware/errorHandler';
 import { sendPasswordResetEmail } from './emailService';
 import {
@@ -9,7 +10,6 @@ import {
   hashPasswordResetToken,
 } from '../lib/passwordResetToken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
 const JWT_EXPIRES = process.env.JWT_EXPIRES_IN || '7d';
 
 export type AuthTokenPayload = {
@@ -34,7 +34,7 @@ export function signCustomerToken(user: {
     tokenVersion: user.tokenVersion,
     ...(user.email ? { email: user.email } : {}),
   };
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES } as jwt.SignOptions);
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: JWT_EXPIRES } as jwt.SignOptions);
 }
 
 export function signGuestToken(user: { id: string; name: string; role: string; tokenVersion: number }): string {
@@ -44,7 +44,7 @@ export function signGuestToken(user: { id: string; name: string; role: string; t
     role: user.role,
     tokenVersion: user.tokenVersion,
   };
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' } as jwt.SignOptions);
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '24h' } as jwt.SignOptions);
 }
 
 export async function registerUser(email: string, password: string, name: string) {

@@ -43,3 +43,4 @@ node scripts/slice15-push-smoke.mjs
 
 - Real push delivery requires `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` on the API host (documented in `backend/.env.example` + `render.yaml` sync:false). Local `.env` used for smoke is **not** committed.
 - End-to-end OS notification display was not asserted in headless Chromium; payload send is covered by mocked `web-push` integration tests.
+- **Captain live smoke (2026-09-07):** production/web deploy SW present; order notifications confirmed working after VAPID setup.

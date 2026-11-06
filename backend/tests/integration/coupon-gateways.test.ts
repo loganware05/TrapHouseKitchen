@@ -180,12 +180,6 @@ describe('Coupon gateways + checkout discount', () => {
   });
 
   it('does not mint when gateway disabled', async () => {
-    await updateCouponAwardGateway({
-      key: REVIEW_APPROVE_GATEWAY,
-      enabled: false,
-      discountAmount: 4,
-    });
-
     const order = await prisma.order.create({
       data: {
         userId: customerId,
@@ -211,6 +205,13 @@ describe('Coupon gateways + checkout discount', () => {
     });
 
     const before = await prisma.coupon.count({ where: { userId: customerId } });
+
+    // Disable immediately before approve so parallel suites cannot re-enable in between.
+    await updateCouponAwardGateway({
+      key: REVIEW_APPROVE_GATEWAY,
+      enabled: false,
+      discountAmount: 4,
+    });
 
     const res = await request(app)
       .post(`/api/reviews/${review.id}/approve`)
