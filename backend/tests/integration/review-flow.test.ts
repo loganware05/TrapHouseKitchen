@@ -4,6 +4,11 @@ import request from 'supertest';
 import app from '../../src/app';
 import prisma from '../../src/lib/prisma';
 import bcrypt from 'bcryptjs';
+import {
+  REVIEW_APPROVE_GATEWAY,
+  ensureDefaultGateways,
+  updateCouponAwardGateway,
+} from '../../src/services/couponGateway.service';
 
 describe('Review Flow Integration Tests', () => {
   const runId = randomUUID().slice(0, 8);
@@ -310,9 +315,22 @@ describe('Review Flow Integration Tests', () => {
         where: { userId, orderId },
       });
       reviewId = review!.id;
+
+      // Shared REVIEW_APPROVE row can be toggled by coupon-gateways tests in parallel.
+      await ensureDefaultGateways();
+      await updateCouponAwardGateway({
+        key: REVIEW_APPROVE_GATEWAY,
+        enabled: true,
+        discountAmount: 4,
+      });
     });
 
     it('should allow chef to approve review and mint coupon when gateway enabled', async () => {
+      await updateCouponAwardGateway({
+        key: REVIEW_APPROVE_GATEWAY,
+        enabled: true,
+        discountAmount: 4,
+      });
       const couponsBefore = await prisma.coupon.count({ where: { userId } });
 
       const response = await request(app)
@@ -455,6 +473,11 @@ describe('Review Flow Integration Tests', () => {
     });
 
     it('should re-approve without minting duplicate coupon', async () => {
+      await updateCouponAwardGateway({
+        key: REVIEW_APPROVE_GATEWAY,
+        enabled: true,
+        discountAmount: 4,
+      });
       const couponsBefore = await prisma.coupon.count({ where: { userId } });
 
       const response = await request(app)

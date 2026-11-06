@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import jwt from 'jsonwebtoken';
 import type { Response, NextFunction } from 'express';
 
@@ -13,11 +13,27 @@ vi.mock('../../src/lib/prisma', () => ({
 }));
 
 describe('authenticate tokenVersion enforcement', () => {
+  const previousJwtSecret = process.env.JWT_SECRET;
+  const previousNodeEnv = process.env.NODE_ENV;
+
   beforeEach(() => {
     process.env.JWT_SECRET = 'unit-test-jwt-secret';
     process.env.NODE_ENV = 'test';
     findUnique.mockReset();
     vi.resetModules();
+  });
+
+  afterEach(() => {
+    if (previousJwtSecret === undefined) {
+      delete process.env.JWT_SECRET;
+    } else {
+      process.env.JWT_SECRET = previousJwtSecret;
+    }
+    if (previousNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = previousNodeEnv;
+    }
   });
 
   async function invokeAuthenticate(token: string) {

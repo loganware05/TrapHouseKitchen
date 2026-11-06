@@ -1,17 +1,37 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+const ENV_KEYS = ['JWT_SECRET', 'NODE_ENV'] as const;
+
+function snapshotEnv() {
+  return Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]])) as Record<
+    (typeof ENV_KEYS)[number],
+    string | undefined
+  >;
+}
+
+function restoreEnv(snapshot: ReturnType<typeof snapshotEnv>) {
+  for (const key of ENV_KEYS) {
+    const value = snapshot[key];
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+}
+
 describe('jwtConfig', () => {
-  const originalEnv = { ...process.env };
+  let envSnapshot: ReturnType<typeof snapshotEnv>;
 
   beforeEach(() => {
+    envSnapshot = snapshotEnv();
     vi.resetModules();
-    process.env = { ...originalEnv };
     delete process.env.JWT_SECRET;
     delete process.env.NODE_ENV;
   });
 
   afterEach(() => {
-    process.env = { ...originalEnv };
+    restoreEnv(envSnapshot);
   });
 
   it('allows insecure default outside production when JWT_SECRET is missing', async () => {

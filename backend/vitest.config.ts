@@ -4,6 +4,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // Forks keep process.env / Prisma native engine isolated across unit vs
+    // integration files (unit JWT tests mutate NODE_ENV / JWT_SECRET).
+    pool: 'forks',
     testTimeout: 30000,
     hookTimeout: 30000,
     projects: [
@@ -13,6 +16,7 @@ export default defineConfig({
           name: 'unit',
           include: ['tests/unit/**/*.test.ts'],
           setupFiles: ['./tests/setup.unit.ts'],
+          pool: 'forks',
         },
       },
       {
@@ -21,6 +25,7 @@ export default defineConfig({
           name: 'integration',
           include: ['tests/integration/**/*.test.ts'],
           setupFiles: ['./tests/setup.ts'],
+          pool: 'forks',
           retry: 1,
         },
       },
@@ -30,6 +35,7 @@ export default defineConfig({
           name: 'performance',
           include: ['tests/performance/**/*.test.ts'],
           setupFiles: ['./tests/setup.performance.ts'],
+          pool: 'forks',
           testTimeout: 120_000,
           hookTimeout: 120_000,
           retry: 1,
