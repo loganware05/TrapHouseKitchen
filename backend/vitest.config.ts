@@ -26,6 +26,8 @@ export default defineConfig({
           include: ['tests/integration/**/*.test.ts'],
           setupFiles: ['./tests/setup.ts'],
           pool: 'forks',
+          // REVIEW_APPROVE gateway is a shared DB row; parallel files race enable/disable.
+          fileParallelism: false,
           retry: 1,
         },
       },
