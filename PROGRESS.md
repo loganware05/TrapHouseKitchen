@@ -4,25 +4,22 @@
 
 **NorthStar:** repeatable campus service night.
 
-Slice **16** shipped (PR #33). Slice **17** **APPROVED** and implementing on `fix/local-payment-safety-matrix` (issue [#34](https://github.com/loganware05/TrapHouseKitchen/issues/34)). Rollback: `checkpoint/payment-safety-2026-11-06`.
+Slice **17** **shipped** on `main` via PR [#35](https://github.com/loganware05/TrapHouseKitchen/pull/35) (`a195175`). Issue [#34](https://github.com/loganware05/TrapHouseKitchen/issues/34) closed. Rollback tag: `checkpoint/payment-safety-2026-11-06`.
+
+**Active plan:** Slice 18 — recreate staging — **AWAITING APPROVAL**.
 
 ## Completed
 
-- Slices 1–16 shipped (PRs #15–#33)
-
-## In progress (Slice 17)
-
-- Race-safe `finalizeSuccessfulPayment` (row locks, single CHARGE, coupon once)
-- Idempotent `charge.refunded` via `finalizeChargeRefunded`
-- Integration matrix: concurrent finalize, late failure after PAID, refund duplicate, decline→retry
-- Unique `Transaction.stripeRefundId` migration
+- Slices 1–17 shipped (PRs #15–#35)
+- Slice 17: race-safe payment finalize, refund sticky/idempotent, decline→retry matrix, CI single-worker for gateway races
 
 ## Next
 
-1. Finish Slice 17 validation + PR
-2. Confirm Chef password rotation (ops)
-3. Slice 18 — staging rebuild
+1. Captain rotates production Chef seed password (ops)
+2. Captain approves Slice 18 staging rebuild
+3. Slice 19 — decisive CI / Playwright ≥1.61
 
 ## Blockers
 
-- Local Docker/Postgres may be unavailable for full integration run in agent env; CI is source of truth
+- Production Chef credential rotation (ops)
+- Slice 18 not approved yet

@@ -190,13 +190,13 @@ Node + local Postgres is acceptable when Docker is unavailable. See `docs/develo
 
 NorthStar: a repeatable campus service night (pay once → one paid Chef order → safe fulfillment → customer updates → reviews/coupons without leaks).
 
-1. **Slice 17 — prove payment safety** — decline/retry/refund/duplicate webhook/races with regression evidence (plan awaiting approval)
-2. **Ops:** confirm production Chef password rotated off seed default; confirm Render redeployed Slice 16 (no seed-on-start)
-3. **Staging rebuild** — separate DB + test Stripe + email/push smoke
-4. **Decisive CI** — stable core E2E blocking; upgrade Playwright ≥1.61 before `ubuntu-latest` / 26.04
-5. **Service operations** — hours, pause, limits, dish sellout
-6. **Delivery + ETA timestamps** — separate prep from travel/arrival
-7. **Engagement** — production Resend reset email; coupon/SMS decision; refund confirmation email if deferred from Slice 17
-8. **Capacitor iOS** (`feat/capacitor-ios-scaffold`) after web path is reliable
+1. **Ops:** rotate production Chef `chef@traphouse.com` off seed password; confirm Render deployed Slice 17 migration
+2. **Slice 18 — staging rebuild** (plan awaiting approval) — separate DB + Stripe test + smoke checklist
+3. **Decisive CI** — stable core E2E blocking; upgrade Playwright ≥1.61 before `ubuntu-latest` / 26.04
+4. **Service operations** — hours, pause, limits, dish sellout
+5. **Delivery + ETA timestamps** — separate prep from travel/arrival
+6. **Engagement** — production Resend reset email; coupon/SMS decision; refund confirmation email
+7. **Capacitor iOS** (`feat/capacitor-ios-scaffold`) after web path is reliable
+8. Optional: Float→integer cents money migration
 
 Canonical ship status: always check `STATUS.md`.

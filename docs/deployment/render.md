@@ -173,11 +173,30 @@ To bootstrap allergens/categories on a fresh database intentionally:
    ALLOW_PRODUCTION_SEED=1 SEED_CHEF=0 npm run prisma:seed
    ```
 
-To rotate a user password from shell (after setting a strong password in the environment for the command only):
+### Rotate production Chef password (required if seed default was ever used)
+
+Seed historically created `chef@traphouse.com` / `chef-1` with a documented local password. After any production seed, rotate immediately:
+
+1. Generate a strong password (≥12 characters; password manager recommended). **Do not commit it or paste it into chat/issues.**
+2. In Render → `traphousekitchen-api` → **Shell** (wait until the shell has the latest deploy with `scripts/set-user-password.ts`).
+3. Run (substitute your new password; single quotes avoid shell expansion):
 
 ```bash
 cd backend
-USER_EMAIL='chef@example.com' NEW_PASSWORD='…' npx tsx scripts/set-user-password.ts
+USER_EMAIL='chef@traphouse.com' NEW_PASSWORD='YOUR_STRONG_PASSWORD_HERE' npx tsx scripts/set-user-password.ts
+```
+
+4. Confirm the script prints an update for `chef@traphouse.com` with role `CHEF` and a bumped `tokenVersion` (existing JWTs stop working).
+5. Sign in on the production site with the new password; confirm the old seed password fails.
+6. Clear the shell history if your session retained the command, and store the password only in your password manager.
+
+Optional verification from your laptop (expect **401** after rotation if you still use the seed password):
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" \
+  -X POST 'https://traphousekitchen-api.onrender.com/api/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"chef@traphouse.com","password":"SEED_PASSWORD_SHOULD_FAIL"}'
 ```
 
 ---
