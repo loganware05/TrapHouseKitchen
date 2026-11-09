@@ -10,6 +10,7 @@
 
 ### Fixed
 
+- Payment success finalization is transactional (row locks): concurrent webhook/client sync cannot create duplicate CHARGE rows or double-consume coupons; late `payment_failed` cannot downgrade PAID; `charge.refunded` is idempotent via unique `stripeRefundId`.
 - Late Stripe payment success no longer attempts to move fulfilled orders back to Pending (preserves PREPARING+ while still marking PAID).
 - Privacy Policy and Terms contact block uses real business address/phone/email.
 - README scripts match actual package manifests (no false root `npm test` / `npm start`).

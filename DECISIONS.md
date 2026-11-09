@@ -164,3 +164,13 @@ Record architectural and process decisions here (ADR style).
 - **Consequences:** Fresh envs need an explicit shell seed for catalog data; Chef credentials are ops-owned.
 
 ---
+
+### ADR-015: Payment finalization is transactional and success-sticky
+
+- **Status:** Accepted
+- **Date:** 2026-11-09
+- **Context:** Concurrent webhook + client sync could race CHARGE inserts / coupon consume; late `payment_failed` could overwrite PAID.
+- **Decision:** `finalizeSuccessfulPayment` locks Payment+Order rows, creates at most one CHARGE, consumes coupon with `used: false` guard inside the same transaction, and never reverses fulfillment status. `finalizeFailedPayment` no-ops when already PAID/REFUNDED. `charge.refunded` is handled by `finalizeChargeRefunded` with unique `stripeRefundId`.
+- **Consequences:** Duplicate Stripe deliveries and concurrent sync are safe; refund confirmation email remains deferred.
+
+---

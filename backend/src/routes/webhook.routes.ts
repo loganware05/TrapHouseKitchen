@@ -1,11 +1,12 @@
 import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
-import stripe, { fromStripeAmount } from '../lib/stripe';
+import stripe from '../lib/stripe';
 import prisma from '../lib/prisma';
 import { PaymentRecordStatus } from '@prisma/client';
 import { setOrderStatus } from '../services/order.service';
 import { handleSetupIntentSucceededWebhook } from '../services/payment.service';
 import {
+  finalizeChargeRefunded,
   finalizeFailedPayment,
   finalizeSuccessfulPayment,
 } from '../services/paymentFinalization.service';
@@ -124,49 +125,19 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
   }
 }
 
-// Handle refunded charge
+// Handle refunded charge (idempotent; customer refund email deferred — Slice 17)
 async function handleChargeRefunded(charge: Stripe.Charge) {
   console.log('💸 Charge refunded:', charge.id);
 
   try {
-    // Find payment by charge ID through transactions
-    const transaction = await prisma.transaction.findFirst({
-      where: { stripeChargeId: charge.id },
-      include: {
-        payment: true,
-      },
-    });
-
-    if (!transaction) {
-      console.error('Transaction not found for charge:', charge.id);
-      return;
+    const result = await finalizeChargeRefunded(charge);
+    if (result.applied) {
+      console.log(
+        'Refund processed for order:',
+        result.orderId,
+        result.isFullRefund ? '(full)' : '(partial)'
+      );
     }
-
-    // Check if this is a full or partial refund
-    const totalRefunded = fromStripeAmount(charge.amount_refunded);
-    const totalAmount = transaction.payment.totalAmount;
-    const isFullRefund = totalRefunded >= totalAmount;
-
-    // Update payment status
-    await prisma.payment.update({
-      where: { id: transaction.paymentId },
-      data: {
-        status: isFullRefund ? PaymentRecordStatus.REFUNDED : PaymentRecordStatus.SUCCEEDED, // Keep succeeded if partial
-      },
-    });
-
-    // Update order payment status
-    await prisma.order.update({
-      where: { id: transaction.payment.orderId },
-      data: {
-        paymentStatus: isFullRefund ? 'REFUNDED' : 'PARTIALLY_REFUNDED',
-        status: isFullRefund ? 'CANCELLED' : undefined,
-      },
-    });
-
-    console.log('Refund processed for payment:', transaction.paymentId);
-
-    // TODO: Send refund confirmation to customer
   } catch (error) {
     console.error('Error handling refund:', error);
     throw error;
