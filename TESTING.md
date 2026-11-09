@@ -156,6 +156,13 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 - Ops: `backend/scripts/set-user-password.ts` for Chef rotation
 - Evidence: `.agent/evidence/slice-16-release-gaps-20261105/`
 
+### Slice 17 — payment safety matrix
+
+- Service: transactional `finalizeSuccessfulPayment` (FOR UPDATE); `finalizeChargeRefunded`; failed finalize does not downgrade PAID
+- Migration: `20261109120000_unique_stripe_refund_id`
+- Integration (`webhook-stripe.test.ts`): concurrent finalize; late `payment_failed` after PAID; idempotent `charge.refunded`; decline→retry
+- Evidence: `.agent/evidence/slice-17-payment-safety-20261109/`
+
 ## Evidence location
 
 `.agent/evidence/apple-pay-first-20260815/`

@@ -4,7 +4,6 @@ import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { PaymentRecordStatus, Prisma } from '@prisma/client';
 import { setOrderStatus } from './order.service';
-import { finalizeCouponAfterPayment } from './payment.service';
 import {
   sendNewOrderNotificationToChef,
   sendOrderConfirmationEmail,
@@ -63,21 +62,19 @@ function extractChargeDetails(expandedPaymentIntent: Stripe.PaymentIntent) {
 
 /**
  * Idempotently marks an order paid when Stripe reports payment_intent.succeeded.
- * Safe to call from webhooks and post-checkout client sync.
+ * Safe under duplicate webhooks and concurrent client sync (row locks + single CHARGE).
  */
 export async function finalizeSuccessfulPayment(
   paymentIntent: Stripe.PaymentIntent,
   options: FinalizePaymentOptions = {}
 ) {
   const sendEmails = options.sendEmails ?? true;
-  const payment = await loadPaymentByIntentId(paymentIntent.id);
+  const existing = await loadPaymentByIntentId(paymentIntent.id);
 
-  if (!payment) {
+  if (!existing) {
     console.error('Payment not found for PaymentIntent:', paymentIntent.id);
     return { applied: false as const, reason: 'payment_not_found' as const };
   }
-
-  const wasPaid = payment.order.paymentStatus === 'PAID';
 
   const expandedPaymentIntent = paymentIntentHasExpandedCharges(paymentIntent)
     ? paymentIntent
@@ -88,93 +85,180 @@ export async function finalizeSuccessfulPayment(
   const { paymentMethodDetails, receiptUrl, chargeId } =
     extractChargeDetails(expandedPaymentIntent);
 
-  await prisma.payment.update({
-    where: { id: payment.id },
-    data: {
-      status: PaymentRecordStatus.SUCCEEDED,
-      paymentMethodDetails: paymentMethodDetails as Prisma.InputJsonValue,
-      receiptUrl,
-    },
-  });
+  const { outcome, wasPaid, orderId, paymentStatus } = await prisma.$transaction(async (tx) => {
+    // Serialize concurrent finalize/sync against the same payment + order rows.
+    await tx.$executeRaw`
+      SELECT p.id FROM "Payment" p
+      WHERE p.id = ${existing.id}
+      FOR UPDATE
+    `;
+    await tx.$executeRaw`
+      SELECT o.id FROM "Order" o
+      WHERE o.id = ${existing.orderId}
+      FOR UPDATE
+    `;
 
-  const existingCharge = await prisma.transaction.findFirst({
-    where: {
-      paymentId: payment.id,
-      type: 'CHARGE',
-    },
-  });
+    const lockedPayment = await tx.payment.findUnique({
+      where: { id: existing.id },
+      include: { order: true },
+    });
+    if (!lockedPayment) {
+      return {
+        outcome: 'missing' as const,
+        wasPaid: false,
+        orderId: existing.orderId,
+        paymentStatus: 'PENDING' as const,
+      };
+    }
 
-  if (!existingCharge) {
-    await prisma.transaction.create({
+    const orderPaymentStatus = lockedPayment.order.paymentStatus;
+    const paymentRecordStatus = lockedPayment.status;
+
+    // Refunded states are sticky — Stripe PI stays "succeeded" after refund, so a
+    // replayed success / client sync must not revive the order to PAID.
+    if (
+      orderPaymentStatus === 'REFUNDED' ||
+      orderPaymentStatus === 'PARTIALLY_REFUNDED' ||
+      paymentRecordStatus === PaymentRecordStatus.REFUNDED
+    ) {
+      return {
+        outcome: 'refunded' as const,
+        wasPaid: true,
+        orderId: lockedPayment.orderId,
+        paymentStatus: orderPaymentStatus,
+      };
+    }
+
+    const alreadyPaid = orderPaymentStatus === 'PAID';
+
+    await tx.payment.update({
+      where: { id: lockedPayment.id },
       data: {
-        paymentId: payment.id,
-        type: 'CHARGE',
-        amount: fromStripeAmount(paymentIntent.amount),
-        status: 'succeeded',
-        stripeChargeId: chargeId,
+        status: PaymentRecordStatus.SUCCEEDED,
+        paymentMethodDetails: paymentMethodDetails as Prisma.InputJsonValue,
+        receiptUrl,
       },
     });
-  }
 
-  // Ensure paid orders enter the kitchen as PENDING, but never reverse
-  // fulfillment (PREPARING+) when a late webhook or client sync replays success.
-  if (payment.order.status === 'PENDING') {
-    await setOrderStatus(payment.orderId, 'PENDING', { sendEmail: false });
-  }
+    const existingCharge = await tx.transaction.findFirst({
+      where: {
+        paymentId: lockedPayment.id,
+        type: 'CHARGE',
+      },
+    });
 
-  await prisma.order.update({
-    where: { id: payment.orderId },
-    data: {
-      paymentStatus: 'PAID',
-    },
+    if (!existingCharge) {
+      try {
+        await tx.transaction.create({
+          data: {
+            paymentId: lockedPayment.id,
+            type: 'CHARGE',
+            amount: fromStripeAmount(paymentIntent.amount),
+            status: 'succeeded',
+            stripeChargeId: chargeId,
+          },
+        });
+      } catch (error) {
+        // Unique stripeChargeId (or concurrent insert) — treat as already recorded.
+        if (
+          !(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+        ) {
+          throw error;
+        }
+      }
+    }
+
+    // Never reverse fulfillment: paid orders that are still PENDING stay PENDING;
+    // PREPARING+ keep kitchen progress. Only paymentStatus is forced to PAID.
+    await tx.order.update({
+      where: { id: lockedPayment.orderId },
+      data: {
+        paymentStatus: 'PAID',
+      },
+    });
+
+    if (lockedPayment.order.appliedCouponId) {
+      await tx.coupon.updateMany({
+        where: { id: lockedPayment.order.appliedCouponId, used: false },
+        data: {
+          used: true,
+          usedOrderId: lockedPayment.orderId,
+        },
+      });
+    }
+
+    return {
+      outcome: 'paid' as const,
+      wasPaid: alreadyPaid,
+      orderId: lockedPayment.orderId,
+      paymentStatus: 'PAID' as const,
+    };
   });
 
+  if (outcome === 'missing') {
+    return { applied: false as const, reason: 'payment_not_found' as const };
+  }
+
+  if (outcome === 'refunded') {
+    return {
+      applied: false as const,
+      reason: 'already_refunded' as const,
+      orderId,
+      paymentStatus,
+      alreadyPaid: true,
+    };
+  }
+
   const order = await prisma.order.findUnique({
-    where: { id: payment.orderId },
+    where: { id: orderId },
     include: {
       items: { include: { dish: true } },
       user: true,
     },
   });
 
-  if (order) {
-    await finalizeCouponAfterPayment(order.id, order.appliedCouponId);
+  if (order && sendEmails && !wasPaid) {
+    const orderDate = new Date(order.createdAt).toLocaleString();
+    const emailPayload = {
+      customerName: order.user.name,
+      customerEmail: order.user.email || '',
+      orderNumber: order.orderNumber.toString(),
+      orderDate,
+      items: order.items.map((item) => ({
+        name: item.dish.name,
+        quantity: item.quantity,
+        price: item.priceAtOrder,
+      })),
+      subtotal: order.totalPrice,
+      tip: order.tipAmount,
+      total: order.finalAmount,
+      paymentStatus: 'PAID',
+      prepTime: order.prepTime || 25,
+      specialInstructions: order.specialInstructions || undefined,
+    };
 
-    if (sendEmails && !wasPaid) {
-      const orderDate = new Date(order.createdAt).toLocaleString();
-      const emailPayload = {
-        customerName: order.user.name,
-        customerEmail: order.user.email || '',
-        orderNumber: order.orderNumber.toString(),
-        orderDate,
-        items: order.items.map((item) => ({
-          name: item.dish.name,
-          quantity: item.quantity,
-          price: item.priceAtOrder,
-        })),
-        subtotal: order.totalPrice,
-        tip: order.tipAmount,
-        total: order.finalAmount,
-        paymentStatus: 'PAID',
-        prepTime: order.prepTime || 25,
-        specialInstructions: order.specialInstructions || undefined,
-      };
-
-      sendOrderConfirmationEmail(emailPayload).catch((err) =>
-        console.error('Confirmation email error:', err)
-      );
-      sendNewOrderNotificationToChef(emailPayload).catch((err) =>
-        console.error('Chef notification email error:', err)
-      );
-    }
+    sendOrderConfirmationEmail(emailPayload).catch((err) =>
+      console.error('Confirmation email error:', err)
+    );
+    sendNewOrderNotificationToChef(emailPayload).catch((err) =>
+      console.error('Chef notification email error:', err)
+    );
   }
 
   return {
     applied: true as const,
-    orderId: payment.orderId,
+    orderId,
     paymentStatus: 'PAID' as const,
     alreadyPaid: wasPaid,
   };
+}
+
+function isSuccessStickyOrderStatus(status: string): boolean {
+  return status === 'PAID' || status === 'REFUNDED' || status === 'PARTIALLY_REFUNDED';
+}
+
+function isSuccessStickyPaymentStatus(status: PaymentRecordStatus): boolean {
+  return status === PaymentRecordStatus.SUCCEEDED || status === PaymentRecordStatus.REFUNDED;
 }
 
 export async function finalizeFailedPayment(paymentIntent: Stripe.PaymentIntent) {
@@ -189,22 +273,160 @@ export async function finalizeFailedPayment(paymentIntent: Stripe.PaymentIntent)
   const failureReason =
     paymentIntent.last_payment_error?.message || 'Payment failed';
 
-  await prisma.payment.update({
-    where: { id: payment.id },
-    data: {
-      status: PaymentRecordStatus.FAILED,
-      failureReason,
-    },
+  // Same lock protocol as success so concurrent succeeded/failed cannot overwrite PAID.
+  return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`
+      SELECT p.id FROM "Payment" p
+      WHERE p.id = ${payment.id}
+      FOR UPDATE
+    `;
+    await tx.$executeRaw`
+      SELECT o.id FROM "Order" o
+      WHERE o.id = ${payment.orderId}
+      FOR UPDATE
+    `;
+
+    const locked = await tx.payment.findUnique({
+      where: { id: payment.id },
+      include: { order: true },
+    });
+    if (!locked) {
+      return { applied: false as const, reason: 'payment_not_found' as const };
+    }
+
+    if (
+      isSuccessStickyOrderStatus(locked.order.paymentStatus) ||
+      isSuccessStickyPaymentStatus(locked.status)
+    ) {
+      return {
+        applied: false as const,
+        reason: 'already_succeeded' as const,
+        orderId: locked.orderId,
+      };
+    }
+
+    await tx.payment.update({
+      where: { id: locked.id },
+      data: {
+        status: PaymentRecordStatus.FAILED,
+        failureReason,
+      },
+    });
+
+    await tx.order.update({
+      where: { id: locked.orderId },
+      data: {
+        paymentStatus: 'FAILED',
+      },
+    });
+
+    return { applied: true as const, orderId: locked.orderId };
+  });
+}
+
+/**
+ * Apply a Stripe charge.refunded event idempotently.
+ */
+export async function finalizeChargeRefunded(charge: Stripe.Charge) {
+  const transaction = await prisma.transaction.findFirst({
+    where: { stripeChargeId: charge.id },
+    include: { payment: true },
   });
 
-  await prisma.order.update({
-    where: { id: payment.orderId },
-    data: {
-      paymentStatus: 'FAILED',
-    },
+  if (!transaction) {
+    console.error('Transaction not found for charge:', charge.id);
+    return { applied: false as const, reason: 'charge_not_found' as const };
+  }
+
+  const totalRefunded = fromStripeAmount(charge.amount_refunded);
+  const totalAmount = transaction.payment.totalAmount;
+  const isFullRefund = totalRefunded >= totalAmount - 0.001;
+
+  const refundIds = (charge.refunds?.data ?? [])
+    .map((r) => r.id)
+    .filter((id): id is string => Boolean(id));
+
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`
+      SELECT id FROM "Payment" WHERE id = ${transaction.paymentId} FOR UPDATE
+    `;
+    await tx.$executeRaw`
+      SELECT id FROM "Order" WHERE id = ${transaction.payment.orderId} FOR UPDATE
+    `;
+
+    for (const refundId of refundIds) {
+      const existingRefund = await tx.transaction.findFirst({
+        where: { stripeRefundId: refundId },
+      });
+      if (existingRefund) {
+        continue;
+      }
+      const stripeRefund = charge.refunds?.data?.find((r) => r.id === refundId);
+      const refundAmount = stripeRefund
+        ? fromStripeAmount(stripeRefund.amount)
+        : totalRefunded;
+      try {
+        await tx.transaction.create({
+          data: {
+            paymentId: transaction.paymentId,
+            type: isFullRefund ? 'REFUND' : 'PARTIAL_REFUND',
+            amount: refundAmount,
+            status: stripeRefund?.status || 'succeeded',
+            stripeRefundId: refundId,
+            reason: 'Stripe charge.refunded',
+          },
+        });
+      } catch (error) {
+        if (
+          !(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+        ) {
+          throw error;
+        }
+      }
+    }
+
+    // If Stripe omitted refund list, still ensure a single synthetic refund row once.
+    if (refundIds.length === 0 && totalRefunded > 0) {
+      const anyRefund = await tx.transaction.findFirst({
+        where: {
+          paymentId: transaction.paymentId,
+          type: { in: ['REFUND', 'PARTIAL_REFUND'] },
+        },
+      });
+      if (!anyRefund) {
+        await tx.transaction.create({
+          data: {
+            paymentId: transaction.paymentId,
+            type: isFullRefund ? 'REFUND' : 'PARTIAL_REFUND',
+            amount: totalRefunded,
+            status: 'succeeded',
+            reason: 'Stripe charge.refunded',
+          },
+        });
+      }
+    }
+
+    await tx.payment.update({
+      where: { id: transaction.paymentId },
+      data: {
+        status: isFullRefund ? PaymentRecordStatus.REFUNDED : PaymentRecordStatus.SUCCEEDED,
+      },
+    });
+
+    await tx.order.update({
+      where: { id: transaction.payment.orderId },
+      data: {
+        paymentStatus: isFullRefund ? 'REFUNDED' : 'PARTIALLY_REFUNDED',
+        ...(isFullRefund ? { status: 'CANCELLED' as const } : {}),
+      },
+    });
   });
 
-  return { applied: true as const, orderId: payment.orderId };
+  return {
+    applied: true as const,
+    orderId: transaction.payment.orderId,
+    isFullRefund,
+  };
 }
 
 /**
@@ -228,12 +450,19 @@ export async function syncOrderPaymentFromStripe(
   if (!canAccess) {
     throw new AppError('Unauthorized', 403);
   }
-  if (order.paymentStatus === 'PAID') {
+  if (
+    order.paymentStatus === 'PAID' ||
+    order.paymentStatus === 'REFUNDED' ||
+    order.paymentStatus === 'PARTIALLY_REFUNDED'
+  ) {
     return {
       orderId,
-      paymentStatus: 'PAID' as const,
+      paymentStatus: order.paymentStatus,
       synced: false,
-      stripeStatus: 'succeeded' as const,
+      stripeStatus:
+        order.paymentStatus === 'PAID'
+          ? ('succeeded' as const)
+          : ('refunded' as const),
     };
   }
 

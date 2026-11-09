@@ -363,7 +363,7 @@ model Transaction {
   amount          Float
   status          String          // succeeded, pending, failed
   stripeChargeId  String?         @unique
-  stripeRefundId  String?
+  stripeRefundId  String?         @unique
   reason          String?
   metadata        Json?
   createdAt       DateTime        @default(now())
