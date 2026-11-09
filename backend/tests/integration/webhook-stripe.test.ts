@@ -379,6 +379,59 @@ describe('Stripe webhooks', () => {
     expect(refunds[0].stripeRefundId).toBe(refundId);
   });
 
+  it('payment_intent.succeeded after REFUNDED does not revive order to PAID', async () => {
+    const piId = `pi_wh_revive_${runId}`;
+    const { order, payment } = await seedUserAndPayment(piId);
+    const chargeId = piId.replace(/^pi_/, 'ch_');
+
+    await rawPost({
+      id: `evt_revive_ok_${runId}`,
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: piId,
+          amount: 999,
+          currency: 'usd',
+          metadata: { orderId: order.id },
+        },
+      },
+    }).expect(200);
+
+    await rawPost({
+      id: `evt_revive_ref_${runId}`,
+      type: 'charge.refunded',
+      data: {
+        object: {
+          id: chargeId,
+          amount: 999,
+          amount_refunded: 999,
+          refunds: {
+            data: [{ id: `re_revive_${runId}`, amount: 999, status: 'succeeded' }],
+          },
+        },
+      },
+    }).expect(200);
+
+    await rawPost({
+      id: `evt_revive_ok2_${runId}`,
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: piId,
+          amount: 999,
+          currency: 'usd',
+          metadata: { orderId: order.id },
+        },
+      },
+    }).expect(200);
+
+    const o = await prisma.order.findUnique({ where: { id: order.id } });
+    expect(o?.paymentStatus).toBe('REFUNDED');
+    expect(o?.status).toBe('CANCELLED');
+    const pay = await prisma.payment.findUnique({ where: { id: payment.id } });
+    expect(pay?.status).toBe(PaymentRecordStatus.REFUNDED);
+  });
+
   it('decline then succeeded retry marks PAID with a single CHARGE', async () => {
     const piId = `pi_wh_retry_${runId}`;
     const { order, payment } = await seedUserAndPayment(piId);
