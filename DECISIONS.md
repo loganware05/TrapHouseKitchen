@@ -107,11 +107,11 @@ Record architectural and process decisions here (ADR style).
 
 ### ADR-009: Non-prod password reset link exposure for smoke
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-11-11)
 - **Date:** 2026-09-03
-- **Context:** Soft-launch smoke of forgot/reset without Resend inbox.
-- **Decision:** When `NODE_ENV !== 'production'` and `SHOW_PASSWORD_RESET_LINK=1`, include `resetUrl` / `resetToken` in forgot-password JSON and show a copyable helper on the forgot-password page. Production never returns the link.
-- **Consequences:** Local/staging smoke without email; ops must never set the flag on Render production.
+- **Context:** Soft-launch smoke of forgot/reset without Resend inbox. Slice 18 staging keeps `NODE_ENV=production` for JWT fail-closed but still needs link smoke.
+- **Decision:** When `SHOW_PASSWORD_RESET_LINK=1` and (`NODE_ENV !== 'production'` **or** `APP_ENV=staging`), include `resetUrl` / `resetToken` in forgot-password JSON and show a copyable helper on the forgot-password page. Production Render must never set `APP_ENV=staging` or `SHOW_PASSWORD_RESET_LINK`.
+- **Consequences:** Local + staging Blueprint smoke without Resend; production remains closed.
 
 ---
 
@@ -174,3 +174,14 @@ Record architectural and process decisions here (ADR style).
 - **Consequences:** Duplicate Stripe deliveries and concurrent sync/fail races are safe; refund confirmation email remains deferred.
 
 ---
+
+### ADR-016: Staging uses a separate Render Blueprint file
+
+- **Status:** Accepted
+- **Date:** 2026-11-11
+- **Context:** Slice 18 needs a dedicated staging stack; putting staging services into production `render.yaml` risks syncing accidental changes into live services.
+- **Decision:** Keep production in `render.yaml`. Define staging as `render.staging.yaml` with distinct names (`traphousekitchen-*-staging`). Staging uses Stripe **test** keys only, `APP_ENV=staging`, and `SHOW_PASSWORD_RESET_LINK=1` while keeping `NODE_ENV=production`.
+- **Consequences:** Captain/ops create a second Blueprint pointing at `render.staging.yaml`; tear-down deletes only `*-staging` resources.
+
+---
+

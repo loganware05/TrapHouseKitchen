@@ -152,9 +152,13 @@ export async function requestPasswordReset(email: string): Promise<{
     console.warn('⚠️ Password reset email failed:', err);
   }
 
-  // Non-prod smoke helper only — never expose the raw link in production.
-  if (process.env.NODE_ENV !== 'production' && process.env.SHOW_PASSWORD_RESET_LINK === '1') {
-    return { resetUrl, resetToken: rawToken };
+  // Smoke helper: local/dev, or explicit staging (APP_ENV=staging). Never on production API.
+  if (process.env.SHOW_PASSWORD_RESET_LINK === '1') {
+    const isStaging = process.env.APP_ENV === 'staging';
+    const isNonProd = process.env.NODE_ENV !== 'production';
+    if (isStaging || isNonProd) {
+      return { resetUrl, resetToken: rawToken };
+    }
   }
 
   return {};

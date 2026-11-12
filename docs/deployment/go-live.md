@@ -2,7 +2,9 @@
 
 # 🚀 TrapHouse Kitchen - Go Live Action Plan
 
-**Pre-launch payment QA:** use Stripe **Test mode** (sandbox) keys locally — see `PROJECT_CONTEXT.md`. This checklist is for switching **production** to Live mode when ready for real customers.
+**Staging first (Slice 18):** provision and smoke the non-production stack per [staging.md](./staging.md) before treating a campus service night as ready. Staging uses Stripe **test** keys only.
+
+**Pre-launch payment QA:** use Stripe **Test mode** (sandbox) keys locally or on staging — see `PROJECT_CONTEXT.md`. This checklist is for switching **production** to Live mode when ready for real customers.
 
 ## ⚠️ IMPORTANT: This Requires YOUR Action
 

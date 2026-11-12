@@ -34,12 +34,13 @@ git push -u origin main
 2. **Create Blueprint:**
    - Click "New +" → "Blueprint"
    - Select your repository: `traphouse-kitchen`
-   - Render detects `render.yaml` automatically
+   - Render detects `render.yaml` automatically (**production** only)
    - Review resources created by the blueprint:
      - **`traphousekitchen-db`** — PostgreSQL (top-level `databases` in `render.yaml`; `DATABASE_URL` on the API is wired with `fromDatabase`)
      - **`traphousekitchen-api`** — Node backend
      - **`traphousekitchen-web`** — static frontend
    - Click "Create Services"
+   - **Staging:** create a **second** Blueprint pointing at [`render.staging.yaml`](../../render.staging.yaml) — see [staging.md](./staging.md). Never mix staging secrets into production services.
 
 3. **Configure environment variables (dashboard — required):**
 

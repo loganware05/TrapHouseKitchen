@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- Staging Blueprint `render.staging.yaml` (`traphousekitchen-*-staging`) and ops guide `docs/deployment/staging.md` (create / env / smoke / tear-down).
+- Password-reset smoke on staging: `SHOW_PASSWORD_RESET_LINK=1` with `APP_ENV=staging` even when `NODE_ENV=production` (never on production API).
+
 ### Security
 
 - Production rejects missing or default `JWT_SECRET` at API startup; JWT auth requires matching `tokenVersion` (claim-less tokens invalid).
@@ -15,6 +20,10 @@
 - Privacy Policy and Terms contact block uses real business address/phone/email.
 - README scripts match actual package manifests (no false root `npm test` / `npm start`).
 - CI: Vitest integration files run sequentially to avoid shared coupon-gateway races; JWT unit tests no longer reassign `process.env`; Playwright E2E job pinned to `ubuntu-24.04` (Playwright 1.58 lacks Chromium for Ubuntu 26.04).
+
+## [Slice 18] — 2026-11-11
+
+Staging rebuild in progress: separate Render Blueprint + docs; production `render.yaml` unchanged. Render service create remains Captain/ops (MCP unauthorized).
 
 ## [Slice 17 XRV reconcile] — 2026-11-11
 

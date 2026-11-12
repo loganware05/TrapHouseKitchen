@@ -1,6 +1,8 @@
 # Environment Variables for Render Deployment
 
-## After deploy: dashboard checklist
+**Staging:** use a separate Blueprint ([`render.staging.yaml`](../../render.staging.yaml)) and the checklist in [staging.md](./staging.md). Do not reuse production Stripe live keys, JWT, webhook secrets, or VAPID keys on staging.
+
+## After deploy: dashboard checklist (production)
 
 Do these in the Render Dashboard once `traphousekitchen-api`, `traphousekitchen-web`, and `traphousekitchen-db` exist.
 
