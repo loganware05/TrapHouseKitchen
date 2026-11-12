@@ -16,6 +16,14 @@
 - README scripts match actual package manifests (no false root `npm test` / `npm start`).
 - CI: Vitest integration files run sequentially to avoid shared coupon-gateway races; JWT unit tests no longer reassign `process.env`; Playwright E2E job pinned to `ubuntu-24.04` (Playwright 1.58 lacks Chromium for Ubuntu 26.04).
 
+## [Slice 17 XRV reconcile] — 2026-11-11
+
+Docs / evidence only (#36): align STATUS/PROGRESS with merged `a195175`; Pilot A evidence checklist; Chef password rotation attested. Does not claim production operational verification.
+
+## [Slice 17] — 2026-11-09
+
+Shipped on `main` via PR #35 (`a195175`): payment safety matrix (transactional finalize, sticky refunds, race/idempotency tests).
+
 ## [Slice 16] — 2026-11-06
 
 Shipped on `main` via PR #33 (`a3733be`): release-gap hardening toward campus service night NorthStar.

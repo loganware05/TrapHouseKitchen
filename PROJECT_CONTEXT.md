@@ -126,16 +126,16 @@ Optimize for a small concurrent user base (<200 community) rather than large-sca
 - Small community TAM (<200); product choices should favor reliability and local ops over multi-tenant scale
 - **Delivery is not modeled in the product today** — fulfilled soft-launch orders show ~5–10 minutes from “marked for delivery” to arrival; delivery status/ETA is a known product gap
 - Operating hours not built
-- Password reset, payment/webhook hardening, Capacitor iOS, and AI order attribution exist off `main` (see Current Priorities)
+- Capacitor iOS and AI order attribution remain off `main` (see Current Priorities); password reset + payment/webhook hardening are on `main` through Slice 17
 - Playwright E2E: job runs but many specs fail; CI treats E2E as non-blocking
 - Staging environment not currently available
 - Privacy/Terms contacts updated in Slice 16; re-verify copy before broader distribution
 
 ## Known Technical Debt
 
-- Production Chef account historically created by seed may still use the documented local default password — rotate immediately via `backend/scripts/set-user-password.ts` (see Slice 16 evidence)
+- Production Chef seed password: Captain attested rotation 2026-11-11; keep using `backend/scripts/set-user-password.ts` for future rotations (see Slice 16 evidence)
 - Playwright suite instability historically; CI E2E still `continue-on-error`
-- Soft-launch Stripe flows need full retest (Slice 17)
+- Slice 17 payment safety is **merged + CI-tested** on `main` (`a195175`); production/staging Stripe path still needs **operational** re-verify (deploy attestation + Slice 18 staging smoke)
 - Webhook refund confirmation email still TODO
 - Capacitor iOS remains on feature branch
 - Legacy `vercel.json` may confuse deploy tooling if not ignored
@@ -190,13 +190,14 @@ Node + local Postgres is acceptable when Docker is unavailable. See `docs/develo
 
 NorthStar: a repeatable campus service night (pay once → one paid Chef order → safe fulfillment → customer updates → reviews/coupons without leaks).
 
-1. **Slice 17 — prove payment safety** — decline/retry/refund/duplicate webhook/races with regression evidence (plan awaiting approval)
-2. **Ops:** confirm production Chef password rotated off seed default; confirm Render redeployed Slice 16 (no seed-on-start)
-3. **Staging rebuild** — separate DB + test Stripe + email/push smoke
+1. **Ops / XRV:** confirm Render deployed Slice 17 (`a195175`) + migration `20261109120000_unique_stripe_refund_id` (Chef password rotation attested 2026-11-11)
+2. **Slice 18 — staging rebuild** (plan queued / awaiting approval) — separate DB + Stripe test + smoke checklist
+3. **Pilot A operational verify** — staging payment safety smoke after Slice 18
 4. **Decisive CI** — stable core E2E blocking; upgrade Playwright ≥1.61 before `ubuntu-latest` / 26.04
 5. **Service operations** — hours, pause, limits, dish sellout
 6. **Delivery + ETA timestamps** — separate prep from travel/arrival
-7. **Engagement** — production Resend reset email; coupon/SMS decision; refund confirmation email if deferred from Slice 17
+7. **Engagement** — production Resend reset email; coupon/SMS decision; refund confirmation email
 8. **Capacitor iOS** (`feat/capacitor-ios-scaffold`) after web path is reliable
+9. Optional: Float→integer cents money migration
 
 Canonical ship status: always check `STATUS.md`.

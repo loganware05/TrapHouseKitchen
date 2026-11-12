@@ -160,8 +160,10 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 
 - Service: transactional `finalizeSuccessfulPayment` (FOR UPDATE); `finalizeChargeRefunded`; failed finalize does not downgrade PAID
 - Migration: `20261109120000_unique_stripe_refund_id`
-- Integration (`webhook-stripe.test.ts`): concurrent finalize; late `payment_failed` after PAID; idempotent `charge.refunded`; decline→retry
+- Integration (`webhook-stripe.test.ts`): concurrent finalize; late `payment_failed` after PAID; idempotent `charge.refunded`; decline→retry; sticky refund after REFUNDED
+- CI (source of truth for integration): main [run 42685302101](https://github.com/loganware05/TrapHouseKitchen/actions/runs/42685302101) on `a195175`; PR [run 42679402003](https://github.com/loganware05/TrapHouseKitchen/actions/runs/42679402003)
 - Evidence: `.agent/evidence/slice-17-payment-safety-20261109/`
+- XRV / Pilot A checklist: `.agent/evidence/slice-17-xrv-pilot-a-20261111/validation.md`
 
 ## Evidence location
 
