@@ -14,7 +14,7 @@ Dedicated non-production stack for Pilot A / XRV smoke. Separate from production
 
 - Stripe **test** keys only (`sk_test_` / `pk_test_` + test webhook secret). Never paste live keys.
 - Distinct `JWT_SECRET`, VAPID keys, and DB from production.
-- `APP_ENV=staging` + `SHOW_PASSWORD_RESET_LINK=1` are set in the staging blueprint so forgot-password can return a copyable `resetUrl` without Resend. **Never** set those on production `traphousekitchen-api`.
+- `APP_ENV=staging` + `SHOW_PASSWORD_RESET_LINK=1` are set in the staging blueprint. Forgot-password returns `resetUrl` **only** when the request also presents matching `PASSWORD_RESET_SMOKE_SECRET` (dashboard). **Never** set those on production `traphousekitchen-api`.
 - `NODE_ENV=production` remains set so JWT fail-closed behavior matches prod.
 
 ---
@@ -45,6 +45,7 @@ Production blueprint / services must remain untouched.
 | `NODE_ENV` | Blueprint | `production` |
 | `APP_ENV` | Blueprint | `staging` |
 | `SHOW_PASSWORD_RESET_LINK` | Blueprint | `1` |
+| `PASSWORD_RESET_SMOKE_SECRET` | Dashboard | Long random secret; required for resetUrl in API responses |
 | `FRONTEND_URL` | Dashboard | `https://traphousekitchen-web-staging.onrender.com` (no trailing slash) |
 | `STRIPE_SECRET_KEY` | Dashboard | `sk_test_…` |
 | `STRIPE_PUBLISHABLE_KEY` | Dashboard | `pk_test_…` |
@@ -73,7 +74,18 @@ Record results under `.agent/evidence/slice-18-staging-*/validation.md`.
 | 1 | `GET https://<api-staging>/health` | JSON healthy / DB OK |
 | 2 | Open staging web over HTTPS | App loads |
 | 3 | Register customer (or login) | Session works |
-| 4 | Forgot password (optional) | `resetUrl` returned / copyable; reset succeeds |
+| 4 | Forgot password (optional) | With header `X-Password-Reset-Smoke-Secret: <dashboard secret>`, JSON includes `resetUrl`; without header, no token; reset succeeds |
+
+Password-reset smoke (curl):
+
+```bash
+curl -sS -X POST "https://traphousekitchen-api-staging.onrender.com/api/auth/forgot-password" \
+  -H "Content-Type: application/json" \
+  -H "X-Password-Reset-Smoke-Secret: $PASSWORD_RESET_SMOKE_SECRET" \
+  -d '{"email":"your-staging-user@example.com"}'
+```
+
+Unauthenticated callers without the secret must receive the generic success message **without** `data.resetUrl` / `data.resetToken`.
 | 5 | Browse menu → add to cart → checkout | Totals sensible |
 | 6 | Pay with Stripe test card `4242…4242` | Confirmation; order **PAID** |
 | 7 | Decline card `4000…0002` or `4000…9995` | Error; cart/order not wrongly paid |

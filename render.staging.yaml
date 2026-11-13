@@ -27,6 +27,10 @@ services:
         value: staging
       - key: SHOW_PASSWORD_RESET_LINK
         value: "1"
+      # Required to receive resetUrl in forgot-password JSON on public staging.
+      # Set a long random value in the dashboard; pass as header X-Password-Reset-Smoke-Secret.
+      - key: PASSWORD_RESET_SMOKE_SECRET
+        sync: false
       - key: PORT
         value: 10000
       - key: DATABASE_URL

@@ -164,13 +164,15 @@ describe('Auth routes and role enforcement', () => {
     }
   });
 
-  it('POST /forgot-password includes resetUrl when APP_ENV=staging even if NODE_ENV=production', async () => {
+  it('POST /forgot-password includes resetUrl on staging only with matching smoke secret', async () => {
     const prevLink = process.env.SHOW_PASSWORD_RESET_LINK;
     const prevAppEnv = process.env.APP_ENV;
     const prevNodeEnv = process.env.NODE_ENV;
+    const prevSmoke = process.env.PASSWORD_RESET_SMOKE_SECRET;
     process.env.SHOW_PASSWORD_RESET_LINK = '1';
     process.env.APP_ENV = 'staging';
     process.env.NODE_ENV = 'production';
+    process.env.PASSWORD_RESET_SMOKE_SECRET = 'staging-smoke-secret';
     const spy = vi.spyOn(emailService, 'sendPasswordResetEmail').mockResolvedValue(true);
     const email = `integration-fp-staging-${runId}@example.com`;
 
@@ -180,8 +182,22 @@ describe('Auth routes and role enforcement', () => {
         .send({ email, password: 'secret12', name: 'FP Staging' })
         .expect(201);
 
+      const denied = await request(app)
+        .post('/api/auth/forgot-password')
+        .send({ email })
+        .expect(200);
+      expect(denied.body.data?.resetUrl).toBeUndefined();
+
+      const wrong = await request(app)
+        .post('/api/auth/forgot-password')
+        .set('X-Password-Reset-Smoke-Secret', 'wrong')
+        .send({ email })
+        .expect(200);
+      expect(wrong.body.data?.resetUrl).toBeUndefined();
+
       const res = await request(app)
         .post('/api/auth/forgot-password')
+        .set('X-Password-Reset-Smoke-Secret', 'staging-smoke-secret')
         .send({ email })
         .expect(200);
 
@@ -194,6 +210,46 @@ describe('Auth routes and role enforcement', () => {
       else process.env.APP_ENV = prevAppEnv;
       if (prevNodeEnv === undefined) delete process.env.NODE_ENV;
       else process.env.NODE_ENV = prevNodeEnv;
+      if (prevSmoke === undefined) delete process.env.PASSWORD_RESET_SMOKE_SECRET;
+      else process.env.PASSWORD_RESET_SMOKE_SECRET = prevSmoke;
+      spy.mockRestore();
+    }
+  });
+
+  it('POST /forgot-password omits resetUrl on staging when smoke secret env is unset', async () => {
+    const prevLink = process.env.SHOW_PASSWORD_RESET_LINK;
+    const prevAppEnv = process.env.APP_ENV;
+    const prevNodeEnv = process.env.NODE_ENV;
+    const prevSmoke = process.env.PASSWORD_RESET_SMOKE_SECRET;
+    process.env.SHOW_PASSWORD_RESET_LINK = '1';
+    process.env.APP_ENV = 'staging';
+    process.env.NODE_ENV = 'production';
+    delete process.env.PASSWORD_RESET_SMOKE_SECRET;
+    const spy = vi.spyOn(emailService, 'sendPasswordResetEmail').mockResolvedValue(true);
+    const email = `integration-fp-staging-nosec-${runId}@example.com`;
+
+    try {
+      await request(app)
+        .post('/api/auth/register')
+        .send({ email, password: 'secret12', name: 'FP Staging NoSec' })
+        .expect(201);
+
+      const res = await request(app)
+        .post('/api/auth/forgot-password')
+        .set('X-Password-Reset-Smoke-Secret', 'anything')
+        .send({ email })
+        .expect(200);
+
+      expect(res.body.data?.resetUrl).toBeUndefined();
+    } finally {
+      if (prevLink === undefined) delete process.env.SHOW_PASSWORD_RESET_LINK;
+      else process.env.SHOW_PASSWORD_RESET_LINK = prevLink;
+      if (prevAppEnv === undefined) delete process.env.APP_ENV;
+      else process.env.APP_ENV = prevAppEnv;
+      if (prevNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = prevNodeEnv;
+      if (prevSmoke === undefined) delete process.env.PASSWORD_RESET_SMOKE_SECRET;
+      else process.env.PASSWORD_RESET_SMOKE_SECRET = prevSmoke;
       spy.mockRestore();
     }
   });
@@ -202,9 +258,11 @@ describe('Auth routes and role enforcement', () => {
     const prevLink = process.env.SHOW_PASSWORD_RESET_LINK;
     const prevAppEnv = process.env.APP_ENV;
     const prevNodeEnv = process.env.NODE_ENV;
+    const prevSmoke = process.env.PASSWORD_RESET_SMOKE_SECRET;
     process.env.SHOW_PASSWORD_RESET_LINK = '1';
     delete process.env.APP_ENV;
     process.env.NODE_ENV = 'production';
+    process.env.PASSWORD_RESET_SMOKE_SECRET = 'should-not-matter';
     const spy = vi.spyOn(emailService, 'sendPasswordResetEmail').mockResolvedValue(true);
     const email = `integration-fp-prod-${runId}@example.com`;
 
@@ -216,6 +274,7 @@ describe('Auth routes and role enforcement', () => {
 
       const res = await request(app)
         .post('/api/auth/forgot-password')
+        .set('X-Password-Reset-Smoke-Secret', 'should-not-matter')
         .send({ email })
         .expect(200);
 
@@ -228,6 +287,8 @@ describe('Auth routes and role enforcement', () => {
       else process.env.APP_ENV = prevAppEnv;
       if (prevNodeEnv === undefined) delete process.env.NODE_ENV;
       else process.env.NODE_ENV = prevNodeEnv;
+      if (prevSmoke === undefined) delete process.env.PASSWORD_RESET_SMOKE_SECRET;
+      else process.env.PASSWORD_RESET_SMOKE_SECRET = prevSmoke;
       spy.mockRestore();
     }
   });

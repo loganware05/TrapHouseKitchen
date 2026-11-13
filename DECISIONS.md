@@ -107,11 +107,11 @@ Record architectural and process decisions here (ADR style).
 
 ### ADR-009: Non-prod password reset link exposure for smoke
 
-- **Status:** Accepted (amended 2026-11-11)
+- **Status:** Accepted (amended 2026-11-12)
 - **Date:** 2026-09-03
-- **Context:** Soft-launch smoke of forgot/reset without Resend inbox. Slice 18 staging keeps `NODE_ENV=production` for JWT fail-closed but still needs link smoke.
-- **Decision:** When `SHOW_PASSWORD_RESET_LINK=1` and (`NODE_ENV !== 'production'` **or** `APP_ENV=staging`), include `resetUrl` / `resetToken` in forgot-password JSON and show a copyable helper on the forgot-password page. Production Render must never set `APP_ENV=staging` or `SHOW_PASSWORD_RESET_LINK`.
-- **Consequences:** Local + staging Blueprint smoke without Resend; production remains closed.
+- **Context:** Soft-launch smoke of forgot/reset without Resend inbox. Slice 18 staging keeps `NODE_ENV=production` for JWT fail-closed but still needs link smoke. Public staging must not return tokens to anonymous callers who know an email.
+- **Decision:** When `SHOW_PASSWORD_RESET_LINK=1` and (`NODE_ENV !== 'production'` **or** `APP_ENV=staging`), may include `resetUrl` / `resetToken` in forgot-password JSON. **Staging always requires** `PASSWORD_RESET_SMOKE_SECRET` and a matching `X-Password-Reset-Smoke-Secret` header (or body `smokeSecret`), compared with `timingSafeEqual`. Local/dev may omit the secret env for DX; if set, it is required. Production Render must never set `APP_ENV=staging`, `SHOW_PASSWORD_RESET_LINK`, or `PASSWORD_RESET_SMOKE_SECRET`.
+- **Consequences:** Anonymous staging callers cannot obtain reset tokens; Captain/ops smoke uses a dashboard secret + curl/header.
 
 ---
 

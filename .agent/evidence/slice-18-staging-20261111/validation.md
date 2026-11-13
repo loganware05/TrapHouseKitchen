@@ -13,8 +13,8 @@ Rollback: `checkpoint/staging-rebuild-2026-11-11` → `3ba1506`
 | Production `render.yaml` untouched | Yes |
 | `docs/deployment/staging.md` create/env/smoke/tear-down | Added |
 | ADR-009 amend + ADR-016 | Updated |
-| `SHOW_PASSWORD_RESET_LINK` + `APP_ENV=staging` gate | Implemented |
-| Auth integration tests (staging expose / prod omit) | Added |
+| `SHOW_PASSWORD_RESET_LINK` + `APP_ENV=staging` gate | Implemented; staging requires `PASSWORD_RESET_SMOKE_SECRET` (security review medium) |
+| Auth integration tests (staging expose / prod omit) | Added / updated for smoke-secret gate |
 | `scripts/grep-migrate-deploy.mjs` includes staging blueprint | Updated |
 
 ## Commands (agent)

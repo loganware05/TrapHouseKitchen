@@ -5,7 +5,7 @@
 ### Added
 
 - Staging Blueprint `render.staging.yaml` (`traphousekitchen-*-staging`) and ops guide `docs/deployment/staging.md` (create / env / smoke / tear-down).
-- Password-reset smoke on staging: `SHOW_PASSWORD_RESET_LINK=1` with `APP_ENV=staging` even when `NODE_ENV=production` (never on production API).
+- Password-reset smoke on staging: `SHOW_PASSWORD_RESET_LINK=1` with `APP_ENV=staging` even when `NODE_ENV=production`, gated by `PASSWORD_RESET_SMOKE_SECRET` + request header (never on production API).
 
 ### Security
 

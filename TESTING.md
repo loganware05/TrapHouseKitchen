@@ -169,8 +169,8 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 
 - Blueprint: `render.staging.yaml` (separate from production `render.yaml`)
 - Ops: [docs/deployment/staging.md](docs/deployment/staging.md) — create, env matrix, smoke, tear-down
-- Auth: `SHOW_PASSWORD_RESET_LINK=1` + `APP_ENV=staging` returns forgot-password `resetUrl` even when `NODE_ENV=production`; plain production still omits it
-- Integration: `auth-routes.test.ts` staging vs production reset-link cases
+- Auth: staging returns forgot-password `resetUrl` only with `SHOW_PASSWORD_RESET_LINK=1` + `APP_ENV=staging` + matching `PASSWORD_RESET_SMOKE_SECRET` header; plain production still omits it
+- Integration: `auth-routes.test.ts` staging smoke-secret / prod omit cases
 - Evidence: `.agent/evidence/slice-18-staging-20261111/`
 
 ## Evidence location

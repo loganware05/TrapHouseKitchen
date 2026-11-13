@@ -95,7 +95,14 @@ router.post(
         throw new AppError('Validation failed', 400);
       }
       const { email } = req.body;
-      const linkPayload = await requestPasswordReset(email);
+      const smokeSecretHeader = req.get('x-password-reset-smoke-secret');
+      const smokeSecret =
+        typeof smokeSecretHeader === 'string' && smokeSecretHeader.length > 0
+          ? smokeSecretHeader
+          : typeof req.body?.smokeSecret === 'string'
+            ? req.body.smokeSecret
+            : undefined;
+      const linkPayload = await requestPasswordReset(email, { smokeSecret });
       const resetUrl = linkPayload.resetUrl;
       res.json({
         status: 'success',
