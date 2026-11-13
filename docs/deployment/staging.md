@@ -24,6 +24,7 @@ Dedicated non-production stack for Pilot A / XRV smoke. Separate from production
 1. Render Dashboard → **New** → **Blueprint**.
 2. Select this repo. Set blueprint path to **`render.staging.yaml`** (not `render.yaml`).
 3. Review resources (`*-staging` only). Create services.
+   - If validation fails with `static sites cannot have a region`, ensure the static service has **no** `region` key (fixed in repo; pull latest `main` / PR branch).
 4. After services exist, set dashboard env (see [env matrix](#env-matrix)).
 5. Deploy API first; wait for `/health`. Then set `VITE_*` on the static site and **redeploy** the static service.
 6. Stripe Dashboard (test mode): add webhook `https://traphousekitchen-api-staging.onrender.com/api/webhooks/stripe` for `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled`, `charge.refunded`. Paste `whsec_…` into staging API.

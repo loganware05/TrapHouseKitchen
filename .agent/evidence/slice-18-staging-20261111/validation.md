@@ -9,7 +9,7 @@ Rollback: `checkpoint/staging-rebuild-2026-11-11` → `3ba1506`
 
 | Item | Status |
 |------|--------|
-| `render.staging.yaml` (`*-staging` DB/API/web) | Added |
+| `render.staging.yaml` (`*-staging` DB/API/web) | Added; removed illegal `region` on static site (Render validation) |
 | Production `render.yaml` untouched | Yes |
 | `docs/deployment/staging.md` create/env/smoke/tear-down | Added |
 | ADR-009 amend + ADR-016 | Updated |

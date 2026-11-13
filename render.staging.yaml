@@ -73,7 +73,7 @@ services:
   - type: web
     name: traphousekitchen-web-staging
     runtime: static
-    region: virginia
+    # Static sites cannot set region (Render Blueprint validation).
     buildCommand: npm install --prefix frontend && npm run build --prefix frontend
     staticPublishPath: frontend/dist
     pullRequestPreviewsEnabled: false
