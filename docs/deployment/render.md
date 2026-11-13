@@ -171,7 +171,8 @@ To bootstrap allergens/categories on a fresh database intentionally:
 3. Run (requires explicit opt-in in production):
    ```bash
    cd backend
-   ALLOW_PRODUCTION_SEED=1 SEED_CHEF=0 npm run prisma:seed
+   # tsx is not in production node_modules; npx fetches it for one-shot use
+   ALLOW_PRODUCTION_SEED=1 SEED_CHEF=0 npx --yes tsx prisma/seed.ts
    ```
 
 To rotate a user password from shell (after setting a strong password in the environment for the command only):

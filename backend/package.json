@@ -13,7 +13,7 @@
     "prisma:fix-migrations-dir": "node scripts/check-migrations-layout.mjs --fix && node scripts/check-migrations-layout.mjs",
     "prisma:migrate": "node scripts/check-migrations-layout.mjs && prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:seed": "npx --yes tsx prisma/seed.ts",
     "migrate:add-order-fields": "tsx scripts/add-order-fields-migration.ts",
     "test": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
@@ -28,7 +28,7 @@
     "test:e2e": "cd .. && npx playwright test"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "npx --yes tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

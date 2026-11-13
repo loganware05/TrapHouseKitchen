@@ -6,28 +6,30 @@
 
 Slice **17** merged (PR #35 / `a195175`). XRV docs reconcile shipped (PR #37 / `3ba1506`). Issue #36 closed.
 
-**Active plan:** Slice 18 — recreate staging — **APPROVED** (issue [#38](https://github.com/loganware05/TrapHouseKitchen/issues/38), branch `chore/local-staging-rebuild`). Rollback: `checkpoint/staging-rebuild-2026-11-11`.
+**Active plan:** Slice 18 staging smoke / ops closeout after PR [#39](https://github.com/loganware05/TrapHouseKitchen/pull/39) (`c65d186`). Rollback: `checkpoint/staging-rebuild-2026-11-11`.
 
 ## Completed
 
 - Slices 1–17 code + Slice 17 XRV docs (PRs #15–#37)
+- Slice 18 in-repo Blueprint + ops docs shipped (PR #39)
 - Captain attested production Chef password rotation (2026-11-11)
+- Staging Blueprint provisioned; API health + web load + register + reset-secret gate smoked (2026-11-13)
 
-## In progress (Slice 18)
+## In progress (Slice 18 ops)
 
-- Separate `render.staging.yaml` Blueprint (`*-staging` DB/API/web)
-- Staging ops guide + smoke checklist (`docs/deployment/staging.md`)
-- `APP_ENV=staging` password-reset smoke gate (ADR-009 amend)
-- Evidence package for Captain Render create + Pilot A smoke
+- Fix staging `FRONTEND_URL` / `VITE_API_URL` (currently point at production)
+- Seed staging menu + Chef; finish payment + Chef pipeline smoke
+- Evidence: `.agent/evidence/slice-18-staging-smoke-20261113/`
 
 ## Next
 
-1. Merge Slice 18 PR; Captain creates Render Blueprint from `render.staging.yaml`
-2. Staging smoke (customer → Chef + test Stripe)
-3. Attest production deploy of payment-safety SHA if not already
+1. Captain corrects staging env vars + redeploy static
+2. Seed staging (or create Chef/dishes); rotate staging Chef password
+3. Re-run full smoke steps 5–10
 4. Slice 19 — decisive CI / Playwright ≥1.61
 
 ## Blockers
 
-- Render MCP unauthorized — staging services require Captain/dashboard create
+- Staging CORS / frontend API base miswired to production hosts
+- Empty staging menu; no usable Chef credentials
 - Production deploy SHA attestation still open for XRV
