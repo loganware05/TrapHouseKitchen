@@ -107,11 +107,11 @@ Record architectural and process decisions here (ADR style).
 
 ### ADR-009: Non-prod password reset link exposure for smoke
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-11-12)
 - **Date:** 2026-09-03
-- **Context:** Soft-launch smoke of forgot/reset without Resend inbox.
-- **Decision:** When `NODE_ENV !== 'production'` and `SHOW_PASSWORD_RESET_LINK=1`, include `resetUrl` / `resetToken` in forgot-password JSON and show a copyable helper on the forgot-password page. Production never returns the link.
-- **Consequences:** Local/staging smoke without email; ops must never set the flag on Render production.
+- **Context:** Soft-launch smoke of forgot/reset without Resend inbox. Slice 18 staging keeps `NODE_ENV=production` for JWT fail-closed but still needs link smoke. Public staging must not return tokens to anonymous callers who know an email.
+- **Decision:** When `SHOW_PASSWORD_RESET_LINK=1` and (`NODE_ENV !== 'production'` **or** `APP_ENV=staging`), may include `resetUrl` / `resetToken` in forgot-password JSON. **Staging always requires** `PASSWORD_RESET_SMOKE_SECRET` and a matching `X-Password-Reset-Smoke-Secret` header (or body `smokeSecret`), compared with `timingSafeEqual`. Local/dev may omit the secret env for DX; if set, it is required. Production Render must never set `APP_ENV=staging`, `SHOW_PASSWORD_RESET_LINK`, or `PASSWORD_RESET_SMOKE_SECRET`.
+- **Consequences:** Anonymous staging callers cannot obtain reset tokens; Captain/ops smoke uses a dashboard secret + curl/header.
 
 ---
 
@@ -174,3 +174,14 @@ Record architectural and process decisions here (ADR style).
 - **Consequences:** Duplicate Stripe deliveries and concurrent sync/fail races are safe; refund confirmation email remains deferred.
 
 ---
+
+### ADR-016: Staging uses a separate Render Blueprint file
+
+- **Status:** Accepted
+- **Date:** 2026-11-11
+- **Context:** Slice 18 needs a dedicated staging stack; putting staging services into production `render.yaml` risks syncing accidental changes into live services.
+- **Decision:** Keep production in `render.yaml`. Define staging as `render.staging.yaml` with distinct names (`traphousekitchen-*-staging`). Staging uses Stripe **test** keys only, `APP_ENV=staging`, and `SHOW_PASSWORD_RESET_LINK=1` while keeping `NODE_ENV=production`.
+- **Consequences:** Captain/ops create a second Blueprint pointing at `render.staging.yaml`; tear-down deletes only `*-staging` resources.
+
+---
+

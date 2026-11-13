@@ -59,4 +59,6 @@ export const forgotPasswordLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // Vitest shares one IP across many forgot-password cases; keep prod/staging limits real.
+  skip: () => process.env.VITEST === 'true',
 });

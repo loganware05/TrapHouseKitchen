@@ -4,34 +4,30 @@
 
 **NorthStar:** repeatable campus service night.
 
-Slice **17** **merged** on `main` via PR [#35](https://github.com/loganware05/TrapHouseKitchen/pull/35) (`a195175`). Issue [#34](https://github.com/loganware05/TrapHouseKitchen/issues/34) closed. Rollback tag: `checkpoint/payment-safety-2026-11-06`.
+Slice **17** merged (PR #35 / `a195175`). XRV docs reconcile shipped (PR #37 / `3ba1506`). Issue #36 closed.
 
-**Active plan:** Slice 17 XRV status reconcile — **APPROVED** (issue [#36](https://github.com/loganware05/TrapHouseKitchen/issues/36), branch `docs/local-slice-17-xrv-reconcile`).
-
-**Queued:** Slice 18 — recreate staging — **AWAITING APPROVAL**.
+**Active plan:** Slice 18 — recreate staging — **APPROVED** (issue [#38](https://github.com/loganware05/TrapHouseKitchen/issues/38), branch `chore/local-staging-rebuild`). Rollback: `checkpoint/staging-rebuild-2026-11-11`.
 
 ## Completed
 
-- Slices 1–17 code shipped (PRs #15–#35)
-- Slice 17: race-safe payment finalize, refund sticky/idempotent, decline→retry matrix, CI single-worker for gateway races
+- Slices 1–17 code + Slice 17 XRV docs (PRs #15–#37)
 - Captain attested production Chef password rotation (2026-11-11)
 
-## In progress (XRV reconcile)
+## In progress (Slice 18)
 
-- Align STATUS / PROGRESS / CHANGELOG / PROJECT_CONTEXT / TESTING to `a195175`
-- Pilot A evidence checklist under `.agent/evidence/slice-17-xrv-pilot-a-20261111/`
-- Docs PR for #36
+- Separate `render.staging.yaml` Blueprint (`*-staging` DB/API/web)
+- Staging ops guide + smoke checklist (`docs/deployment/staging.md`)
+- `APP_ENV=staging` password-reset smoke gate (ADR-009 amend)
+- Evidence package for Captain Render create + Pilot A smoke
 
 ## Next
 
-1. Merge docs reconcile PR (#36)
-2. Captain/ops attest Render deploy of `a195175` + refund-id migration
-3. Captain approves Slice 18 staging rebuild
-4. Pilot A sandbox smoke on staging
-5. Slice 19 — decisive CI / Playwright ≥1.61
+1. Merge Slice 18 PR; Captain creates Render Blueprint from `render.staging.yaml`
+2. Staging smoke (customer → Chef + test Stripe)
+3. Attest production deploy of payment-safety SHA if not already
+4. Slice 19 — decisive CI / Playwright ≥1.61
 
-## Blockers (operational verification)
+## Blockers
 
-- Render deploy SHA for `a195175` unverified (Render MCP unauthorized in discovery)
-- Staging environment absent (Slice 18)
-- Live Stripe path re-verify deferred until staging/pilot env
+- Render MCP unauthorized — staging services require Captain/dashboard create
+- Production deploy SHA attestation still open for XRV

@@ -82,10 +82,10 @@ Near-term operational success: complete pre-launch verification (soft launch alr
 | Environment | Status |
 |-------------|--------|
 | Local | Active (Docker Compose preferred) |
-| Staging | Stale — last used ~3 months ago, before recent repo changes; treat as unavailable until recreated |
+| Staging | Slice 18 rebuild — Blueprint in `render.staging.yaml`; services created by Captain/ops (not yet assumed live) |
 | Production | Soft-launched / previously live on Render; must re-verify Stripe and critical flows after recent merges before pre-launch |
 
-Default working assumption: **local + production only** until staging is intentionally rebuilt.
+Default working assumption: **local + production**, plus **staging** once the staging Blueprint is created and smoked.
 
 ## Deployment Targets
 
@@ -128,7 +128,7 @@ Optimize for a small concurrent user base (<200 community) rather than large-sca
 - Operating hours not built
 - Capacitor iOS and AI order attribution remain off `main` (see Current Priorities); password reset + payment/webhook hardening are on `main` through Slice 17
 - Playwright E2E: job runs but many specs fail; CI treats E2E as non-blocking
-- Staging environment not currently available
+- Staging Blueprint defined in-repo (`render.staging.yaml`); Render services may still need Captain create/smoke
 - Privacy/Terms contacts updated in Slice 16; re-verify copy before broader distribution
 
 ## Known Technical Debt
@@ -190,9 +190,9 @@ Node + local Postgres is acceptable when Docker is unavailable. See `docs/develo
 
 NorthStar: a repeatable campus service night (pay once → one paid Chef order → safe fulfillment → customer updates → reviews/coupons without leaks).
 
-1. **Ops / XRV:** confirm Render deployed Slice 17 (`a195175`) + migration `20261109120000_unique_stripe_refund_id` (Chef password rotation attested 2026-11-11)
-2. **Slice 18 — staging rebuild** (plan queued / awaiting approval) — separate DB + Stripe test + smoke checklist
-3. **Pilot A operational verify** — staging payment safety smoke after Slice 18
+1. **Slice 18 — staging rebuild** — create Render Blueprint from `render.staging.yaml`; run smoke checklist ([docs/deployment/staging.md](docs/deployment/staging.md))
+2. **Ops / XRV:** confirm production Render deployed Slice 17 (`a195175`) + migration `20261109120000_unique_stripe_refund_id` (Chef password rotation attested 2026-11-11)
+3. **Pilot A operational verify** — staging payment safety smoke
 4. **Decisive CI** — stable core E2E blocking; upgrade Playwright ≥1.61 before `ubuntu-latest` / 26.04
 5. **Service operations** — hours, pause, limits, dish sellout
 6. **Delivery + ETA timestamps** — separate prep from travel/arrival

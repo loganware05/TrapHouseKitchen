@@ -165,6 +165,14 @@ Latest: **3/3 passed** with local sandbox Stripe keys via `/api/payment/config`.
 - Evidence: `.agent/evidence/slice-17-payment-safety-20261109/`
 - XRV / Pilot A checklist: `.agent/evidence/slice-17-xrv-pilot-a-20261111/validation.md`
 
+### Slice 18 — staging rebuild
+
+- Blueprint: `render.staging.yaml` (separate from production `render.yaml`)
+- Ops: [docs/deployment/staging.md](docs/deployment/staging.md) — create, env matrix, smoke, tear-down
+- Auth: staging returns forgot-password `resetUrl` only with `SHOW_PASSWORD_RESET_LINK=1` + `APP_ENV=staging` + matching `PASSWORD_RESET_SMOKE_SECRET` header; plain production still omits it
+- Integration: `auth-routes.test.ts` staging smoke-secret / prod omit cases
+- Evidence: `.agent/evidence/slice-18-staging-20261111/`
+
 ## Evidence location
 
 `.agent/evidence/apple-pay-first-20260815/`

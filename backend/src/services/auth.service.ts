@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { timingSafeEqual } from 'crypto';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { getJwtSecret } from '../lib/jwtConfig';
@@ -11,6 +12,39 @@ import {
 } from '../lib/passwordResetToken';
 
 const JWT_EXPIRES = process.env.JWT_EXPIRES_IN || '7d';
+
+function smokeSecretsMatch(expected: string, provided: string | undefined): boolean {
+  if (!provided) return false;
+  const a = Buffer.from(expected, 'utf8');
+  const b = Buffer.from(provided, 'utf8');
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+/**
+ * Whether forgot-password may return resetUrl/resetToken in the JSON body.
+ * Staging (APP_ENV=staging) always requires PASSWORD_RESET_SMOKE_SECRET + matching
+ * request secret. Local/dev may omit the env secret for DX; if set, it is required.
+ * Production (no APP_ENV=staging) never exposes the link.
+ */
+export function canExposePasswordResetLink(providedSmokeSecret?: string): boolean {
+  if (process.env.SHOW_PASSWORD_RESET_LINK !== '1') return false;
+
+  const isStaging = process.env.APP_ENV === 'staging';
+  const isNonProd = process.env.NODE_ENV !== 'production';
+  if (!isStaging && !isNonProd) return false;
+
+  const expected = process.env.PASSWORD_RESET_SMOKE_SECRET?.trim();
+  if (isStaging) {
+    if (!expected) return false;
+    return smokeSecretsMatch(expected, providedSmokeSecret);
+  }
+
+  if (expected) {
+    return smokeSecretsMatch(expected, providedSmokeSecret);
+  }
+  return true;
+}
 
 export type AuthTokenPayload = {
   id: string;
@@ -105,7 +139,10 @@ export async function loginUser(email: string, password: string) {
   };
 }
 
-export async function requestPasswordReset(email: string): Promise<{
+export async function requestPasswordReset(
+  email: string,
+  options?: { smokeSecret?: string }
+): Promise<{
   resetUrl?: string;
   resetToken?: string;
 }> {
@@ -152,8 +189,7 @@ export async function requestPasswordReset(email: string): Promise<{
     console.warn('⚠️ Password reset email failed:', err);
   }
 
-  // Non-prod smoke helper only — never expose the raw link in production.
-  if (process.env.NODE_ENV !== 'production' && process.env.SHOW_PASSWORD_RESET_LINK === '1') {
+  if (canExposePasswordResetLink(options?.smokeSecret)) {
     return { resetUrl, resetToken: rawToken };
   }
 

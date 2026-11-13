@@ -9,7 +9,12 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
-const files = ['docker-compose.yml', 'docker-compose.dev.yml', 'render.yaml'];
+const files = [
+  'docker-compose.yml',
+  'docker-compose.dev.yml',
+  'render.yaml',
+  'render.staging.yaml',
+];
 
 let matched = false;
 let anyFile = false;
