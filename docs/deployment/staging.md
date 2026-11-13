@@ -28,7 +28,20 @@ Dedicated non-production stack for Pilot A / XRV smoke. Separate from production
 4. After services exist, set dashboard env (see [env matrix](#env-matrix)).
 5. Deploy API first; wait for `/health`. Then set `VITE_*` on the static site and **redeploy** the static service.
 6. Stripe Dashboard (test mode): add webhook `https://traphousekitchen-api-staging.onrender.com/api/webhooks/stripe` for `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled`, `charge.refunded`. Paste `whsec_…` into staging API.
-7. Optional once: Render Shell on API → `cd backend && npm run prisma:seed` (creates local-style Chef — rotate that staging Chef password immediately).
+7. Optional once: seed allergens/categories/Chef from **Render Shell** on `traphousekitchen-api-staging`.
+   Render production images do **not** include `tsx` (devDependency), and `NODE_ENV=production` refuses seed without opt-in.
+   Use:
+
+   ```bash
+   cd backend
+   ALLOW_PRODUCTION_SEED=1 \
+   SEED_CHEF_PASSWORD='choose-a-strong-staging-only-password' \
+   npx --yes tsx prisma/seed.ts
+   ```
+
+   Or: `ALLOW_PRODUCTION_SEED=1 SEED_CHEF_PASSWORD='…' npm run prisma:seed` (script now uses `npx --yes tsx`).
+
+   This seed does **not** create menu dishes — after Chef login, add at least one Available dish in the Chef UI (or we can run a follow-up dish bootstrap).
 
 Production blueprint / services must remain untouched.
 
