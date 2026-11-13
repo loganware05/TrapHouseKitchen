@@ -1,0 +1,76 @@
+{
+  "dish": "existing:c85010bc-67fd-4925-93b9-bb59fbd1ff68:Smoke Test Bowl",
+  "dishes_count": 1,
+  "checkout_success": {
+    "http": 201,
+    "order_id": "6a3c1265-1892-442a-b65f-cbff97e80440",
+    "pi": "pi_3UbSCh3HCUaM188q0j9AdzzC"
+  },
+  "confirm_success": {
+    "http": 200,
+    "status": "succeeded",
+    "pi": "pi_3UbSCh3HCUaM188q0j9AdzzC"
+  },
+  "sync": {
+    "http": 200,
+    "data": {
+      "orderId": "6a3c1265-1892-442a-b65f-cbff97e80440",
+      "paymentStatus": "PAID",
+      "synced": true,
+      "stripeStatus": "succeeded"
+    }
+  },
+  "order_paid": {
+    "paymentStatus": "PAID",
+    "status": "PENDING"
+  },
+  "confirm_decline": {
+    "http": 402,
+    "status": null,
+    "error_code": "card_declined",
+    "pi_status": "requires_payment_method"
+  },
+  "order_declined": {
+    "paymentStatus": "PENDING",
+    "status": "PENDING",
+    "not_paid": true
+  },
+  "chef_pipeline": [
+    {
+      "http": 200,
+      "want": "PREPARING",
+      "got": "PREPARING",
+      "paymentStatus": "PAID"
+    },
+    {
+      "http": 200,
+      "want": "READY",
+      "got": "READY",
+      "paymentStatus": "PAID"
+    },
+    {
+      "http": 200,
+      "want": "OUT_FOR_DELIVERY",
+      "got": "OUT_FOR_DELIVERY",
+      "paymentStatus": "PAID"
+    },
+    {
+      "http": 200,
+      "want": "COMPLETED",
+      "got": "COMPLETED",
+      "paymentStatus": "PAID"
+    }
+  ],
+  "customer_final": {
+    "status": "COMPLETED",
+    "paymentStatus": "PAID"
+  },
+  "stripe_dashboard_pi": {
+    "http": 200,
+    "id": "pi_3UbSCh3HCUaM188q0j9AdzzC",
+    "amount": 1350,
+    "status": "succeeded",
+    "livemode": false,
+    "metadata_orderId": "6a3c1265-1892-442a-b65f-cbff97e80440"
+  }
+}

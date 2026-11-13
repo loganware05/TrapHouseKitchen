@@ -13,12 +13,12 @@ Hosts:
 | 2 | Staging web HTTPS loads | **PASS** | HTTP 200 HTML shell + `/assets/main-*.js` |
 | 3 | Register customer | **PASS** (API) | `POST /api/auth/register` → success + JWT (`smoke-1794604662@example.com`) |
 | 4 | Forgot-password smoke secret gate | **PASS** | Without header: no `resetUrl`. With `X-Password-Reset-Smoke-Secret`: `resetUrl` + `resetToken` present. **Note:** returned `resetUrl` host is still production web (see blockers). |
-| 5 | Browse menu → cart → checkout | **BLOCKED** | `GET /api/dishes` → `dishes: []`. Staging DB has no menu. Also browser CORS miswired (below). |
-| 6 | Pay test card `4242…` | **BLOCKED** | Needs dishes + correct frontend→API wiring |
-| 7 | Decline card | **BLOCKED** | Same |
-| 8 | Chef login sees paid order | **BLOCKED** | `POST /api/auth/login` `chef@traphouse.com` / seed-style password → `Invalid credentials` (unseeded or password unknown) |
-| 9 | Chef status advances | **BLOCKED** | Depends on #8 + paid order |
-| 10 | Stripe Dashboard PI match | **PARTIAL** | API `/api/payment/config`: `publishableKeyMode=test`, `secretKeyMode=test`, `keysAligned=true` — good. No PI created yet. |
+| 5 | Browse menu → cart → checkout | **PASS (API)** | Chef dish created; checkout 201. See `steps-5-10.md`. Browser still blocked by env. |
+| 6 | Pay test card success | **PASS (API)** | Stripe test confirm `pm_card_visa` → PAID |
+| 7 | Decline card | **PASS (API)** | `pm_card_chargeDeclined` → not PAID |
+| 8 | Chef login sees paid order | **PASS** | Seeded `chef@traphouse.com` + pipeline on PAID order |
+| 9 | Chef status advances | **PASS** | Through COMPLETED |
+| 10 | Stripe Dashboard PI match | **PASS** | Test PI succeeded, amount/metadata match |
 
 ## Config findings (must fix before re-smoke)
 
