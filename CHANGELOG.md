@@ -21,9 +21,9 @@
 - README scripts match actual package manifests (no false root `npm test` / `npm start`).
 - CI: Vitest integration files run sequentially to avoid shared coupon-gateway races; JWT unit tests no longer reassign `process.env`; Playwright E2E job pinned to `ubuntu-24.04` (Playwright 1.58 lacks Chromium for Ubuntu 26.04).
 
-## [Slice 18] — 2026-11-11
+## [Slice 18] — 2026-11-13
 
-Staging rebuild in progress: separate Render Blueprint + docs; production `render.yaml` unchanged. Render service create remains Captain/ops (MCP unauthorized).
+Staging stack shipped and smoked: Blueprint PR #39; smoke evidence PR #40 (`a81e205`). Staging API customer→pay→Chef path verified; browser register→cart→Stripe Payment Element (test) verified. Production `render.yaml` unchanged.
 
 ## [Slice 17 XRV reconcile] — 2026-11-11
 
