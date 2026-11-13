@@ -1,0 +1,6 @@
+API ACAO header observed: https://traphousekitchen-web.onrender.com
+Staging web Origin: https://traphousekitchen-web-staging.onrender.com
+Static bundle API base observed: https://traphousekitchen-api.onrender.com/api
+Payment config: keysAligned=true, both modes=test
+Dishes count: 0
+Chef seed login: Invalid credentials
