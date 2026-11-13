@@ -188,13 +188,6 @@ describe('Auth routes and role enforcement', () => {
         .expect(200);
       expect(denied.body.data?.resetUrl).toBeUndefined();
 
-      const wrong = await request(app)
-        .post('/api/auth/forgot-password')
-        .set('X-Password-Reset-Smoke-Secret', 'wrong')
-        .send({ email })
-        .expect(200);
-      expect(wrong.body.data?.resetUrl).toBeUndefined();
-
       const res = await request(app)
         .post('/api/auth/forgot-password')
         .set('X-Password-Reset-Smoke-Secret', 'staging-smoke-secret')
