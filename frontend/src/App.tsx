@@ -41,7 +41,9 @@ function ProtectedRoute({
   const token = useAuthStore((s) => s.token);
   const fetchUser = useAuthStore((s) => s.fetchUser);
   const [hydrated, setHydrated] = useState(() => useAuthStore.persist.hasHydrated());
-  const [bootstrapping, setBootstrapping] = useState(false);
+  // Stay in bootstrap until we know whether a persisted token can restore `user`.
+  // Starting false caused a flash Navigate→/login on full page loads (token without user).
+  const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
     const unsub = useAuthStore.persist.onFinishHydration(() => setHydrated(true));
@@ -55,14 +57,18 @@ function ProtectedRoute({
     }
     let cancelled = false;
     const hasSession = Boolean(token || localStorage.getItem('token'));
-    if (!hasSession || user) {
-      setBootstrapping(false);
+    if (!hasSession) {
+      setSessionReady(true);
       return;
     }
-    setBootstrapping(true);
+    if (user) {
+      setSessionReady(true);
+      return;
+    }
+    setSessionReady(false);
     void fetchUser().finally(() => {
       if (!cancelled) {
-        setBootstrapping(false);
+        setSessionReady(true);
       }
     });
     return () => {
@@ -70,7 +76,7 @@ function ProtectedRoute({
     };
   }, [hydrated, token, user, fetchUser]);
 
-  if (!hydrated || bootstrapping) {
+  if (!hydrated || !sessionReady) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary-600" />

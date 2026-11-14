@@ -70,10 +70,8 @@ jobs:
 
   e2e:
     name: Playwright E2E
-    # Pin 24.04: ubuntu-latest is rolling to 26.04, and Playwright 1.58.x has no
-    # Chromium build for ubuntu26.04-x64 (install fails before any specs run).
-    # Upgrade @playwright/test to >=1.61 before returning this job to ubuntu-latest.
-    runs-on: ubuntu-24.04
+    # Playwright 1.65.x ships Chromium for ubuntu 26.04; core suite is blocking.
+    runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     services:
@@ -135,6 +133,10 @@ jobs:
           echo "STRIPE_SECRET_KEY=$SECRET" >> $GITHUB_ENV
           echo "STRIPE_PUBLISHABLE_KEY=$PUB" >> $GITHUB_ENV
           echo "VITE_STRIPE_PUBLISHABLE_KEY=$PUB" >> $GITHUB_ENV
+          # Enable payment @core tests only with real Stripe test secrets (not CI placeholders).
+          if [[ "$SECRET" == sk_test_* && "$SECRET" != *placeholder* && "$PUB" == pk_test_* && "$PUB" != *placeholder* ]]; then
+            echo "PLAYWRIGHT_PAYMENT_TESTS=1" >> $GITHUB_ENV
+          fi
 
       - name: Seed E2E data
         run: npm run e2e:seed
@@ -142,11 +144,8 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium webkit
 
-      - name: Run Playwright tests
-        # Non-blocking until the spec suite is stabilized (14 of 19 specs fail
-        # against the real app; tracked in STATUS.md). Remove once green.
-        continue-on-error: true
-        run: npm run test:e2e
+      - name: Run Playwright core suite
+        run: npm run test:e2e:core
 
       - name: Upload Playwright report
         if: always()

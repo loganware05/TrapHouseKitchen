@@ -5,7 +5,7 @@ const customerPassword = process.env.E2E_CUSTOMER_PASSWORD ?? 'E2E-Customer-Pass
 const chefEmail = process.env.E2E_CHEF_EMAIL ?? 'integration-e2e-chef@local.test';
 const chefPassword = process.env.E2E_CHEF_PASSWORD ?? 'E2E-Chef-Pass-123';
 
-test.describe('Mobile (iPhone 13)', () => {
+test.describe('Mobile (iPhone 13)', { tag: '@core' }, () => {
   test('customer header cart opens checkout without blocking menu adds', async ({ page }) => {
     await page.goto('/login');
     await page.getByLabel(/email/i).fill(customerEmail);
@@ -73,17 +73,30 @@ test.describe('Mobile (iPhone 13)', () => {
 
     await page.evaluate(() => window.scrollTo(0, 0));
 
+    // Probe constructors first — WebKit often exposes Touch/TouchEvent but throws Illegal constructor.
+    const canSynthesizeTouch = await page.evaluate(() => {
+      if (typeof TouchEvent === 'undefined' || typeof Touch === 'undefined') return false;
+      try {
+        const target = document.body;
+        // eslint-disable-next-line no-new
+        new Touch({ identifier: 1, target, clientX: 0, clientY: 0 });
+        return true;
+      } catch {
+        return false;
+      }
+    });
+    test.skip(
+      !canSynthesizeTouch,
+      'TouchEvent/Touch constructors unavailable — logic selftest is the gate'
+    );
+
     const ordersRequest = page.waitForResponse(
       (res) => res.url().includes('/api/orders') && res.request().method() === 'GET',
       { timeout: 15_000 }
     );
 
-    // Synthetic touch drag (iPhone project). Falls back to logic selftest if this is flaky in CI.
-    const gestureOk = await page.evaluate(() => {
+    await page.evaluate(() => {
       const target = document.querySelector('[data-testid="pull-to-refresh"]') || document.body;
-      if (typeof TouchEvent === 'undefined' || typeof Touch === 'undefined') {
-        return false;
-      }
       const startY = 80;
       const endY = 280;
       const fire = (type: string, y: number, cancelable: boolean) => {
@@ -109,10 +122,8 @@ test.describe('Mobile (iPhone 13)', () => {
       fire('touchmove', startY + 120, true);
       fire('touchmove', endY, true);
       fire('touchend', endY, false);
-      return true;
     });
 
-    test.skip(!gestureOk, 'TouchEvent/Touch constructors unavailable — logic selftest is the gate');
     await ordersRequest;
   });
 });

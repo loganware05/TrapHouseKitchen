@@ -111,7 +111,7 @@ async function loginCustomer(page: Page) {
   });
 }
 
-test.describe('Payment checkout (Stripe test mode)', () => {
+test.describe('Payment checkout (Stripe test mode)', { tag: '@core' }, () => {
   test.beforeAll(async () => {
     if (!paymentTestsEnabled || process.env.E2E_CUSTOMER_EMAIL) return;
 

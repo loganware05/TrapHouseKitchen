@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 const customerEmail = process.env.E2E_CUSTOMER_EMAIL ?? 'integration-e2e-customer@local.test';
 const customerPassword = process.env.E2E_CUSTOMER_PASSWORD ?? 'E2E-Customer-Pass-123';
 
-test.describe('Dorm delivery checkout', () => {
+test.describe('Dorm delivery checkout', { tag: '@core' }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
     await page.getByLabel(/email/i).fill(customerEmail);

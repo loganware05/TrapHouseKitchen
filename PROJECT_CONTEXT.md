@@ -33,7 +33,7 @@ Near-term operational success: complete pre-launch verification (soft launch alr
 | Backend | Node.js, Express, TypeScript, Prisma ORM, PostgreSQL, JWT + bcryptjs, Stripe, express-rate-limit |
 | Native | Capacitor iOS scaffold (feature branch; not yet on `main` / not App Store ready) |
 | Local devops | Docker Compose under `docker/` (preferred); Node + local Postgres also acceptable |
-| CI | GitHub Actions (Vitest unit/integration; Playwright E2E currently non-blocking) |
+| CI | GitHub Actions (Vitest unit/integration; Playwright `@core` E2E blocking on `ubuntu-latest`) |
 | Production host | Render (`render.yaml`: API web service, static frontend, managed Postgres) |
 
 ## Repository Map
@@ -127,14 +127,14 @@ Optimize for a small concurrent user base (<200 community) rather than large-sca
 - **Delivery is not modeled in the product today** — fulfilled soft-launch orders show ~5–10 minutes from “marked for delivery” to arrival; delivery status/ETA is a known product gap
 - Operating hours not built
 - Capacitor iOS and AI order attribution remain off `main` (see Current Priorities); password reset + payment/webhook hardening are on `main` through Slice 17
-- Playwright E2E: job runs but many specs fail; CI treats E2E as non-blocking
-- Staging Blueprint defined in-repo (`render.staging.yaml`); Render services may still need Captain create/smoke
+- Playwright: `@core` suite blocking in CI (Slice 19); non-core specs may still fail locally outside the gate
+- Staging Blueprint + smoked stack in-repo (`render.staging.yaml`); keep Stripe test keys only on staging
 - Privacy/Terms contacts updated in Slice 16; re-verify copy before broader distribution
 
 ## Known Technical Debt
 
 - Production Chef seed password: Captain attested rotation 2026-11-11; keep using `backend/scripts/set-user-password.ts` for future rotations (see Slice 16 evidence)
-- Playwright suite instability historically; CI E2E still `continue-on-error`
+- Non-core Playwright specs still outside the CI gate (coupon/tracking/reviews/ai-removal)
 - Slice 17 payment safety is **merged + CI-tested** on `main` (`a195175`); production/staging Stripe path still needs **operational** re-verify (deploy attestation + Slice 18 staging smoke)
 - Webhook refund confirmation email still TODO
 - Capacitor iOS remains on feature branch
@@ -190,14 +190,12 @@ Node + local Postgres is acceptable when Docker is unavailable. See `docs/develo
 
 NorthStar: a repeatable campus service night (pay once → one paid Chef order → safe fulfillment → customer updates → reviews/coupons without leaks).
 
-1. **Slice 18 — staging rebuild** — create Render Blueprint from `render.staging.yaml`; run smoke checklist ([docs/deployment/staging.md](docs/deployment/staging.md))
+1. **Slice 19 — decisive CI** — land blocking `@core` Playwright on `ubuntu-latest` (#42)
 2. **Ops / XRV:** confirm production Render deployed Slice 17 (`a195175`) + migration `20261109120000_unique_stripe_refund_id` (Chef password rotation attested 2026-11-11)
-3. **Pilot A operational verify** — staging payment safety smoke
-4. **Decisive CI** — stable core E2E blocking; upgrade Playwright ≥1.61 before `ubuntu-latest` / 26.04
-5. **Service operations** — hours, pause, limits, dish sellout
-6. **Delivery + ETA timestamps** — separate prep from travel/arrival
-7. **Engagement** — production Resend reset email; coupon/SMS decision; refund confirmation email
-8. **Capacitor iOS** (`feat/capacitor-ios-scaffold`) after web path is reliable
-9. Optional: Float→integer cents money migration
+3. **Service operations** — hours, pause, limits, dish sellout
+4. **Delivery + ETA timestamps** — separate prep from travel/arrival
+5. **Engagement** — production Resend reset email; coupon/SMS decision; refund confirmation email
+6. **Capacitor iOS** (`feat/capacitor-ios-scaffold`) after web path is reliable
+7. Optional: Float→integer cents money migration; non-core E2E cleanup
 
 Canonical ship status: always check `STATUS.md`.

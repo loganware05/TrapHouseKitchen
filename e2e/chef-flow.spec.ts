@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 const chefEmail = process.env.E2E_CHEF_EMAIL ?? 'integration-e2e-chef@local.test';
 const chefPassword = process.env.E2E_CHEF_PASSWORD ?? 'E2E-Chef-Pass-123';
 
-test.describe('Chef operations', () => {
+test.describe('Chef operations', { tag: '@core' }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/chef/login');
     await page.getByLabel(/email/i).fill(chefEmail);

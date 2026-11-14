@@ -48,6 +48,8 @@ export default defineConfig({
               ...process.env,
               E2E_CAPTURE_PASSWORD_RESET: '1',
               SHOW_PASSWORD_RESET_LINK: '1',
+              // Match the browser origin (CI uses http://127.0.0.1:5173).
+              FRONTEND_URL: baseURL,
             },
           },
           {
