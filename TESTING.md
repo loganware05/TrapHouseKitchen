@@ -9,6 +9,9 @@ cd backend && npm run test:all
 # Frontend production build
 npm run build --prefix frontend
 
+# Core blocking suite (CI gate) — seed first
+npm run e2e:seed && npm run test:e2e:core
+
 # Checkout payment E2E (local API + Vite already running)
 PLAYWRIGHT_PAYMENT_TESTS=1 \
 VITE_STRIPE_PUBLISHABLE_KEY=runtime-api-key \
@@ -17,6 +20,13 @@ PLAYWRIGHT_API_URL=http://localhost:3001 \
 PLAYWRIGHT_SKIP_WEBSERVER=1 \
 npx playwright test e2e/payment-flow.spec.ts --project=chromium
 ```
+
+### Slice 19 — decisive CI
+
+- Playwright **1.65.1**; CI job on `ubuntu-latest` runs `npm run test:e2e:core` (**blocking**, no `continue-on-error`)
+- `@core` tags: auth, order-flow, delivery-location, chef-flow, mobile, payment (payment still gated on `PLAYWRIGHT_PAYMENT_TESTS=1` + real Stripe test keys)
+- Rate limiters skip under `E2E_CAPTURE_PASSWORD_RESET=1` / `VITEST=true`
+- Evidence: `.agent/evidence/slice-19-decisive-ci-20261113/validation.md`
 
 ## Unit tests
 

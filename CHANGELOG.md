@@ -4,8 +4,14 @@
 
 ### Added
 
+- Decisive CI: Playwright **1.65.1**, tagged `@core` E2E suite, `npm run test:e2e:core`; CI E2E job is **blocking** on `ubuntu-latest`.
 - Staging Blueprint `render.staging.yaml` (`traphousekitchen-*-staging`) and ops guide `docs/deployment/staging.md` (create / env / smoke / tear-down).
 - Password-reset smoke on staging: `SHOW_PASSWORD_RESET_LINK=1` with `APP_ENV=staging` even when `NODE_ENV=production`, gated by `PASSWORD_RESET_SMOKE_SECRET` + request header (never on production API).
+
+### Fixed
+
+- ProtectedRoute waits for persisted-token session restore before redirecting to `/login` (fixes chef→customer route flash).
+- E2E/Vitest skip API auth/order/payment rate limits when `E2E_CAPTURE_PASSWORD_RESET=1` or `VITEST=true`.
 
 ### Security
 

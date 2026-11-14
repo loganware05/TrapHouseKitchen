@@ -16,10 +16,11 @@
     "verify": "npm run repo:where-migrate-deploy && cd backend && npm run prisma:fix-migrations-dir && npm run test:all",
     "e2e:seed": "cd backend && npx tsx scripts/e2e-seed-chef-flow.ts",
     "test:e2e": "playwright test",
+    "test:e2e:core": "playwright test --grep @core",
     "test:e2e:ui": "playwright test --ui"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "@playwright/test": "^1.49.1"
+    "@playwright/test": "1.65.1",
+    "concurrently": "^8.2.2"
   }
 }
