@@ -12,6 +12,7 @@
 
 - ProtectedRoute waits for persisted-token session restore before redirecting to `/login` (fixes chef→customer route flash).
 - E2E skips API/order/payment/forgot rate limits (`E2E_CAPTURE_PASSWORD_RESET=1`); `authLimiter` stays active under Vitest so security 429 coverage remains.
+- Dev CORS allows `http://127.0.0.1:5173` so Playwright CI (which uses 127.0.0.1, not localhost) can call the API.
 
 ### Security
 

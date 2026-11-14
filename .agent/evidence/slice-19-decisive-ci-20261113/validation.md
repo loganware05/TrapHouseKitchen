@@ -21,3 +21,8 @@ npm run e2e:seed && npm run test:e2e:core
 ```
 
 Payment `@core` tests remain gated on `PLAYWRIGHT_PAYMENT_TESTS=1` + real Stripe test keys (CI enables when secrets are non-placeholder).
+
+## CI follow-ups
+
+- `authLimiter` must stay active under Vitest (`security.test.ts` 429) — skip only for Playwright E2E.
+- Dev CORS allowlist includes `http://127.0.0.1:5173` so CI `PLAYWRIGHT_BASE_URL` can call the API (localhost-only list blocked register/login).
