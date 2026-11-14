@@ -4,32 +4,27 @@
 
 **NorthStar:** repeatable campus service night.
 
-Slice **17** merged (PR #35 / `a195175`). XRV docs reconcile shipped (PR #37 / `3ba1506`). Issue #36 closed.
+Slice **18** complete — Blueprint PR [#39](https://github.com/loganware05/TrapHouseKitchen/pull/39) (`c65d186`); smoke evidence PR [#40](https://github.com/loganware05/TrapHouseKitchen/pull/40) (`a81e205`). Issue [#38](https://github.com/loganware05/TrapHouseKitchen/issues/38) closed.
 
-**Active plan:** Slice 18 staging smoke / ops closeout after PR [#39](https://github.com/loganware05/TrapHouseKitchen/pull/39) (`c65d186`). Rollback: `checkpoint/staging-rebuild-2026-11-11`.
+**Active plan:** none (Slice 18 closed). Next candidate: Slice 19 — decisive CI / Playwright ≥1.61 (awaiting plan + Captain approval).
 
 ## Completed
 
 - Slices 1–17 code + Slice 17 XRV docs (PRs #15–#37)
-- Slice 18 in-repo Blueprint + ops docs shipped (PR #39)
+- Slice 18 in-repo Blueprint + ops docs (PR #39)
+- Staging provisioned; env wiring fixed; API smoke 5–10 PASS; browser→Payment Element PASS (PR #40)
 - Captain attested production Chef password rotation (2026-11-11)
-- Staging Blueprint provisioned; API health + web load + register + reset-secret gate smoked (2026-11-13)
 
-## In progress (Slice 18 ops)
+## In progress
 
-- Fix staging `FRONTEND_URL` / `VITE_API_URL` (currently point at production)
-- Seed staging menu + Chef; finish payment + Chef pipeline smoke
-- Evidence: `.agent/evidence/slice-18-staging-smoke-20261113/`
+- None
 
 ## Next
 
-1. Captain corrects staging env vars + redeploy static
-2. Seed staging (or create Chef/dishes); rotate staging Chef password
-3. Re-run full smoke steps 5–10
-4. Slice 19 — decisive CI / Playwright ≥1.61
+1. Slice 19 plan (decisive CI / Playwright ≥1.61) — draft only after Captain requests
+2. Optional: Captain browser card confirm on staging
+3. Production deploy SHA attestation for Slice 17 / XRV when ops ready
 
 ## Blockers
 
-- Staging CORS / frontend API base miswired to production hosts
-- Empty staging menu; no usable Chef credentials
 - Production deploy SHA attestation still open for XRV
