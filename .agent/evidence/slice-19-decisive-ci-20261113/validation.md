@@ -20,6 +20,12 @@ npm run e2e:seed && npm run test:e2e:core
 → 15 passed, 4 skipped (payment gated; PTR Touch unavailable), 0 failed (~30s)
 ```
 
+## CI evidence (PR #43, head `ce4858a`)
+
+- Run Tests: SUCCESS  
+- Playwright E2E (blocking `@core`): SUCCESS  
+- Workflow: https://github.com/loganware05/TrapHouseKitchen/actions/runs/43554005739  
+
 Payment `@core` tests remain gated on `PLAYWRIGHT_PAYMENT_TESTS=1` + real Stripe test keys (CI enables when secrets are non-placeholder).
 
 ## CI follow-ups
