@@ -190,12 +190,11 @@ Node + local Postgres is acceptable when Docker is unavailable. See `docs/develo
 
 NorthStar: a repeatable campus service night (pay once → one paid Chef order → safe fulfillment → customer updates → reviews/coupons without leaks).
 
-1. **Slice 19 — decisive CI** — land blocking `@core` Playwright on `ubuntu-latest` (#42)
-2. **Ops / XRV:** confirm production Render deployed Slice 17 (`a195175`) + migration `20261109120000_unique_stripe_refund_id` (Chef password rotation attested 2026-11-11)
-3. **Service operations** — hours, pause, limits, dish sellout
-4. **Delivery + ETA timestamps** — separate prep from travel/arrival
-5. **Engagement** — production Resend reset email; coupon/SMS decision; refund confirmation email
-6. **Capacitor iOS** (`feat/capacitor-ios-scaffold`) after web path is reliable
-7. Optional: Float→integer cents money migration; non-core E2E cleanup
+1. **Ops / XRV:** confirm production Render deployed Slice 17 (`a195175`) + migration `20261109120000_unique_stripe_refund_id` (Chef password rotation attested 2026-11-11)
+2. **Service operations** — hours, pause, limits, dish sellout
+3. **Delivery + ETA timestamps** — separate prep from travel/arrival
+4. **Engagement** — production Resend reset email; coupon/SMS decision; refund confirmation email
+5. **Capacitor iOS** (`feat/capacitor-ios-scaffold`) after web path is reliable
+6. Optional: Float→integer cents money migration; non-core E2E cleanup
 
 Canonical ship status: always check `STATUS.md`.
