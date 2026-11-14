@@ -8,7 +8,7 @@
 
 - `@playwright/test` **1.65.1**; CI E2E on `ubuntu-latest`
 - `npm run test:e2e:core` (`--grep @core`); workflow runs core only, **no** `continue-on-error`
-- Rate limiters skip when `E2E_CAPTURE_PASSWORD_RESET=1` or `VITEST=true`
+- Rate limiters: `authLimiter` skips only under Playwright E2E (`E2E_CAPTURE_PASSWORD_RESET=1`) so Vitest `security.test.ts` still asserts 429; api/order/payment/forgot skip under E2E or `VITEST=true`
 - ProtectedRoute waits for session restore before redirecting to login
 - Auth E2E logout selector matches accessible name `Log out`
 - Mobile PTR skips cleanly when Touch constructors throw

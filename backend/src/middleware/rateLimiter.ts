@@ -1,7 +1,10 @@
 import rateLimit from 'express-rate-limit';
 
-const skipForAutomatedTests = () =>
-  process.env.VITEST === 'true' || process.env.E2E_CAPTURE_PASSWORD_RESET === '1';
+/** Playwright webServer sets this; keep Vitest able to assert real auth rate limits. */
+const skipForPlaywrightE2E = () => process.env.E2E_CAPTURE_PASSWORD_RESET === '1';
+
+const skipForVitestOrE2E = () =>
+  process.env.VITEST === 'true' || skipForPlaywrightE2E();
 
 // General API rate limiter - 100 requests per 15 minutes
 export const apiLimiter = rateLimit({
@@ -14,7 +17,7 @@ export const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   // E2E / Vitest share one IP and exceed the public API budget quickly.
-  skip: skipForAutomatedTests,
+  skip: skipForVitestOrE2E,
 });
 
 // Auth endpoints rate limiter - 5 requests per 15 minutes (stricter)
@@ -28,9 +31,8 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests
-  // Playwright E2E boots API with E2E_CAPTURE_PASSWORD_RESET=1; Vitest sets VITEST.
-  // Keep real limits for normal local/staging/production boots.
-  skip: skipForAutomatedTests,
+  // Skip only under Playwright E2E — security.test.ts asserts 429 under Vitest.
+  skip: skipForPlaywrightE2E,
 });
 
 // Payment endpoints rate limiter - 10 requests per 15 minutes
@@ -43,7 +45,7 @@ export const paymentLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: skipForAutomatedTests,
+  skip: skipForVitestOrE2E,
 });
 
 // Order creation rate limiter - 20 orders per hour
@@ -56,7 +58,7 @@ export const orderLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: skipForAutomatedTests,
+  skip: skipForVitestOrE2E,
 });
 
 // Forgot-password rate limiter - 5 requests per 15 minutes (no skipSuccessfulRequests)
@@ -69,6 +71,6 @@ export const forgotPasswordLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  // Vitest/E2E share one IP across many cases; keep prod/staging limits real.
-  skip: skipForAutomatedTests,
+  // Vitest shares one IP across many forgot-password cases; keep prod/staging limits real.
+  skip: skipForVitestOrE2E,
 });
