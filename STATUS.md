@@ -1,7 +1,7 @@
 # Project status
 
-**Last updated:** 2026-11-13
-**Production / shared baseline:** `3c7c36f` (`origin/main` — Slice 19 decisive CI merged via PR #43)
+**Last updated:** 2026-11-14
+**Production / shared baseline:** `6014777` (`origin/main` — Slice 19 closeout via PR #44; decisive CI in PR #43 / `3c7c36f`)
 **Canonical rule:** This file is the only place that asserts Shipped / WIP / Broken. Do not add new root `*_COMPLETE.md` / `*_READY.md` snapshots — update this file instead.
 
 **Related:** [QA_CHECKLIST.md](QA_CHECKLIST.md) · [SUPPORT_PLAYBOOKS.md](SUPPORT_PLAYBOOKS.md) · [docs/deployment/render.md](docs/deployment/render.md) · [docs/deployment/staging.md](docs/deployment/staging.md) · [docs/deployment/go-live.md](docs/deployment/go-live.md) · [AGENTS.md](AGENTS.md)
