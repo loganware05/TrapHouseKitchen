@@ -2,18 +2,6 @@
 
 ## Unreleased
 
-### Added
-
-- Decisive CI: Playwright **1.65.1**, tagged `@core` E2E suite, `npm run test:e2e:core`; CI E2E job is **blocking** on `ubuntu-latest`.
-- Staging Blueprint `render.staging.yaml` (`traphousekitchen-*-staging`) and ops guide `docs/deployment/staging.md` (create / env / smoke / tear-down).
-- Password-reset smoke on staging: `SHOW_PASSWORD_RESET_LINK=1` with `APP_ENV=staging` even when `NODE_ENV=production`, gated by `PASSWORD_RESET_SMOKE_SECRET` + request header (never on production API).
-
-### Fixed
-
-- ProtectedRoute waits for persisted-token session restore before redirecting to `/login` (fixes chef→customer route flash).
-- E2E skips API/order/payment/forgot rate limits (`E2E_CAPTURE_PASSWORD_RESET=1`); `authLimiter` stays active under Vitest so security 429 coverage remains.
-- Dev CORS allows `http://127.0.0.1:5173` so Playwright CI (which uses 127.0.0.1, not localhost) can call the API.
-
 ### Security
 
 - Production rejects missing or default `JWT_SECRET` at API startup; JWT auth requires matching `tokenVersion` (claim-less tokens invalid).
@@ -26,11 +14,15 @@
 - Late Stripe payment success no longer attempts to move fulfilled orders back to Pending (preserves PREPARING+ while still marking PAID).
 - Privacy Policy and Terms contact block uses real business address/phone/email.
 - README scripts match actual package manifests (no false root `npm test` / `npm start`).
-- CI: Vitest integration files run sequentially to avoid shared coupon-gateway races; JWT unit tests no longer reassign `process.env`; Playwright E2E job pinned to `ubuntu-24.04` (Playwright 1.58 lacks Chromium for Ubuntu 26.04).
+- CI: Vitest integration files run sequentially to avoid shared coupon-gateway races; JWT unit tests no longer reassign `process.env`.
+
+## [Slice 19] — 2026-11-13
+
+Decisive CI shipped via PR #43 (`3c7c36f`): Playwright **1.65.1**, tagged `@core` E2E suite, `npm run test:e2e:core`; CI E2E job **blocking** on `ubuntu-latest`. ProtectedRoute session restore; E2E rate-limit skips (auth limiter stays active under Vitest); dev CORS allows `127.0.0.1` Vite origin for CI.
 
 ## [Slice 18] — 2026-11-13
 
-Staging stack shipped and smoked: Blueprint PR #39; smoke evidence PR #40 (`a81e205`). Staging API customer→pay→Chef path verified; browser register→cart→Stripe Payment Element (test) verified. Production `render.yaml` unchanged.
+Staging stack shipped and smoked: Blueprint PR #39; smoke evidence PR #40 (`a81e205`). Staging API customer→pay→Chef path verified; browser register→cart→Stripe Payment Element (test) verified. Production `render.yaml` unchanged. Staging Blueprint `render.staging.yaml` + `docs/deployment/staging.md`; password-reset smoke gated by `PASSWORD_RESET_SMOKE_SECRET` on staging.
 
 ## [Slice 17 XRV reconcile] — 2026-11-11
 

@@ -2,29 +2,32 @@
 
 ## Metadata
 
-- Status: **APPROVED — IMPLEMENTING** (local core E2E green; PR pending)
+- Status: **COMPLETED**
 - Plan ID: `slice-19-decisive-ci-2026-11-13`
 - NorthStar: campus service night — CI must fail when the core pay/fulfill path regressions
 - Depends on: Slice 18 closed (PR #41 / `9ac0008`)
-- Issue: [#42](https://github.com/loganware05/TrapHouseKitchen/issues/42)
+- Issue: [#42](https://github.com/loganware05/TrapHouseKitchen/issues/42) — closed
 - Base: `origin/main` at `9ac0008`
 - Branch: `chore/local-slice-19-decisive-ci`
 - Rollback checkpoint: `checkpoint/slice-19-decisive-ci-2026-11-13` → `9ac0008`
 - Created: 2026-11-13
 - Last updated: 2026-11-13
+- Completed: 2026-11-13 via PR [#43](https://github.com/loganware05/TrapHouseKitchen/pull/43) merge `3c7c36f`
 
 ## Approval Record
 
-- **Status:** APPROVED
+- **Status:** APPROVED → COMPLETED
 - **Approved by:** Captain (Logan)
 - **Approval date:** 2026-11-13
 - **Captain notes:** Merged PR #41; approve Slice 19 and proceed
+- **Closeout:** Captain merged PR #43 (2026-11-13)
 
 ## Prior delivery (closed)
 
 | Slice | Scope | Status |
 |-------|--------|--------|
-| 18 | Staging Blueprint + smoke | **Shipped** — PR #39 + #40; closeout #41 (`9ac0008`) |
+| 18 | Staging Blueprint + smoke | **Shipped** — PR #39 + #40; closeout #41 |
+| 19 | Decisive CI / Playwright ≥1.61 | **Shipped** — PR #43 (`3c7c36f`) |
 
 ## Desired behavior
 
@@ -48,14 +51,14 @@
 | B | `@core` tags + `test:e2e:core`; CI runs core only, blocking | Done |
 | C | Fix failing core specs / seed / webServer env | Done |
 | D | Payment: `PLAYWRIGHT_PAYMENT_TESTS=1` in CI only when test secrets are real | Done |
-| E | Memory + evidence + PR | Implementing |
+| E | Memory + evidence + PR | Done (PR #43) |
 
 ## Validation
 
-- Local or CI: `npm run test:e2e:core` green
-- PR checks: Vitest green; Playwright E2E required and green without `continue-on-error`
+- Local: `npm run test:e2e:core` green (15 passed / 4 skipped)
+- CI: Vitest + Playwright E2E required and green without `continue-on-error` (run `43554005739` on `ce4858a`; docs tip `ed2184a`)
 - Evidence under `.agent/evidence/slice-19-decisive-ci-20261113/`
-- Rollback: revert PR / reset to checkpoint tag
+- Rollback: revert PR #43 / reset to checkpoint tag
 
 ## Rollback
 
