@@ -4,21 +4,21 @@
 
 **NorthStar:** repeatable campus service night.
 
-Slice **20** complete — merged PR [#47](https://github.com/loganware05/TrapHouseKitchen/pull/47) (`f5222e4`). Issue [#46](https://github.com/loganware05/TrapHouseKitchen/issues/46).
+Slice **20** complete on `main` — PRs [#47](https://github.com/loganware05/TrapHouseKitchen/pull/47) / [#48](https://github.com/loganware05/TrapHouseKitchen/pull/48) (`e4fb791`).
 
-**Active plan:** Slice 20 — **COMPLETE** (ops: apply kitchen-ops migration on staging/prod).
+**Ops:** Production kitchen status endpoint verified **200** after Captain Render redeploy. Staging kitchen status still **404** (API not on Slice 20 build yet).
 
 ## Completed
 
-- Slices 1–20
+- Slices 1–20 (code on `main`; prod smoke for kitchen status)
 
 ## Next
 
-1. Apply migration `20261116200000_kitchen_ops_and_remaining_servings` on staging/production and confirm Render deploy of `f5222e4` (or later)
-2. Production deploy SHA attestation for Slice 17 / XRV
+1. Finish staging API redeploy of `main` and re-smoke `GET /api/kitchen/status` → 200
+2. Production deploy SHA attestation for Slice 17 / XRV (if still required)
 3. Later: delivery ETA; engagement
 
 ## Blockers
 
-- Production deploy SHA attestation still open for XRV
-- Render MCP unauthorized in this session — Captain must select workspace / apply migration via dashboard or CLI
+- Staging API post-redeploy still serving pre–Slice 20 routes
+- Render MCP unauthorized — cannot read deploy SHAs from dashboard in this session
