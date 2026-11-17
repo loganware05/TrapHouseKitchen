@@ -56,6 +56,11 @@ vi.mock('../../src/lib/prisma', () => ({
   },
 }));
 
+vi.mock('../../src/services/kitchenOps.service', () => ({
+  assertKitchenAcceptingOrders: vi.fn().mockResolvedValue(undefined),
+  decrementRemainingServingsForOrder: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   createPaymentIntentForOrder,
   finalizeCouponAfterPayment,
