@@ -58,6 +58,7 @@ vi.mock('../../src/lib/prisma', () => ({
 
 vi.mock('../../src/services/kitchenOps.service', () => ({
   assertKitchenAcceptingOrders: vi.fn().mockResolvedValue(undefined),
+  assertRemainingServingsForItems: vi.fn(),
   decrementRemainingServingsForOrder: vi.fn().mockResolvedValue(undefined),
 }));
 

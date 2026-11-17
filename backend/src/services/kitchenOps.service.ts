@@ -230,9 +230,46 @@ export async function updateKitchenOps(params: {
   });
 }
 
+export type OrderItemServingNeed = {
+  dishId: string;
+  quantity: number;
+  dish?: { name?: string; remainingServings?: number | null; status?: string } | null;
+};
+
+/**
+ * Hard gate for checkout / PaymentIntent create. Rejects when a dish is
+ * unavailable or remainingServings is below the requested quantity.
+ */
+export function assertRemainingServingsForItems(items: OrderItemServingNeed[]): void {
+  for (const item of items) {
+    const dish = item.dish;
+    if (!dish) {
+      throw new AppError('Dish not found', 404);
+    }
+    if (dish.status && dish.status !== 'AVAILABLE') {
+      throw new AppError(
+        `Not enough servings remaining for ${dish.name ?? 'this dish'}`,
+        400
+      );
+    }
+    if (
+      dish.remainingServings != null &&
+      item.quantity > dish.remainingServings
+    ) {
+      throw new AppError(
+        `Not enough servings remaining for ${dish.name ?? 'this dish'}`,
+        400
+      );
+    }
+  }
+}
+
 /**
  * Decrement remaining servings for paid order items. Call inside a transaction
  * after first-time PAID transition. Uses row locks + conditional updates.
+ *
+ * If stock was exhausted by a concurrent payment after PI create, clamps to 0
+ * and marks UNAVAILABLE without throwing (Stripe already captured funds).
  */
 export async function decrementRemainingServingsForOrder(
   tx: Prisma.TransactionClient,
@@ -253,7 +290,15 @@ export async function decrementRemainingServingsForOrder(
     });
     if (!dish || dish.remainingServings == null) continue;
 
-    const next = Math.max(0, dish.remainingServings - item.quantity);
+    if (dish.remainingServings < item.quantity) {
+      await tx.dish.update({
+        where: { id: item.dishId },
+        data: { remainingServings: 0, status: 'UNAVAILABLE' },
+      });
+      continue;
+    }
+
+    const next = dish.remainingServings - item.quantity;
     await tx.dish.update({
       where: { id: item.dishId },
       data: {

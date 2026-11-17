@@ -117,4 +117,37 @@ describe('Kitchen ops + checkout gate', () => {
       })
       .expect(400);
   });
+
+  it('rejects PaymentIntent create when remaining servings are exhausted after unpaid draft', async () => {
+    await prisma.dish.update({
+      where: { id: dishId },
+      data: { remainingServings: 1, status: 'AVAILABLE' },
+    });
+
+    const order = await prisma.order.create({
+      data: {
+        userId: (
+          await prisma.user.findFirstOrThrow({
+            where: { email: { contains: `integration-kitchen-cust-${runId}` } },
+          })
+        ).id,
+        totalPrice: 10,
+        finalAmount: 10,
+        tipAmount: 0,
+        deliveryLocation: 'Harvey Hall',
+        items: { create: [{ dishId, quantity: 1, priceAtOrder: 10 }] },
+      },
+    });
+
+    await prisma.dish.update({
+      where: { id: dishId },
+      data: { remainingServings: 0, status: 'UNAVAILABLE' },
+    });
+
+    await request(app)
+      .post('/api/payment/create-payment-intent')
+      .set('Authorization', `Bearer ${customerToken}`)
+      .send({ orderId: order.id, tipAmount: 0 })
+      .expect(400);
+  });
 });

@@ -4,6 +4,7 @@ import {
   isWithinWeeklySchedule,
   validateWeeklyHours,
   getChicagoClock,
+  assertRemainingServingsForItems,
 } from '../../src/services/kitchenOps.service';
 
 describe('kitchenOps hours helpers', () => {
@@ -40,5 +41,37 @@ describe('kitchenOps hours helpers', () => {
     expect(
       isWithinWeeklySchedule({ [other]: { open: '00:00', close: '23:59' } }, new Date())
     ).toBe(false);
+  });
+
+  it('assertRemainingServingsForItems rejects oversell and unavailable', () => {
+    expect(() =>
+      assertRemainingServingsForItems([
+        {
+          dishId: 'd1',
+          quantity: 2,
+          dish: { name: 'Bowl', remainingServings: 1, status: 'AVAILABLE' },
+        },
+      ])
+    ).toThrow(/Not enough servings/);
+
+    expect(() =>
+      assertRemainingServingsForItems([
+        {
+          dishId: 'd1',
+          quantity: 1,
+          dish: { name: 'Bowl', remainingServings: 5, status: 'UNAVAILABLE' },
+        },
+      ])
+    ).toThrow(/Not enough servings/);
+
+    expect(() =>
+      assertRemainingServingsForItems([
+        {
+          dishId: 'd1',
+          quantity: 1,
+          dish: { name: 'Bowl', remainingServings: 5, status: 'AVAILABLE' },
+        },
+      ])
+    ).not.toThrow();
   });
 });

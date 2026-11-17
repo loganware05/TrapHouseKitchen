@@ -15,9 +15,14 @@
 ## Local tests
 
 ```
-npx vitest run tests/unit/kitchenOps.test.ts tests/integration/kitchen-ops.test.ts
-→ 9 passed
+npx vitest run tests/unit/kitchenOps.test.ts tests/unit/payment.service.test.ts tests/integration/kitchen-ops.test.ts
+→ 20 passed
 ```
+
+## Security follow-up
+
+- `assertRemainingServingsForItems` runs at unpaid order create **and** PaymentIntent create (closes unpaid-draft oversell window).
+- Finalize decrement clamps to 0 + UNAVAILABLE under row lock if a concurrent pay already exhausted stock (does not roll back captured payment).
 
 ## Rollback
 
