@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- Service operations (Slice 20): Chef pause / weekly hours (America/Chicago) / concurrent kitchen cap; dish `remainingServings` sellout on payment finalize; public kitchen status + customer closed banner.
+
 ### Security
 
 - Production rejects missing or default `JWT_SECRET` at API startup; JWT auth requires matching `tokenVersion` (claim-less tokens invalid).

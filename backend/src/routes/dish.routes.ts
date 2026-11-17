@@ -123,6 +123,7 @@ router.post(
         isVegan,
         isVegetarian,
         isGlutenFree,
+        remainingServings,
         ingredientIds,
         allergenIds,
       } = req.body;
@@ -140,6 +141,13 @@ router.post(
           isVegan: isVegan || false,
           isVegetarian: isVegetarian || false,
           isGlutenFree: isGlutenFree || false,
+          ...(remainingServings !== undefined && {
+            remainingServings:
+              remainingServings === null || remainingServings === ''
+                ? null
+                : Number(remainingServings),
+          }),
+
           ...(ingredientIds && {
             ingredients: {
               create: ingredientIds.map((ingredientId: string) => ({
@@ -200,6 +208,7 @@ router.put(
         isVegan,
         isVegetarian,
         isGlutenFree,
+        remainingServings,
         ingredientIds,
         allergenIds,
       } = req.body;
@@ -231,6 +240,12 @@ router.put(
           ...(isVegan !== undefined && { isVegan }),
           ...(isVegetarian !== undefined && { isVegetarian }),
           ...(isGlutenFree !== undefined && { isGlutenFree }),
+          ...(remainingServings !== undefined && {
+            remainingServings:
+              remainingServings === null || remainingServings === ''
+                ? null
+                : Number(remainingServings),
+          }),
           ...(ingredientIds && {
             ingredients: {
               create: ingredientIds.map((ingredientId: string) => ({

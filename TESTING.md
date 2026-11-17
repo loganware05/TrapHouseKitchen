@@ -21,6 +21,12 @@ PLAYWRIGHT_SKIP_WEBSERVER=1 \
 npx playwright test e2e/payment-flow.spec.ts --project=chromium
 ```
 
+### Slice 20 — service operations
+
+- Unit: `backend/tests/unit/kitchenOps.test.ts` (hours validation / windows)
+- Integration: `backend/tests/integration/kitchen-ops.test.ts` (public status, Chef authz, pause→403 checkout, remaining servings)
+- Evidence: `.agent/evidence/slice-20-service-ops-20261116/validation.md`
+
 ### Slice 19 — decisive CI
 
 - Playwright **1.65.1**; CI job on `ubuntu-latest` runs `npm run test:e2e:core` (**blocking**, no `continue-on-error`)

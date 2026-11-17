@@ -103,6 +103,8 @@ export interface Dish {
   isVegan: boolean;
   isVegetarian: boolean;
   isGlutenFree: boolean;
+  /** null/undefined = unlimited */
+  remainingServings?: number | null;
   createdAt: string;
   updatedAt: string;
   category: Category;

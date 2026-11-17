@@ -12,6 +12,7 @@ import {
   getKitchenQueueCounts,
 } from './prepTime.service';
 import { getGlobalLearningBias } from './prepTimeLearning.service';
+import { assertKitchenAcceptingOrders } from './kitchenOps.service';
 
 type OrderWithRelations = Order & {
   items: (OrderItem & { dish: Dish })[];
@@ -285,6 +286,8 @@ export async function createPaymentIntentForOrder(params: {
   savedPaymentMethodId?: string;
 }): Promise<PaymentIntentResult> {
   const { userId, orderId, tipAmount = 0, couponCode, savedPaymentMethodId } = params;
+
+  await assertKitchenAcceptingOrders();
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },

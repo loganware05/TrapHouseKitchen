@@ -3,6 +3,7 @@ import { OrderStatus } from '@prisma/client';
 import { sendOrderStatusEmail } from './emailService';
 import { AppError } from '../middleware/errorHandler';
 import { createPaymentIntentForOrder } from './payment.service';
+import { assertKitchenAcceptingOrders } from './kitchenOps.service';
 import {
   ABANDONED_ORDER_MAX_AGE_MS,
   ABANDONED_ORDER_PAYMENT_STATUSES,
@@ -153,6 +154,15 @@ async function buildOrderItemsFromInput(items: OrderItemInput[]) {
     if (!dish) {
       throw new AppError('Dish not found', 404);
     }
+    if (
+      dish.remainingServings != null &&
+      item.quantity > dish.remainingServings
+    ) {
+      throw new AppError(
+        `Not enough servings remaining for ${dish.name}`,
+        400
+      );
+    }
     totalPrice += dish.price * item.quantity;
     return {
       dishId: item.dishId,
@@ -174,6 +184,7 @@ export async function createUnpaidOrder(
   specialInstructions?: string | null,
   delivery?: DeliveryInput
 ) {
+  await assertKitchenAcceptingOrders();
   await assertNoAllergenConflicts(
     userId,
     items.map(i => i.dishId)

@@ -25,6 +25,7 @@ import {
   canProceedToPayment,
   dormRequiresRoom,
 } from '../lib/deliveryLocations';
+import { useKitchenStatus } from './KitchenStatusBanner';
 
 const TIP_PRESETS = [0, 1, 2, 3];
 
@@ -36,6 +37,8 @@ export default function CheckoutSheet() {
 
   const { items, removeItem, updateQuantity, getTotalPrice, clearCart } = useCartStore();
   const { user } = useAuthStore();
+  const { data: kitchenStatus } = useKitchenStatus();
+  const kitchenOpen = kitchenStatus?.openNow !== false;
 
   const [cartExpanded, setCartExpanded] = useState(true);
   const [couponOpen, setCouponOpen] = useState(false);
@@ -258,7 +261,8 @@ export default function CheckoutSheet() {
   if (!isOpen) return null;
 
   const showCustomerCheckout = user?.role === 'CUSTOMER';
-  const canContinue = canProceedToPayment(deliveryDorm, deliveryRoomNumber);
+  const canContinue =
+    canProceedToPayment(deliveryDorm, deliveryRoomNumber) && kitchenOpen;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-end">
@@ -543,15 +547,22 @@ export default function CheckoutSheet() {
         {items.length > 0 && showCustomerCheckout && (
           <div className="shrink-0 border-t border-th-border bg-white p-4 safe-bottom">
             {!clientSecret ? (
-              <button
-                type="button"
-                data-testid="continue-to-payment"
-                onClick={() => void handlePayClick()}
-                disabled={loading || !canContinue}
-                className="w-full rounded-th-lg bg-gray-900 py-4 text-base font-bold text-white hover:bg-gray-800 disabled:opacity-50 transition-colors"
-              >
-                {loading ? 'Preparing secure checkout…' : `Continue to payment · $${total.toFixed(2)}`}
-              </button>
+              <>
+                {!kitchenOpen && (
+                  <p className="mb-2 text-center text-sm text-amber-800" role="status">
+                    The kitchen is not accepting orders right now.
+                  </p>
+                )}
+                <button
+                  type="button"
+                  data-testid="continue-to-payment"
+                  onClick={() => void handlePayClick()}
+                  disabled={loading || !canContinue}
+                  className="w-full rounded-th-lg bg-gray-900 py-4 text-base font-bold text-white hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                >
+                  {loading ? 'Preparing secure checkout…' : `Continue to payment · $${total.toFixed(2)}`}
+                </button>
+              </>
             ) : (
               <p className="text-center text-xs text-th-muted-fg">Complete payment in the form above</p>
             )}

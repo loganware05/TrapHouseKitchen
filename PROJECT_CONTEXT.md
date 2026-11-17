@@ -190,8 +190,8 @@ Node + local Postgres is acceptable when Docker is unavailable. See `docs/develo
 
 NorthStar: a repeatable campus service night (pay once → one paid Chef order → safe fulfillment → customer updates → reviews/coupons without leaks).
 
-1. **Ops / XRV:** confirm production Render deployed Slice 17 (`a195175`) + migration `20261109120000_unique_stripe_refund_id` (Chef password rotation attested 2026-11-11)
-2. **Service operations** — hours, pause, limits, dish sellout
+1. **Slice 20 — service operations** — land kitchen pause/hours/cap + dish remaining servings (#46)
+2. **Ops / XRV:** confirm production Render deployed Slice 17 (`a195175`) + kitchen-ops migration when Slice 20 ships (Chef password rotation attested 2026-11-11)
 3. **Delivery + ETA timestamps** — separate prep from travel/arrival
 4. **Engagement** — production Resend reset email; coupon/SMS decision; refund confirmation email
 5. **Capacitor iOS** (`feat/capacitor-ios-scaffold`) after web path is reliable

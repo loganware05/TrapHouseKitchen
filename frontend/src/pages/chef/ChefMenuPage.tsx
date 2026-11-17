@@ -19,6 +19,7 @@ interface DishForm {
   isVegetarian: boolean;
   isGlutenFree: boolean;
   status: string;
+  remainingServings?: number | null;
 }
 
 export default function ChefMenuPage() {
@@ -138,16 +139,26 @@ export default function ChefMenuPage() {
     setValue('isVegetarian', dish.isVegetarian);
     setValue('isGlutenFree', dish.isGlutenFree);
     setValue('status', dish.status);
+    setValue(
+      'remainingServings',
+      dish.remainingServings == null ? undefined : dish.remainingServings
+    );
     setSelectedIngredients(dish.ingredients?.map((di) => di.ingredientId) || []);
     setSelectedAllergens(dish.allergens?.map((da) => da.allergenId) || []);
   };
 
   const onSubmit = (data: DishForm) => {
+    const remainingRaw = data.remainingServings as unknown;
+    const remainingServings =
+      remainingRaw === '' || remainingRaw == null || Number.isNaN(Number(remainingRaw))
+        ? null
+        : Number(remainingRaw);
     const dishData = {
       ...data,
       price: Number(data.price),
       prepTime: data.prepTime ? Number(data.prepTime) : undefined,
       spiceLevel: data.spiceLevel ? Number(data.spiceLevel) : undefined,
+      remainingServings,
       ingredientIds: selectedIngredients,
       allergenIds: selectedAllergens,
     };
@@ -231,9 +242,22 @@ export default function ChefMenuPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="AVAILABLE">Available</option>
-                  <option value="UNAVAILABLE">Unavailable</option>
+                  <option value="UNAVAILABLE">Unavailable / Sold out</option>
                   <option value="SEASONAL">Seasonal</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Remaining servings (blank = unlimited)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  {...register('remainingServings')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="Unlimited"
+                />
               </div>
 
               <div>
