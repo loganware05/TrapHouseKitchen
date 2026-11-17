@@ -1,0 +1,2 @@
+{"status":"ok","database":"connected","timestamp":"2026-11-17T22:43:09.749Z","requestId":"6bbc4f26-14a5-4fd3-b972-ff00994e472b"}
+HTTP 200
