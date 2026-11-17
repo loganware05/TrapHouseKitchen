@@ -8,6 +8,7 @@ import {
   sendNewOrderNotificationToChef,
   sendOrderConfirmationEmail,
 } from './emailService';
+import { decrementRemainingServingsForOrder } from './kitchenOps.service';
 
 export type FinalizePaymentOptions = {
   sendEmails?: boolean;
@@ -185,6 +186,11 @@ export async function finalizeSuccessfulPayment(
           usedOrderId: lockedPayment.orderId,
         },
       });
+    }
+
+    // Inventory: only on first successful pay (not replay / already PAID).
+    if (!alreadyPaid) {
+      await decrementRemainingServingsForOrder(tx, lockedPayment.orderId);
     }
 
     return {

@@ -16,6 +16,7 @@ import { useCartStore } from '../stores/cartStore';
 import { useCheckoutSheetStore } from '../stores/checkoutSheetStore';
 import { useEffect, useRef, useCallback } from 'react';
 import CheckoutSheet from './CheckoutSheet';
+import KitchenStatusBanner from './KitchenStatusBanner';
 import PullToRefresh from './PullToRefresh';
 import { PullToRefreshProvider, usePullToRefreshRunner } from '../contexts/PullToRefreshContext';
 import { flushAnalytics, initAnalyticsFlushListeners } from '../stores/analyticsStore';
@@ -162,6 +163,8 @@ export default function Layout() {
           </div>
         </div>
       </header>
+
+      {!isChefRoute && <KitchenStatusBanner />}
 
       <main className="flex-1">
         <LayoutMain />

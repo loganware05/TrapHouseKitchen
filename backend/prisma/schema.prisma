@@ -187,6 +187,8 @@ model Dish {
   isVegan     Boolean     @default(false)
   isVegetarian Boolean    @default(false)
   isGlutenFree Boolean    @default(false)
+  /// null = unlimited; decremented on successful payment finalize
+  remainingServings Int?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   
@@ -514,4 +516,15 @@ model PrepCalibration {
   dishSuggestions    Json?
   lastCalculatedAt   DateTime?
   updatedAt          DateTime @updatedAt
+}
+
+/// Singleton kitchen open/pause/hours/cap settings (id = "default").
+model KitchenOps {
+  id                         String   @id @default("default")
+  acceptingOrders            Boolean  @default(true)
+  scheduleEnabled            Boolean  @default(false)
+  /// { mon?: { open: "17:00", close: "23:00" }, ... } — omit day = closed that day
+  weeklyHours                Json?
+  maxConcurrentKitchenOrders Int?
+  updatedAt                  DateTime @updatedAt
 }

@@ -12,6 +12,10 @@ import {
   getKitchenQueueCounts,
 } from './prepTime.service';
 import { getGlobalLearningBias } from './prepTimeLearning.service';
+import {
+  assertKitchenAcceptingOrders,
+  assertRemainingServingsForItems,
+} from './kitchenOps.service';
 
 type OrderWithRelations = Order & {
   items: (OrderItem & { dish: Dish })[];
@@ -286,6 +290,8 @@ export async function createPaymentIntentForOrder(params: {
 }): Promise<PaymentIntentResult> {
   const { userId, orderId, tipAmount = 0, couponCode, savedPaymentMethodId } = params;
 
+  await assertKitchenAcceptingOrders();
+
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: {
@@ -300,6 +306,15 @@ export async function createPaymentIntentForOrder(params: {
   if (order.userId !== userId) {
     throw new AppError('Unauthorized to pay for this order', 403);
   }
+
+  // Re-check stock at PI create — unpaid drafts can outlive the last serving.
+  assertRemainingServingsForItems(
+    order.items.map((item) => ({
+      dishId: item.dishId,
+      quantity: item.quantity,
+      dish: item.dish,
+    }))
+  );
 
   const existingPayment = await prisma.payment.findFirst({
     where: {

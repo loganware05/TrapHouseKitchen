@@ -21,6 +21,7 @@ import couponRoutes from './routes/coupon.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import aiRoutes from './routes/ai.routes';
 import pushRoutes from './routes/push.routes';
+import kitchenRoutes from './routes/kitchen.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -94,6 +95,7 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/kitchen', kitchenRoutes);
 
 // Error handling
 app.use(errorHandler);

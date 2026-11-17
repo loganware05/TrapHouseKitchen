@@ -4,6 +4,10 @@ import { sendOrderStatusEmail } from './emailService';
 import { AppError } from '../middleware/errorHandler';
 import { createPaymentIntentForOrder } from './payment.service';
 import {
+  assertKitchenAcceptingOrders,
+  assertRemainingServingsForItems,
+} from './kitchenOps.service';
+import {
   ABANDONED_ORDER_MAX_AGE_MS,
   ABANDONED_ORDER_PAYMENT_STATUSES,
   ORDER_LIST_VISIBLE_PAYMENT_STATUSES,
@@ -147,6 +151,14 @@ async function buildOrderItemsFromInput(items: OrderItemInput[]) {
     throw new AppError('Some dishes are not available', 400);
   }
 
+  assertRemainingServingsForItems(
+    items.map((item) => ({
+      dishId: item.dishId,
+      quantity: item.quantity,
+      dish: dishes.find((d) => d.id === item.dishId) ?? null,
+    }))
+  );
+
   let totalPrice = 0;
   const orderItems = items.map(item => {
     const dish = dishes.find(d => d.id === item.dishId);
@@ -174,6 +186,7 @@ export async function createUnpaidOrder(
   specialInstructions?: string | null,
   delivery?: DeliveryInput
 ) {
+  await assertKitchenAcceptingOrders();
   await assertNoAllergenConflicts(
     userId,
     items.map(i => i.dishId)

@@ -1,66 +1,49 @@
-# Implementation Plan — Slice 19: Decisive CI / Playwright ≥1.61
+# Implementation Plan — Slice 20: Service operations
 
 ## Metadata
 
-- Status: **COMPLETED**
-- Plan ID: `slice-19-decisive-ci-2026-11-13`
-- NorthStar: campus service night — CI must fail when the core pay/fulfill path regressions
-- Depends on: Slice 18 closed (PR #41 / `9ac0008`)
-- Issue: [#42](https://github.com/loganware05/TrapHouseKitchen/issues/42) — closed
-- Base: `origin/main` at `9ac0008`
-- Branch: `chore/local-slice-19-decisive-ci`
-- Rollback checkpoint: `checkpoint/slice-19-decisive-ci-2026-11-13` → `9ac0008`
-- Created: 2026-11-13
-- Last updated: 2026-11-13
-- Completed: 2026-11-13 via PR [#43](https://github.com/loganware05/TrapHouseKitchen/pull/43) merge `3c7c36f`
+- Status: **APPROVED — IMPLEMENTING**
+- Plan ID: `slice-20-service-ops-2026-11-16`
+- NorthStar: campus service night — Chef can open/pause the kitchen, bound hours, cap load, and sell out dishes without taking orders into a closed kitchen
+- Depends on: Slice 19 closed (`b72cc4e`)
+- Issue: [#46](https://github.com/loganware05/TrapHouseKitchen/issues/46)
+- Base: `origin/main` at `b72cc4e`
+- Branch: `feature/local-slice-20-service-ops`
+- Rollback checkpoint: `checkpoint/slice-20-service-ops-2026-11-16` → `b72cc4e`
+- Created: 2026-11-16
+- Last updated: 2026-11-16
 
 ## Approval Record
 
-- **Status:** APPROVED → COMPLETED
+- **Status:** APPROVED
 - **Approved by:** Captain (Logan)
-- **Approval date:** 2026-11-13
-- **Captain notes:** Merged PR #41; approve Slice 19 and proceed
-- **Closeout:** Captain merged PR #43 (2026-11-13)
-
-## Prior delivery (closed)
-
-| Slice | Scope | Status |
-|-------|--------|--------|
-| 18 | Staging Blueprint + smoke | **Shipped** — PR #39 + #40; closeout #41 |
-| 19 | Decisive CI / Playwright ≥1.61 | **Shipped** — PR #43 (`3c7c36f`) |
+- **Approval date:** 2026-11-16
+- **Captain notes:** approve (plan defaults)
 
 ## Desired behavior
 
-1. CI **fails the PR** when the **core** Playwright suite fails (no `continue-on-error` on that job).
-2. Playwright **1.65.x** installed; Chromium (+ WebKit for mobile) installs on **`ubuntu-latest`**.
-3. Non-core / historically red specs remain in-repo and runnable locally, but **do not** block merge.
-4. Payment E2E runs in CI only when real Stripe **test** secrets are present and `PLAYWRIGHT_PAYMENT_TESTS=1`; otherwise those tests stay skipped (existing gate), not red.
+1. Pause via `acceptingOrders`
+2. Optional weekly hours (`America/Chicago`) when `scheduleEnabled`
+3. Concurrent kitchen order cap (`null` = unlimited)
+4. `Dish.remainingServings` decremented on payment finalize; 0 → `UNAVAILABLE`
+5. Public kitchen status + Chef/customer UI
 
 ## Non-goals
 
-- Staging/production deploy changes
-- Fixing every non-core flaky spec in this slice
-- Float→cents, Capacitor, Resend, service-hours product work
-- Changing Vitest unit/integration jobs beyond what E2E seed/CI needs
+Delivery ETA, Resend/SMS, Capacitor, XRV attestation, float→cents, non-core E2E expansion.
 
 ## Workstreams
 
 | ID | Stream | Status |
 |----|--------|--------|
-| A | Playwright 1.65.1 + lockfile; CI `ubuntu-latest` | Done |
-| B | `@core` tags + `test:e2e:core`; CI runs core only, blocking | Done |
-| C | Fix failing core specs / seed / webServer env | Done |
-| D | Payment: `PLAYWRIGHT_PAYMENT_TESTS=1` in CI only when test secrets are real | Done |
-| E | Memory + evidence + PR | Done (PR #43) |
-
-## Validation
-
-- Local: `npm run test:e2e:core` green (15 passed / 4 skipped)
-- CI: Vitest + Playwright E2E required and green without `continue-on-error` (run `43554005739` on `ce4858a`; docs tip `ed2184a`)
-- Evidence under `.agent/evidence/slice-19-decisive-ci-20261113/`
-- Rollback: revert PR #43 / reset to checkpoint tag
+| A | Prisma migration | Done |
+| B | Kitchen APIs + checkout enforcement | Done |
+| C | Payment-finalize inventory | Done |
+| D | Chef UI | Done |
+| E | Customer UI | Done |
+| F | Tests / evidence / PR | Implementing |
 
 ## Rollback
 
-- Tag: `checkpoint/slice-19-decisive-ci-2026-11-13`
-- Revert Slice 19 PR (restores non-blocking E2E + older Playwright)
+- Tag: `checkpoint/slice-20-service-ops-2026-11-16`
+- Revert PR / migrate down

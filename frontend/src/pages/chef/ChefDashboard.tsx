@@ -13,6 +13,7 @@ import {
 import api from '../../lib/api';
 import { useRegisterPullToRefresh } from '../../contexts/PullToRefreshContext';
 import KitchenQueueSummary from '../../components/chef/KitchenQueueSummary';
+import ServiceNightPanel from '../../components/chef/ServiceNightPanel';
 import {
   chefAllOrdersQueryOptions,
   prepIntelligenceQueryOptions,
@@ -91,6 +92,8 @@ export default function ChefDashboard() {
       queryClient.invalidateQueries({ queryKey: ['dishRequests'] }),
       queryClient.invalidateQueries({ queryKey: ['analyticsDashboard'] }),
       queryClient.invalidateQueries({ queryKey: ['prepIntelligence'] }),
+      queryClient.invalidateQueries({ queryKey: ['kitchenOps'] }),
+      queryClient.invalidateQueries({ queryKey: ['kitchenStatus'] }),
     ]);
   }, [queryClient]);
 
@@ -115,6 +118,8 @@ export default function ChefDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 mb-20 md:mb-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Chef Dashboard</h1>
+
+      <ServiceNightPanel />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
