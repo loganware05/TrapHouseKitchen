@@ -23,9 +23,10 @@ npx playwright test e2e/payment-flow.spec.ts --project=chromium
 
 ### Slice 20 — service operations
 
-- Unit: `backend/tests/unit/kitchenOps.test.ts` (hours validation / windows)
-- Integration: `backend/tests/integration/kitchen-ops.test.ts` (public status, Chef authz, pause→403 checkout, remaining servings)
+- Unit: `backend/tests/unit/kitchenOps.test.ts`, `payment.service.test.ts` (hours windows; PI create stock gate)
+- Integration: `backend/tests/integration/kitchen-ops.test.ts` (public status, Chef authz, pause→403 checkout, remaining servings at create + pay)
 - Evidence: `.agent/evidence/slice-20-service-ops-20261116/validation.md`
+- Shipped: PR #47 (`f5222e4`); migration `20261116200000_kitchen_ops_and_remaining_servings`
 
 ### Slice 19 — decisive CI
 

@@ -2,10 +2,6 @@
 
 ## Unreleased
 
-### Added
-
-- Service operations (Slice 20): Chef pause / weekly hours (America/Chicago) / concurrent kitchen cap; dish `remainingServings` sellout on payment finalize; public kitchen status + customer closed banner.
-
 ### Security
 
 - Production rejects missing or default `JWT_SECRET` at API startup; JWT auth requires matching `tokenVersion` (claim-less tokens invalid).
@@ -19,6 +15,10 @@
 - Privacy Policy and Terms contact block uses real business address/phone/email.
 - README scripts match actual package manifests (no false root `npm test` / `npm start`).
 - CI: Vitest integration files run sequentially to avoid shared coupon-gateway races; JWT unit tests no longer reassign `process.env`.
+
+## [Slice 20] — 2026-11-16
+
+Service operations shipped via PR [#47](https://github.com/loganware05/TrapHouseKitchen/pull/47) (`f5222e4`): Chef pause / weekly hours (America/Chicago) / concurrent kitchen cap; dish `remainingServings` sellout (assert at unpaid create + PaymentIntent create; finalize clamp under row lock); public kitchen status + customer closed banner. Ops: apply migration `20261116200000_kitchen_ops_and_remaining_servings` on staging/production.
 
 ## [Slice 19] — 2026-11-13
 
