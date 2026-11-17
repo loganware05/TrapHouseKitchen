@@ -27,7 +27,7 @@ npx playwright test e2e/payment-flow.spec.ts --project=chromium
 - Integration: `backend/tests/integration/kitchen-ops.test.ts` (public status, Chef authz, pause→403 checkout, remaining servings at create + pay)
 - Evidence: `.agent/evidence/slice-20-service-ops-20261116/validation.md`
 - Shipped: PR #47 (`f5222e4`); closeout PR #48 (`e4fb791`); migration `20261116200000_kitchen_ops_and_remaining_servings`
-- Render smoke (2026-11-17): prod `GET /api/kitchen/status` 200; staging same route 404 — see `.agent/evidence/slice-20-render-redeploy-20261116/validation.md`
+- Render smoke (2026-11-17): prod + staging `GET /api/kitchen/status` both **200** after redeploy on `f5222e4` — see `.agent/evidence/slice-20-render-redeploy-20261116/validation.md`
 
 ### Slice 19 — decisive CI
 

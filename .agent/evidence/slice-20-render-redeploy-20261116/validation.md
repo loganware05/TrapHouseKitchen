@@ -1,35 +1,33 @@
 # Slice 20 — Render redeploy smoke (2026-11-17)
 
-Captain reported staging + production redeployed after PR #47 / docs closeout PR #48 (`e4fb791` on `main`).
+Captain reported staging + production redeployed after PR #47 / docs closeout PR #48 (`e4fb791` on `main`). Follow-up: PR #49 merged (`674d2e1`); Captain redeployed Render on `f5222e4`.
 
-Probed ~2026-11-17T03:30Z (UTC). Render MCP unauthorized — no dashboard deploy SHA read; public HTTP only.
+Render MCP unauthorized — public HTTP only.
 
-## Production API (`traphousekitchen-api.onrender.com`)
+## First probe (~2026-11-17T03:30Z UTC)
 
-| Check | Result |
-|-------|--------|
-| `GET /health` | OK — database connected |
-| `GET /api/kitchen/status` | **200** — Slice 20 live (`acceptingOrders`, `timezone: America/Chicago`, etc.) |
+| Env | `GET /api/kitchen/status` |
+|-----|---------------------------|
+| Production | **200** |
+| Staging | **404** `Cannot GET /api/kitchen/status` |
 
-Artifacts: `prod-health.json`, `prod-kitchen-status.json`
+Artifacts: `prod-health.json`, `prod-kitchen-status.json`, `staging-health.json`, `staging-kitchen-status.txt`
 
-## Staging API (`traphousekitchen-api-staging.onrender.com`)
+## Re-probe after staging redeploy (~2026-11-17T04:47Z UTC)
 
-| Check | Result |
-|-------|--------|
-| `GET /health` | OK — database connected |
-| `GET /api/dishes` | 200 (staging still serving API) |
-| `GET /api/kitchen/status` | **404** `Cannot GET /api/kitchen/status` |
+| Env | `GET /health` | `GET /api/kitchen/status` |
+|-----|---------------|---------------------------|
+| Production | OK | **200** |
+| Staging | OK | **200** |
 
-Artifact: `staging-health.json`, `staging-kitchen-status.txt`
+Artifacts: `staging-kitchen-status-pass.json`, `prod-kitchen-status-recheck.json`
 
 ## Verdict
 
-- **Production:** Slice 20 kitchen ops endpoint present → code + migration path succeeded for prod.
-- **Staging:** API is healthy but **does not yet expose** `/api/kitchen/status` → staging API process is still on a pre–Slice 20 build (redeploy incomplete, wrong branch, or failed build not live).
+- **Production:** Slice 20 kitchen ops live (confirmed twice).
+- **Staging:** Slice 20 kitchen ops live after Captain redeploy on `f5222e4`.
+- Migration path is in both blueprints (`prisma migrate deploy` in buildCommand); successful `/api/kitchen/status` implies KitchenOps schema is available.
 
-## Follow-up for Captain
+## Remaining (optional / XRV)
 
-1. In Render → `traphousekitchen-api-staging` → confirm latest deploy is `main` at/after `f5222e4` / `e4fb791` and succeeded.
-2. Re-check `GET https://traphousekitchen-api-staging.onrender.com/api/kitchen/status` → expect 200 JSON like prod.
-3. Optional: XRV still needs explicit production deploy SHA attestation for Slice 17 (`a195175`) if that remains open.
+- Explicit production deploy SHA attestation for Slice 17 (`a195175`) if still required for XRV paperwork.
