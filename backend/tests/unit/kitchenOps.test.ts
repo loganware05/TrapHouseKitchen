@@ -36,11 +36,17 @@ describe('kitchenOps hours helpers', () => {
   });
 
   it('returns false when schedule has no hours for today', () => {
-    const { day } = getChicagoClock(new Date('2026-11-16T18:00:00Z'));
+    // Pin one instant for both the weekday lookup and the schedule check.
+    // Using the real clock for the second call made this test fail every Tuesday.
+    const now = new Date('2026-11-16T18:00:00Z'); // Monday 12:00 America/Chicago
+    const { day } = getChicagoClock(now);
+    expect(day).toBe('mon');
     const other = day === 'mon' ? 'tue' : 'mon';
-    expect(
-      isWithinWeeklySchedule({ [other]: { open: '00:00', close: '23:59' } }, new Date())
-    ).toBe(false);
+    expect(isWithinWeeklySchedule({ [other]: { open: '00:00', close: '23:59' } }, now)).toBe(
+      false
+    );
+    // Positive control: the same window on the pinned weekday is open.
+    expect(isWithinWeeklySchedule({ [day]: { open: '00:00', close: '23:59' } }, now)).toBe(true);
   });
 
   it('assertRemainingServingsForItems rejects oversell and unavailable', () => {
