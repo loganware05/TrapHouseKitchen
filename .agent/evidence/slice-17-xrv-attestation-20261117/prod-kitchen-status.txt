@@ -1,0 +1,2 @@
+{"status":"success","data":{"acceptingOrders":true,"scheduleEnabled":false,"openNow":true,"reason":null,"timezone":"America/Chicago","weeklyHours":null,"maxConcurrentKitchenOrders":null,"currentKitchenOrders":0}}
+HTTP 200
