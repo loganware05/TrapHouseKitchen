@@ -21,9 +21,9 @@ Rollback (docs): `checkpoint/slice-17-xrv-reconcile-2026-11-11`
 | 5 | Payment-safety matrix coverage | PASS (unit/integration) | Concurrent finalize + coupon once; duplicate succeeded; late `payment_failed` after PAID; sticky refund; idempotent `charge.refunded`; decline→retry — `backend/tests/integration/webhook-stripe.test.ts` |
 | 6 | E2E race/refund matrix | N/A (Captain optional) | Issue #34: sandbox Playwright optional / not merge blocker; `e2e/payment-flow.spec.ts` covers success + decline only |
 | 7 | Production Chef seed password rotated | PASS (ops attested) | Captain attestation 2026-11-11 (this approval turn); no password values stored |
-| 8 | Render deployed `a195175` + migration applied | OPEN | No in-repo deploy log; Render MCP unauthorized during discovery — needs Captain/dashboard attestation |
-| 9 | Staging smoke (Pilot A env) | BLOCKED | Staging unavailable until Slice 18 |
-| 10 | Operationally verified for Pilot A | OPEN | Depends on #8–#9 |
+| 8 | Render deployed `a195175` + migration applied | PASS (inferred, 2026-11-17) | Prod + staging serve Slice 20 (`f5222e4`, descendant of `a195175`); `/api/kitchen/status` 200 proves later migration applied, and `migrate deploy` is ordered. Dashboard SHA not read — see `.agent/evidence/slice-17-xrv-attestation-20261117/validation.md` |
+| 9 | Staging smoke (Pilot A env) | PASS (API + browser) | Slice 18: `.agent/evidence/slice-18-staging-smoke-20261113/` |
+| 10 | Operationally verified for Pilot A | PARTIAL | Core pay/decline/Chef path verified on staging; webhook replay / sticky refund / out-of-order events are CI-only, not run live |
 
 ## Payment-safety test inventory (reference)
 
@@ -45,6 +45,7 @@ Rollback (docs): `checkpoint/slice-17-xrv-reconcile-2026-11-11`
 
 ## Remaining blockers
 
-- Render deploy attestation for `a195175`
-- Staging environment (Slice 18)
-- Live Stripe path re-verify deferred until staging/pilot env
+- ~~Render deploy attestation for `a195175`~~ — inferred PASS 2026-11-17 (dashboard SHA optional)
+- ~~Staging environment (Slice 18)~~ — shipped and smoked
+- Live race/refund checks on staging (needs Captain approval; mutates staging data)
+- Live Stripe path re-verify deferred until Captain chooses to go live

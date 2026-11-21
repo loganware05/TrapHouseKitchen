@@ -135,7 +135,7 @@ Optimize for a small concurrent user base (<200 community) rather than large-sca
 
 - Production Chef seed password: Captain attested rotation 2026-11-11; keep using `backend/scripts/set-user-password.ts` for future rotations (see Slice 16 evidence)
 - Non-core Playwright specs still outside the CI gate (coupon/tracking/reviews/ai-removal)
-- Slice 17 payment safety is **merged + CI-tested** on `main` (`a195175`); production/staging Stripe path still needs **operational** re-verify (deploy attestation + Slice 18 staging smoke)
+- Slice 17 payment safety is **merged + CI-tested** on `main` (`a195175`); deploy attested (inferred, 2026-11-17) and staging smoke done (Slice 18); webhook-replay / sticky-refund behaviors are still CI-only, not exercised live
 - Webhook refund confirmation email still TODO
 - Capacitor iOS remains on feature branch
 - Legacy `vercel.json` may confuse deploy tooling if not ignored
@@ -190,9 +190,7 @@ Node + local Postgres is acceptable when Docker is unavailable. See `docs/develo
 
 NorthStar: a repeatable campus service night (pay once → one paid Chef order → safe fulfillment → customer updates → reviews/coupons without leaks).
 
-1. **Ops / XRV:** production deploy SHA attestation for Slice 17 (`a195175`) (Chef password rotation attested 2026-11-11; Slice 20 kitchen status verified on prod + staging)
-
-
+1. **Ops / XRV:** Slice 17 deploy attested (inferred) 2026-11-17; remaining optional step is live webhook-replay / refund checks on staging before calling Slice 17 operationally verified (Chef password rotation attested 2026-11-11)
 2. **Delivery + ETA timestamps** — separate prep from travel/arrival
 3. **Engagement** — production Resend reset email; coupon/SMS decision; refund confirmation email
 4. **Capacitor iOS** (`feat/capacitor-ios-scaffold`) after web path is reliable
