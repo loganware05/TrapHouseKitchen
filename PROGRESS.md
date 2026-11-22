@@ -4,14 +4,15 @@
 
 **NorthStar:** repeatable campus service night.
 
-Slice **20** complete on `main` — PRs [#47](https://github.com/loganware05/TrapHouseKitchen/pull/47)–[#50](https://github.com/loganware05/TrapHouseKitchen/pull/50) (`1563f46`). Prod and staging `GET /api/kitchen/status` verified **200**.
+Slice **20** complete on `main`. Tip: `4d044a2` (PRs [#51](https://github.com/loganware05/TrapHouseKitchen/pull/51) XRV attestation + [#53](https://github.com/loganware05/TrapHouseKitchen/pull/53) kitchenOps Tuesday test fix). Prod and staging `GET /api/kitchen/status` verified **200**.
 
-**XRV (Slice 17):** deploy attestation recorded 2026-11-17 as **PASS (inferred)** — `a195175` is an ancestor of `f5222e4`, both envs serve Slice 20, and ordered `prisma migrate deploy` implies `20261109120000_unique_stripe_refund_id` applied. Evidence: `.agent/evidence/slice-17-xrv-attestation-20261117/validation.md`. Dashboard SHA was not read (Render MCP unauthorized).
+**XRV (Slice 17):** deploy attestation **PASS (inferred)** — evidence `.agent/evidence/slice-17-xrv-attestation-20261117/validation.md`. Dashboard SHA not read. Row #10 remains PARTIAL.
 
 ## Completed
 
 - Slices 1–20 (code on `main`; prod + staging kitchen status smoke)
-- Slice 17 XRV rows #8 (inferred PASS) and #9 (PASS) closed; #10 PARTIAL
+- Slice 17 XRV rows #8 (inferred PASS) and #9 (PASS); #10 PARTIAL
+- kitchenOps weekday unit-test date bomb fixed (#52 / #53)
 
 ## Next
 
